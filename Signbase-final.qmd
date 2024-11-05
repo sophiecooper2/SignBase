@@ -1,0 +1,347 @@
+---
+title: "Preliminary Report"
+format: html
+editor: visual
+---
+
+## Intro
+
+## Data
+
+```{r}
+##data
+library(tidyverse)
+library(magrittr)
+
+signbase_full <- read_csv("signBase_Version1.0.csv")
+
+nsites <- signbase_full %>% 
+  pull(site_name ) %>% 
+  unique() %>% 
+  length()
+
+nartifacts <- nrow(signbase_full)
+
+ncountries <- signbase_full %>% 
+  pull(country) %>% 
+  unique() %>% 
+  length()
+
+nsigntypes <- ncol(signbase_full %>% 
+                     select(line:other))
+
+signbase_full_clean <- signbase_full %>% 
+  filter(site_name != "Willendorf",
+         site_name != "Riparo di Fontana Nuova",
+         site_name != "Muralovka",
+         site_name != "Shanidar Cave",
+         site_name != "Hayonim Cave") %>% 
+  select(-other)
+
+nsites_clean <- signbase_full_clean%>% 
+  pull(site_name ) %>% 
+  unique() %>% 
+  length()
+
+nartifacts_clean <- nrow(signbase_full_clean)
+
+ncountries_clean <- signbase_full_clean %>% 
+  pull(country) %>% 
+  unique() %>% 
+  length()
+
+nsigntypes_clean <- nsigntypes - 1
+```
+
+The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brings our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The
+
+## Methods
+
+We performed a seriation analysis on the data to identify groups. We also performed PCoA and Network analyses on the data to visualize the grouping of the data. The dissimilarity of the signbase data was represented using a Jaccard matrix in all of these methods. We performed permutation and modularity tests on the identified groups to determine how strong the grouping was. We also ran a mantel test using the Jaccard similarity matrix and a geographic distance matrix, to determine the influence of geography on the distribution of the signs.
+
+## Results
+
+```{r}
+##Add groups
+groups <- list("1" = c("Abri Pataud", "El Rascaño", 
+                       "Fumane", "La Viña",
+                       "Lhotka", "Pod Hradem",
+                       "Riparo Bombrini", "Sirgenstein Cave",
+                       "Šandalja II"),
+               "2" = c("Aurignac", "Gargas",
+                       "Grotte de la Verpillière I", "Hohlenstein-Stadel",
+                       "Istállóskő Cave", "Mladeč",
+                       "d'Engihoul"), 
+               "3" = c("Grottes de Fonds-de-Forêt", "Kvasice",
+                       "Labeko Koba", "Les Rois",
+                       "Breitenbach", "Peskő Cave",
+                       "Vindija Cave", "Wildscheuer"),
+               "4" = c("Le Trou Du Renard", "Trou Magrite", 
+                       "Gatzarria", "Bockstein-Törle",
+                       "Grotte De La Princesse Pauline", "Abri Lartet/Gorge d'Enfer",
+                       "Tuto de Camalhot", "Slatinice"),
+               "5" = c("Spy", "Solutré",
+                       "Nová Dědina", "Grotte de Goyet",
+                       "Brassempouy",  "El Castillo",
+                       "Menton/Grottes du Grimaldi", "Geissenklösterle",
+                       "El Salitre", "Göpfelsteinhöhle",
+                       "Vogelherd"),
+               "6" = c("Castanet", "Maisières-Canal",
+                       "Grotte du Renne", "Hohle Fels",
+                       "Žlutava", "Cellier",
+                       "Blanchard", "La Ferrassie"),
+               "7" = c("La Souquette", "Shelter Birów IV",
+                       "Hornos de la Pena", "Trou al'Wesse",
+                       "Les Cottés", "Le Terme Pialat",
+                       "Abri de Laussel", "Abri du Poisson",
+                       "Otaslavice"))
+  
+df <- 
+  enframe(groups, 
+          name = "group", 
+          value = "site_name") %>%
+  unnest(cols = site_name)
+
+signbase_unique_groups <- 
+  signbase_full_clean %>% group_by(site_name) %>% 
+  summarize(across(where(is.numeric), sum)) %>% 
+  left_join(df)
+
+```
+
+```{r}
+##clean the data 
+artifact_data <- signbase_unique_groups %>% 
+  column_to_rownames(var = "site_name") %>% 
+  select(line:star)
+
+```
+
+```{r}
+##map
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggrepel)
+library(sf)
+
+signbase_sf <- 
+  st_as_sf(signbase_full_clean, 
+           coords = c("longitude", "latitude"),
+           remove = FALSE,
+           crs = 4326) %>% 
+  filter(!country %in% c("Israel", "Iraq"))
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+Europe <- world[which(world$continent == "Europe"),]
+
+ggplot(Europe) +
+  geom_sf() +
+  geom_sf(data = signbase_sf %>% 
+            distinct(site_name, .keep_all = TRUE), 
+          size = 1,
+          aes(colour = country)) +
+  geom_text_repel(data = signbase_sf %>% 
+                    distinct(site_name, .keep_all = TRUE),
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  size = 2) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,55), 
+           expand = FALSE) +
+  theme_minimal()
+
+```
+
+```{r}
+##seriation
+library(ggpubr)
+artifact_matrix <- as.matrix(artifact_data %>% 
+ mutate(across(everything(), ~replace(., . > 1, 1))))
+rownames(artifact_matrix) <- rownames(artifact_data)
+
+
+mplot <- function(x,...){
+  d <- data.frame(x = rep(1:ncol(x), each = nrow(x)),
+                  y = rep(nrow(x):1, ncol(x)),
+                  z = as.integer(x))
+  ggplot(d, aes(x, y, fill = factor(z))) +
+    geom_tile(col = "grey50", linewidth = 0.5) +
+    scale_fill_manual(values = c("0" = "white", "1" = "black")) +
+    coord_equal(expand = FALSE) +
+    scale_x_continuous(breaks = 1:ncol(x), 
+                       labels = colnames(x),
+                       position = "top") +
+    scale_y_continuous(breaks = 1:nrow(x), 
+                       labels = rev(rownames(x))) +
+    theme(axis.text = element_text(size = rel(0.5)),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          plot.title = element_text(hjust = 0.25)) +
+    labs(x = "Sign Type",
+         y = "Site Name",
+         fill = "Count") +
+    rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)}
+
+
+increase_focus <- function(x){
+  mcp <- apply(
+    x, 
+    MARGIN = 1, 
+    FUN = \(z){ mean(which(z == 1)) }, 
+    simplify = FALSE
+  ) |> unlist()
+  x <- x[order(mcp), ]
+  mrp <- apply(
+    x, 
+    MARGIN = 2, 
+    FUN = \(z){ mean(which(z == 1)) }, 
+    simplify = FALSE) |> unlist()
+  x[, order(mrp)]}
+
+concentrate <- function(x){
+  old <- x
+  not_identical <- TRUE
+  while(not_identical){
+    new <- increase_focus(old)
+    not_identical <- !identical(old, new)
+    old <- new}
+  new}
+
+artifact_matrix |> concentrate() |> mplot()
+
+```
+
+```{r}
+##network analysis
+library(vegan)
+library(phangorn)
+
+jac <- (vegdist(artifact_data, "jaccard"))
+
+dm <- as.matrix(jac)
+
+nnet <- neighborNet(dm)
+par("mar" = rep(1, 4))
+
+neighbor_graph <- plot(nnet, show.tip.label = FALSE)
+tiplabels(rownames(artifact_data),
+          bg = "white",
+          frame = "none", 
+          cex = 0.5)
+```
+
+```{r}
+##PCoA
+library(ecodist)
+
+pcoa <- pco(jac)
+
+pcoa_df <- data.frame(pcoa1 = pcoa$vectors[,1], 
+                      pcoa2 = pcoa$vectors[,2])
+
+pcoa_df <- pcoa_df %>% 
+  mutate(site_name = rownames(artifact_data))
+
+library(ggrepel)
+ggplot(pcoa_df) +
+  aes(x=pcoa1, 
+      y=pcoa2) +
+  geom_point() +
+  labs(x = "PC1",
+       y = "PC2",) +
+  theme(title = element_text(size = 10)) +
+  geom_text_repel(aes(label = site_name), 
+                  size = 2,
+                  max.overlaps = 20)
+```
+
+```{r}
+## permanova test
+perman <- adonis2(jac~as.factor(signbase_unique_groups$group), 
+                  method = "jaccard",
+                  sqrt.dist = TRUE)
+
+dispersion <- betadisper(jac, group = signbase_unique_groups$group)
+
+disp <- (permutest(dispersion))
+
+perman <- data.frame(perman) %>% 
+  mutate(type = c("Model", "Residual", "Total")) %>% 
+  filter(type == "Model")
+
+disp <- disp$tab %>% 
+  na.omit()
+
+permu_table <- data.frame("Permutation_test_adonis" = c(perman$R2, perman$F, perman$Pr..F.),
+           "Permutation_test_homogeneity" = c("NA", disp$F, disp$`Pr(>F)`))
+rownames(permu_table) <- c("R-squared", "F", "P-score")
+
+permu_table
+plot(dispersion, hull = FALSE, ellipse=TRUE)
+
+```
+
+```{r}
+##modularity test
+library(igraph)
+
+reordered_matrix <- artifact_matrix[row.names(concentrate(artifact_matrix)), ]
+
+artifact_matrix_j_dist <- as.matrix(vegdist(reordered_matrix, method = "jaccard"))
+artifact_matrix_j_adj_mat <-
+  graph_from_adjacency_matrix(1 - artifact_matrix_j_dist,
+                              mode = "undirected")
+gn <- cluster_edge_betweenness(artifact_matrix_j_adj_mat)
+wt <- cluster_walktrap(artifact_matrix_j_adj_mat, steps = 4)
+lv <- cluster_louvain(artifact_matrix_j_adj_mat)
+
+
+artifact_sim <- graph_from_adjacency_matrix(1- dm)
+mem <- as_membership(as.numeric(signbase_unique_groups$group))
+as_group <- modularity(artifact_sim, membership = mem)
+
+create_tibble <- data.frame("Seriation groups" = c(as_group),
+                            "Girvan-Newman" = c(max(gn$modularity)), 
+                            "Walktrap" = c(max(wt$modularity)),
+                            "Louvain" = c(lv$modularity))
+create_tibble
+```
+
+```{r}
+#mantel tests
+library(ape)
+library(ade4)
+library(Lock5Data)
+
+set.seed(36)
+
+lat_long_clean <- signbase_full_clean %>% 
+  group_by(site_name) %>% 
+  summarize(across(where(is.numeric), sum))
+
+site_distances <- dist(cbind(lat_long_clean$longitude, lat_long_clean$latitude))
+
+rtest <- mantel.rtest(site_distances, jac, nrepet = 1000)
+
+mantel <- vegan::mantel(site_distances, jac, permutations = 1000)
+
+site_distances_matrix <- as.matrix(site_distances)
+
+mantel_test <- mantel.test(site_distances_matrix, dm, nperm = 1000)
+
+
+mantel_dataframe <- data_frame("p score" = c(rtest$pvalue, mantel$signif, mantel_test$p),
+                               "Mantel Statistic R" = c(rtest$obs, mantel$statistic, NA))
+
+rownames(mantel_dataframe) <- c("Mantel.rtest()", "Mantel()", "Mantel.test()")
+
+mantel_dataframe
+
+bur_man_cor <- mantel.correlog(jac, site_distances, n.class=50, break.pts=NULL, cutoff=FALSE, r.type="pearson", nperm=999, mult="holm", progressive=TRUE)
+
+plot(bur_man_cor)
+
+```
+
+\`
