@@ -104,7 +104,7 @@ ggplot(Europe) +
   geom_sf(data = signbase_sf %>% 
             distinct(site_name, .keep_all = TRUE), 
           size = 1,
-          aes(colour = group)) +
+          aes(colour = gro:up)) +
   geom_text_repel(data = signbase_sf %>% 
                     distinct(site_name, .keep_all = TRUE),
                   aes(x = longitude ,
