@@ -145,10 +145,19 @@ df <-
           value = "site_name") %>%
   unnest(cols = site_name)
 
-signbase_unique_groups <- 
-  signbase_full_clean %>% group_by(site_name) %>% 
+lat_long_df <- signbase_full_clean %>% 
+  select(site_name, longitude, latitude) %>% 
+  distinct(site_name, .keep_all = TRUE)
+
+signbase_unique_groups <- signbase_full_clean %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
   summarize(across(where(is.numeric), sum)) %>% 
   left_join(df)
+
+signbase_unique_groups <- signbase_unique_groups %>% 
+  left_join(lat_long_df)
 
 ```
 
@@ -359,11 +368,7 @@ library(Lock5Data)
 
 set.seed(36)
 
-lat_long_clean <- signbase_full_clean %>% 
-  group_by(site_name) %>% 
-  summarize(across(where(is.numeric), sum))
-
-site_distances <- dist(cbind(lat_long_clean$longitude, lat_long_clean$latitude))
+site_distances <- dist(cbind(signbase_unique_groups$longitude, signbase_unique_groups$latitude))
 
 rtest <- mantel.rtest(site_distances, jac, nrepet = 1000)
 
