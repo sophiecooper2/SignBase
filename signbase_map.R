@@ -1,21 +1,19 @@
 library(magrittr)
 library(tidyverse)
 
-my_data <- read_csv("signBase_Version1.0.csv")
-my_data <- my_data %>% 
-  filter(site_name != "Willendorf",
-         site_name != "Riparo di Fontana Nuova",
-         site_name != "Muralovka",
-         site_name != "Shanidar Cave",
-         site_name != "Hayonim Cave") %>% 
-  select(-other)
+abundance_data <- signbase_unique_groups %>% 
+  pivot_longer(cols= line:star,
+               values_to = "sign_total") %>% 
+  filter(sign_total != 0) %>% 
+  select(-name) %>%
+  distinct(site_name, .keep_all = TRUE)
 
+country_data_df <- signbase_full_clean %>% 
+  select(site_name, country) %>% 
+  distinct(site_name, .keep_all = TRUE)
 
-ggplot(my_data) +
-  aes(x = longitude,
-      y = latitude) +
-  geom_point() +
-  theme_bw()
+abundance_data <- abundance_data %>% 
+  left_join(country_data_df)
 
 library(rnaturalearth)
 library(rnaturalearthdata)
@@ -23,7 +21,7 @@ library(ggrepel)
 library(sf)
 
 signbase_sf <- 
-  st_as_sf(my_data, 
+  st_as_sf(abundance_data, 
            coords = c("longitude", "latitude"),
            remove = FALSE,
            crs = 4326) %>% 
@@ -36,19 +34,21 @@ Europe <- world[which(world$continent == "Europe"),]
 ggplot(Europe) +
   geom_sf() +
   geom_sf(data = signbase_sf %>% 
-            distinct(site_name, .keep_all = TRUE), 
-          size = 1,
-          aes(colour = country)) +
+            distinct(site_name, .keep_all = TRUE),
+          aes(colour = group,
+              size = sign_total)) +
   geom_text_repel(data = signbase_sf %>% 
                     distinct(site_name, .keep_all = TRUE),
                   aes(x = longitude ,
                       y = latitude,
                       label = site_name),
+                  max.overlaps = 100,
                   size = 2) +
-  coord_sf(xlim = c(-10,40), 
-           ylim = c(35,55), 
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
            expand = FALSE) +
   theme_minimal()
+
 
 ## GIS with raster data
 library(terra)
