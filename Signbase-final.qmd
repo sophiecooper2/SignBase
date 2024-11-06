@@ -51,9 +51,52 @@ ncountries_clean <- signbase_full_clean %>%
   length()
 
 nsigntypes_clean <- nsigntypes - 1
+
+signbase_years <- signbase_full_clean %>% 
+  drop_na(date_bp_max_min) %>% 
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>% 
+  separate(date_bp_max_min,
+           sep = " - ",
+           c("date_bp_max", "date_bp_min"),
+           remove = FALSE) %>% 
+  mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"),
+                              str_extract(date_bp_max, ".*?(?=\\/)"),
+                              date_bp_max)) %>% 
+  mutate(date_bp_min = ifelse(str_detect(date_bp_min, "\\/"),
+                              str_extract(date_bp_min, ".*?(?=\\/)"),
+                              date_bp_min)) %>% 
+  separate(date_bp_max,
+           sep = "±",
+           c("date_bp_max_age",
+             "date_bp_max_error")) %>% 
+  separate(date_bp_min,
+           sep = "±",
+           c("date_bp_min_age",
+             "date_bp_min_error")) %>% 
+  drop_na(date_bp_max_age,
+          date_bp_max_error) %>% 
+  mutate(date_bp_max_age = parse_number(date_bp_max_age),
+         date_bp_max_error = parse_number(date_bp_max_error))
+
+signbase_years_cal <- 
+  calibrate(signbase_years$date_bp_max_age,
+            signbase_years$date_bp_max_error) %>% 
+  summary() %>% 
+  data_frame()
+
+date_min <- signbase_years_cal %>% 
+  pull(MedianBP) %>% 
+  min()
+
+date_max <- signbase_years_cal %>% 
+  pull(MedianBP) %>% 
+  max()
+
+date_range <- date_max - date_min
 ```
 
-The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brings our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The
+The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brings our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
 
 ## Methods
 
