@@ -7,9 +7,21 @@ signbase_full <- read_csv("signBase_Version1.0.csv") %>%
          site_name != "Muralovka",
          site_name != "Shanidar Cave",
          site_name != "Hayonim Cave") %>% 
-  group_by(site_name) %>% 
+  select(-other)
+
+lat_long_df <- signbase_full %>% 
+  select(site_name, longitude, latitude) %>% 
+  distinct(site_name, .keep_all = TRUE)
+
+signbase_full <- signbase_full %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
   summarize(across(where(is.numeric), sum))
-  
+
+signbase_full <- signbase_full %>% 
+  left_join(lat_long_df)
+
 
 
 site_distances <- dist(cbind(signbase_full$longitude, signbase_full$latitude))
@@ -22,7 +34,7 @@ row.names(artifact_data) <- (unique(signbase_full$site_name))
 
 
 signbase_abundance <- signbase_full %>%
-  pivot_longer(cols= line:other,
+  pivot_longer(cols= line:star,
                names_to = "sign_type") %>% 
   filter(value != 0)
 
@@ -76,10 +88,16 @@ bray_dist_mantel <- vegan::mantel(site_distances, sample_size_bray)
 bray_dist_test <- mantel.test(site_distances_matrix, bray_matrix)
 
 
+jac_dist_rtest <- mantel.rtest(site_distances, jac)
+jac_dist_mantel <- vegan::mantel(site_distances, jac)
+jac_dist_test <- mantel.test(site_distances_matrix, dm)
+
 mantel_table <- data_frame("Euclidean_vs_jac" = c(euc_mantel_rtest$pvalue, euc_mantel$signif, euc_mantel_test$p),
                            "Bray_vs_Jac" = c(bray_mantel_rtest$pvalue, bray_mantel$signif, bray_mantel_test$p),
                            "Euclidean_vs_Distance" = c(euc_dist_rtest$pvalue, eud_dist_mantel$signif, euc_dist_test$p),
-                           "Bray_vs_Distance" = c(bray_dist_rtest$pvalue, bray_dist_mantel$signif, bray_dist_test$p))
+                           "Bray_vs_Distance" = c(bray_dist_rtest$pvalue, bray_dist_mantel$signif, bray_dist_test$p),
+                           "Jac_vs_Distance" = c(jac_dist_rtest$pvalue, jac_dist_mantel$signif, jac_dist_test$p))
+
 
 
 row.names(mantel_table) <- c("Mantel.rtest(),", "Mantel()", "Mantel.test()")
