@@ -116,6 +116,3 @@ ggplot(signbase_sf) +
   geom_boxplot()
 
 
-
-                        
-

@@ -10,9 +10,10 @@ Signbase, an open-access database collection of geometric signs on mobile object
 
 ## Background
 
-In "Evidence from Personal Ornaments Suggest Nine Distinct Cultural Groups Between 34,000 and 24,000 Years Ago in Europe", by Baker, et al., the authors write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". Similarly, Vanhaeren, et al. argues in "Aurignacian Ethno-Linguistic Geography of Europe Revealed by Personal Ornaments", for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. Similarly, in this paper, we will be using geometric signs etched into mobile objects, the function of which, we assume, is also symbolic, as a way to differentiate cultural groups.
+Our understanding of the patterns of cultural and genetic diversity among the hominids of the Upper Paleolithic remains incomplete. The evidence-by-isolation framework proposes that similarity in cultural features will be primarily determined by geographical distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Palelolithic hominids that are dispersed according to geography.
 
-The
+In this paper, we use geometric signs on mobile objects as a proxy for cultural diversity.  In "Evidence from Personal Ornaments Suggest Nine Distinct Cultural Groups Between 34,000 and 24,000 Years Ago in Europe", by Baker, et al., the authors write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". Similarly, Vanhaeren, et al. argues in "Aurignacian Ethno-Linguistic Geography of Europe Revealed by Personal Ornaments", for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. 
+
 
 ## Data
 
