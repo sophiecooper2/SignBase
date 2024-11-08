@@ -6,13 +6,21 @@ editor: visual
 
 ## Intro
 
+Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation (Dutkiewicz, et al., 2020). The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups.
+
+## Background
+
+In "Evidence from Personal Ornaments Suggest Nine Distinct Cultural Groups Between 34,000 and 24,000 Years Ago in Europe", by Baker, et al., the authors write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". Similarly, Vanhaeren, et al. argues in "Aurignacian Ethno-Linguistic Geography of Europe Revealed by Personal Ornaments", for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. Similarly, in this paper, we will be using geometric signs etched into mobile objects, the function of which, we assume, is also symbolic, as a way to differentiate cultural groups.
+
+The
+
 ## Data
 
 ```{r}
 ##data
 library(tidyverse)
 library(magrittr)
-
+library(rcarbon)
 signbase_full <- read_csv("signBase_Version1.0.csv")
 
 nsites <- signbase_full %>% 
@@ -35,7 +43,8 @@ signbase_full_clean <- signbase_full %>%
          site_name != "Riparo di Fontana Nuova",
          site_name != "Muralovka",
          site_name != "Shanidar Cave",
-         site_name != "Hayonim Cave") %>% 
+         site_name != "Hayonim Cave",
+         site_name != "El Salitre") %>% 
   select(-other)
 
 nsites_clean <- signbase_full_clean%>% 
@@ -80,7 +89,7 @@ signbase_years <- signbase_full_clean %>%
          date_bp_max_error = parse_number(date_bp_max_error))
 
 signbase_years_cal <- 
-  calibrate(signbase_years$date_bp_max_age,
+  rcarbon::calibrate(signbase_years$date_bp_max_age,
             signbase_years$date_bp_max_error) %>% 
   summary() %>% 
   data_frame()
@@ -96,11 +105,11 @@ date_max <- signbase_years_cal %>%
 date_range <- date_max - date_min
 ```
 
-The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brings our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
+The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
 
 ## Methods
 
-We performed a seriation analysis on the data to identify groups. We also performed PCoA and Network analyses on the data to visualize the grouping of the data. The dissimilarity of the signbase data was represented using a Jaccard matrix in all of these methods. We performed permutation and modularity tests on the identified groups to determine how strong the grouping was. We also ran a mantel test using the Jaccard similarity matrix and a geographic distance matrix, to determine the influence of geography on the distribution of the signs.
+We performed a seriation analysis on the data to identify groups. We also performed a PCoA, a Neighbour-Network analysis, and a PERMDISP2 on the data to visualize the grouping. The dissimilarity of the signbase data was represented using a Jaccard matrix in all of these methods. We performed permutation and modularity tests on the identified groups to determine how strong the grouping was. We also ran a mantel test using the Jaccard similarity matrix and a geographic distance matrix, to determine the influence of geography on the distribution of the signs.
 
 ## Results
 
@@ -125,10 +134,9 @@ groups <- list("1" = c("Abri Pataud", "El Rascaño",
                        "Tuto de Camalhot", "Slatinice"),
                "5" = c("Spy", "Solutré",
                        "Nová Dědina", "Grotte de Goyet",
-                       "Brassempouy",  "El Castillo",
+                       "Brassempouy", "El Castillo",
                        "Menton/Grottes du Grimaldi", "Geissenklösterle",
-                       "El Salitre", "Göpfelsteinhöhle",
-                       "Vogelherd"),
+                       "Göpfelsteinhöhle", "Vogelherd"),
                "6" = c("Castanet", "Maisières-Canal",
                        "Grotte du Renne", "Hohle Fels",
                        "Žlutava", "Cellier",
@@ -139,7 +147,7 @@ groups <- list("1" = c("Abri Pataud", "El Rascaño",
                        "Abri de Laussel", "Abri du Poisson",
                        "Otaslavice"))
   
-df <- 
+group_df <- 
   enframe(groups, 
           name = "group", 
           value = "site_name") %>%
@@ -154,7 +162,7 @@ signbase_unique_groups <- signbase_full_clean %>%
          latitude = as.character(latitude)) %>% 
   group_by(site_name) %>%
   summarize(across(where(is.numeric), sum)) %>% 
-  left_join(df)
+  left_join(group_df)
 
 signbase_unique_groups <- signbase_unique_groups %>% 
   left_join(lat_long_df)
@@ -286,8 +294,8 @@ tiplabels(rownames(artifact_data),
 ```{r}
 ##PCoA
 library(ecodist)
-
-pcoa <- pco(jac)
+library(ape)
+pcoa <- pcoa(jac)
 
 pcoa_df <- data.frame(pcoa1 = pcoa$vectors[,1], 
                       pcoa2 = pcoa$vectors[,2])
@@ -391,5 +399,3 @@ bur_man_cor <- mantel.correlog(jac, site_distances, n.class=50, break.pts=NULL, 
 plot(bur_man_cor)
 
 ```
-
-\`

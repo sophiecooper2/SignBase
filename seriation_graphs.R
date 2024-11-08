@@ -46,11 +46,6 @@ df <-
           value = "site_name") %>%
   unnest(cols = site_name)
 
-signbase_unique_groups <- 
-  signbase_full %>% group_by(site_name) %>% 
-  summarize(across(where(is.numeric), sum)) %>% 
-  left_join(df)
-
 
 library(vegan)
 

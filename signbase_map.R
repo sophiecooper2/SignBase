@@ -1,19 +1,26 @@
 library(magrittr)
 library(tidyverse)
 
-abundance_data <- signbase_unique_groups %>% 
+abundance_data <- signbase_full_clean %>% 
   pivot_longer(cols= line:star,
                values_to = "sign_total") %>% 
   filter(sign_total != 0) %>% 
-  select(-name) %>%
-  distinct(site_name, .keep_all = TRUE)
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum))
 
 country_data_df <- signbase_full_clean %>% 
   select(site_name, country) %>% 
   distinct(site_name, .keep_all = TRUE)
 
+
 abundance_data <- abundance_data %>% 
-  left_join(country_data_df)
+  left_join(lat_long_df) %>% 
+  left_join(group_df) %>% 
+  left_join(country_data_df) %>% 
+  select(site_name, sign_total, longitude, latitude, group, country)
+
 
 library(rnaturalearth)
 library(rnaturalearthdata)
@@ -24,8 +31,7 @@ signbase_sf <-
   st_as_sf(abundance_data, 
            coords = c("longitude", "latitude"),
            remove = FALSE,
-           crs = 4326) %>% 
-  filter(!country %in% c("Israel", "Iraq"))
+           crs = 4326)
 
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -33,12 +39,10 @@ Europe <- world[which(world$continent == "Europe"),]
 
 ggplot(Europe) +
   geom_sf() +
-  geom_sf(data = signbase_sf %>% 
-            distinct(site_name, .keep_all = TRUE),
+  geom_sf(data = signbase_sf,
           aes(colour = group,
               size = sign_total)) +
-  geom_text_repel(data = signbase_sf %>% 
-                    distinct(site_name, .keep_all = TRUE),
+  geom_text_repel(data = signbase_sf,
                   aes(x = longitude ,
                       y = latitude,
                       label = site_name),
@@ -47,7 +51,8 @@ ggplot(Europe) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
-  theme_minimal()
+  theme_minimal() +
+  facet_wrap(~group)
 
 
 ## GIS with raster data
@@ -94,5 +99,23 @@ ggplot() +
   geom_sf(data = signbase_sf %>% 
             distinct(site_name, .keep_all = TRUE), 
           size = 1) 
+
+
+## Running tests
+
+## Elevation vs abundance, point graph
+ggplot(signbase_sf) +
+  aes(x = sign_total,
+      y= elevation_from_raster) + 
+  geom_point()
+
+## Elevation by group, boxplot
+ggplot(signbase_sf) +
+  aes(x = group,
+      y = elevation_from_raster) +
+  geom_boxplot()
+
+
+
                         
 
