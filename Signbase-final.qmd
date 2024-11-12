@@ -14,7 +14,7 @@ Our understanding of the patterns of cultural and genetic diversity among the ho
 
 In this paper, we use geometric signs on mobile objects as an indicator of cultural variation. In "Evidence from Personal Ornaments Suggest Nine Distinct Cultural Groups Between 34,000 and 24,000 Years Ago in Europe", by Baker, et al., the authors write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". Similarly, Vanhaeren, et al. argues in "Aurignacian Ethno-Linguistic Geography of Europe Revealed by Personal Ornaments", for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. 
 
-Our usage of geometric signs, in paricular, is also supported by Sauvet, et al., in "The Function of Graphic Signs in Prehistoric Societies: The Case of Cantabrian Quadrilateral Signs:, where geometric signs, and the variations between them, are used to identify cultural groups. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". 
+Our usage of geometric signs, in particular, is also supported by Sauvet, et al., in "The Function of Graphic Signs in Prehistoric Societies: The Case of Cantabrian Quadrilateral Signs:, where geometric signs, and the variations between them, are used to identify cultural groups. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". 
 
 ## Data
 
@@ -186,32 +186,52 @@ library(rnaturalearthdata)
 library(ggrepel)
 library(sf)
 
+
+abundance_data <- signbase_full_clean %>% 
+  pivot_longer(cols= line:star,
+               values_to = "sign_total") %>% 
+  filter(sign_total != 0) %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum))
+
+
+abundance_data <- abundance_data %>% 
+  left_join(lat_long_df) %>% 
+  left_join(group_df) %>% 
+  select(site_name, sign_total, longitude, latitude, group)
+  
 signbase_sf <- 
-  st_as_sf(signbase_full_clean, 
+  st_as_sf(abundance_data, 
            coords = c("longitude", "latitude"),
            remove = FALSE,
-           crs = 4326) %>% 
-  filter(!country %in% c("Israel", "Iraq"))
+           crs = 4326)
+
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 Europe <- world[which(world$continent == "Europe"),]
 
 ggplot(Europe) +
   geom_sf() +
-  geom_sf(data = signbase_sf %>% 
-            distinct(site_name, .keep_all = TRUE), 
-          size = 1,
-          aes(colour = country)) +
-  geom_text_repel(data = signbase_sf %>% 
-                    distinct(site_name, .keep_all = TRUE),
+  geom_sf(data = signbase_sf,
+          aes(colour = group,
+              size = sign_total)) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  geom_text_repel(data = signbase_sf,
                   aes(x = longitude ,
                       y = latitude,
                       label = site_name),
+                  max.overlaps = 100,
                   size = 2) +
-  coord_sf(xlim = c(-10,30), 
-           ylim = c(35,55), 
-           expand = FALSE) +
-  theme_minimal()
+  theme_minimal() +
+  facet_wrap(~group) +
+  labs(color = "Group Number",
+       size = "Sign Count")
+  
+
 
 ```
 
