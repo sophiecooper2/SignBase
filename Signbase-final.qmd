@@ -1,21 +1,22 @@
 ---
 title: "Preliminary Report"
 format: html
-editor: visual
+execute: 
+  warning: false
+bibliography: references.bib
 ---
 
 ## Intro
 
-Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation (Dutkiewicz, et al., 2020). The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups.
+Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation (Dutkiewicz, et al., 2020). The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups. [@dutkiewicz2020; @baker2024evidence]
 
 ## Background
 
-Our understanding of the patterns of cultural and genetic diversity among the hominids of the Upper Paleolithic remains incomplete. The evidence-by-isolation framework proposes that similarity in cultural features will be primarily determined by geographical distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Palelolithic hominids that are dispersed according to geography.
+Our understanding of the patterns of cultural and genetic diversity among the hominids of the Upper Paleolithic remains incomplete. The evidence-by-isolation framework proposes that similarity in cultural features will be primarily determined by geographical distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Palelolithic hominids that are dispersed according to geography. @petraglia1994
 
-In this paper, we use geometric signs on mobile objects as an indicator of cultural variation. Baker, et al. write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". [summarise Baker et al, methods, materials, results] Similarly, Vanhaeren, et al. argues for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. [summarise Vanhaeren et al, methods, materials, results] 
+In this paper, we use geometric signs on mobile objects as an indicator of cultural variation. Baker, et al. write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals' role within society". \[summarise Baker et al, methods, materials, results\] Similarly, Vanhaeren, et al. argues for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. \[summarise Vanhaeren et al, methods, materials, results\]
 
-Our use of geometric signs, in particular, is also supported by Sauvet, et al.,  where geometric signs, and the variations between them, are used to identify cultural groups. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". [summarise Sauvet et al, methods, materials, results]
-
+Our use of geometric signs, in particular, is also supported by Sauvet, et al., where geometric signs, and the variations between them, are used to identify cultural groups. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". \[summarise Sauvet et al, methods, materials, results\]
 
 ## Data
 
@@ -93,7 +94,8 @@ signbase_years <- signbase_full_clean %>%
 
 signbase_years_cal <- 
   rcarbon::calibrate(signbase_years$date_bp_max_age,
-            signbase_years$date_bp_max_error) %>% 
+            signbase_years$date_bp_max_error,
+            verbose = FALSE) %>% 
   summary() %>% 
   data_frame()
 
@@ -112,7 +114,7 @@ The data used was published in the Signbase database (https://www.signbase.org).
 
 ## Methods
 
-We performed a seriation analysis on the data to identify groups. We also performed a PCoA, a Neighbour-Network analysis, and a PERMDISP2 on the data to visualize the grouping. The dissimilarity of the signbase data was represented using a Jaccard matrix in all of these methods. We performed permutation and modularity tests on the identified groups to determine how strong the grouping was. We also ran a mantel test using the Jaccard similarity matrix and a geographic distance matrix, to determine the influence of geography on the distribution of the signs. [expand on the details for each method, and give a little justification, why did we use that method, and add citations]
+We performed a seriation analysis on the data to identify groups. We also performed a PCoA, a Neighbour-Network analysis, and a PERMDISP2 on the data to visualize the grouping. The dissimilarity of the signbase data was represented using a Jaccard matrix in all of these methods. We performed permutation and modularity tests on the identified groups to determine how strong the grouping was. We also ran a mantel test using the Jaccard similarity matrix and a geographic distance matrix, to determine the influence of geography on the distribution of the signs. \[expand on the details for each method, and give a little justification, why did we use that method, and add citations\]
 
 ## Results
 
