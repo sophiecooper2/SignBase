@@ -9,7 +9,8 @@ abundance_data$diversity <- artifact_div
 ggplot(abundance_data) +
   aes(x = sign_total,
       y = diversity) +
-  geom_point()
+  geom_point() +
+  geom_smooth(se = FALSE)
 
 ## plot diversity by site
 library(ggpubr)
