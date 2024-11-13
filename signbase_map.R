@@ -54,7 +54,7 @@ ggplot(Europe) +
 library(terra)
 library(tidyterra)
 
-raster_data <- rast("EU_DEM_mosaic_5deg/eudem_dem_4258_europe.tif")
+raster_data <- rast("large-files/EU_DEM_mosaic_5deg/eudem_dem_4258_europe.tif")
 
 elevation <- extract(raster_data, signbase_sf)
 
