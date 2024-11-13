@@ -107,5 +107,3 @@ abundance_boxplot <- ggplot(signbase_sf) +
 library(cowplot)
 plot_grid(elevation_boxplot, abundance_boxplot)
 
-
-
