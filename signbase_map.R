@@ -14,7 +14,7 @@ abundance_data <- signbase_full_clean %>%
 abundance_data <- abundance_data %>% 
   left_join(lat_long_df) %>% 
   left_join(group_df)
-  select(site_name, sign_total, longitude, latitude, group)
+select(site_name, sign_total, longitude, latitude, group)
 
 
 library(rnaturalearth)
@@ -53,47 +53,31 @@ ggplot(Europe) +
 ## GIS with raster data
 library(terra)
 library(tidyterra)
-list_of_rasters <- c("eudem/N2000000E4000000.tif",
-                     "eudem/N2000000E5000000.tif",
-                     "eudem/N2000000E3000000.tif",
-                     "eudem/N3000000E4000000.tif")
-list_of_rasters <- 
-  terra::merge(sprc(list_of_rasters),
-                gdal = c("BIGGTIFF = YES",
-                         "NUM_THREADS = ALL_CPUS"))
 
-list_of_rasters2 <- terra::mosaic(sprc(list_of_rasters),
-               gdal = c("BIGGTIFF = YES",
-                      "NUM_THREADS = ALL_CPUS"))
+raster_data <- rast("EU_DEM_mosaic_5deg/eudem_dem_4258_europe.tif")
 
-ggplot() +
-  geom_spatraster(data = list_of_rasters) +
-  geom_sf(data = signbase_sf %>% 
-          distinct(site_name, .keep_all = TRUE), 
-          size = 1) 
+elevation <- extract(raster_data, signbase_sf)
 
+raster_data <- crop(raster_data, signbase_sf)
 
-signbase_sf$elevation_from_raster <- extract(list_of_rasters2$, signbase_sf[,2])
+aspect_data <- terrain(raster_data, v = "aspect", unit = "degrees", neighbors=8)
+slope_data <- terrain(raster_data, v = "slope", unit = "degrees", neighbors=8)
 
-aspect <- terrain(list_of_rasters, v = "aspect", unit = "degrees", neighbors=8)
-slope <- terrain(list_of_rasters, v = "slope", unit = "degrees", neighbors=8)
-
-signbase_sf$aspect<-
-  extract(aspect, signbase_sf[,2])$aspect
-
-signbase_sf$slope <-
-  extract(slope, signbase_sf[,2])$slope 
+signbase_sf$aspect <- extract(aspect_data, signbase_sf)
+signbase_sf$slope <- extract(slope_data, signbase_sf)
 
 ggplot() +
-  geom_spatraster(data = aspect) +
+  geom_spatraster(data = aspect_data) +
   geom_sf(data = signbase_sf %>% 
             distinct(site_name, .keep_all = TRUE), 
           size = 1) 
 ggplot() +
-  geom_spatraster(data = slope) +
+  geom_spatraster(data = slope_data) +
   geom_sf(data = signbase_sf %>% 
             distinct(site_name, .keep_all = TRUE), 
           size = 1) 
+
+
 
 
 
@@ -122,5 +106,6 @@ abundance_boxplot <- ggplot(signbase_sf) +
 
 library(cowplot)
 plot_grid(elevation_boxplot, abundance_boxplot)
+
 
 
