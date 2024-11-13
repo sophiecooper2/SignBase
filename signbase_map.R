@@ -50,7 +50,7 @@ ggplot(Europe) +
   facet_wrap(~group)
 
 
-## GIS with raster data
+## GIS with raster data - data from https://ec.europa.eu/eurostat/web/gisco/geodata/digital-elevation-model/eu-dem (DD dataset)
 library(terra)
 library(tidyterra)
 
@@ -81,7 +81,7 @@ ggplot() +
 
 
 
-## Running tests
+## Running tests 
 
 ## Elevation vs abundance, point graph
 ggplot(signbase_sf) +
