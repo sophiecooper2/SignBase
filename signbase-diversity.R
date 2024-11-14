@@ -52,5 +52,8 @@ ggplot(Europe) +
        size = "Sign Count")
 
 
-
-
+## Calculate the diversity of groups
+div_groups <- abundance_data %>% pull(group)
+artifact_div_groups <- diversity(artifact_data, index = "shannon", groups = div_groups)
+group_diversity <- data_frame(artifact_div_groups) %>% 
+  rownames_to_column("group")
