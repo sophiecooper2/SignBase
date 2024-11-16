@@ -312,6 +312,7 @@ artifact_matrix |> concentrate() |> mplot()
 library(vegan)
 library(phangorn)
 
+##neighborNet
 jac <- (vegdist(artifact_data, "jaccard"))
 
 dm <- as.matrix(jac)
@@ -324,6 +325,49 @@ tiplabels(rownames(artifact_data),
           bg = "white",
           frame = "none", 
           cex = 0.5)
+
+
+##ggrange
+library(ggraph)
+library(tidygraph)
+library(igraph)
+library(statnet)
+library(intergraph)
+library(FastKNN)
+library(ggpubr)
+library(reshape2)
+library(patchwork)
+library(ggmap)
+library(seriation)
+library(purrr)
+library(tnet)
+library(argosfilter)
+
+jac_sim <- 1 - dm
+jac_sim[jac_sim<0.44] <- 0
+net <- network(jac_sim,directed=F,ignore.eval=F,names.eval='weight')
+net %v% 'vertex.names' <- rownames(artifact_data)
+set.seed(237)
+net_fr <- ggraph(net, layout="fr") +
+  geom_edge_link(aes(width = weight, alpha=weight), edge_colour = "black", show.legend=T) +
+  scale_edge_width(range=c(0.5,1.5)) +
+  scale_edge_colour_gradient(low = "#CCCCCC",high = "#000000") +
+  geom_node_point(alpha=1, size=5) +
+  geom_node_text(aes(label=rownames(artifact_data)), size=6, family= "Times New Roman", repel=T) +
+  theme(text= element_text(size = 20), panel.background = element_rect(fill = 'white'))
+
+net_coord <- ggraph(net, layout="manual", x=signbase_unique_groups$longitude, y=signbase_unique_groups$latitude) +
+  geom_edge_link(aes(width = weight, alpha=weight), edge_colour = "black", show.legend=T) + 
+  scale_edge_width(range=c(0.5,1.5)) +
+  scale_edge_colour_gradient(low = "#CCCCCC",high = "#000000") +    
+  geom_node_point(alpha=1, size=5) + 
+  geom_node_text(aes(label=rownames(artifact_data)), family= "Times New Roman", size=6, repel=T)+
+  theme(text= element_text(size = 20), panel.background = element_rect(fill = 'white'))
+
+ggarrange(net_fr, net_coord, labels=c("A", "B"), label.x = 0.01, label.y = 0.99, font.label = list(size = 20, family = "Times New Roman"))
+
+
+
 ```
 
 ```{r}
