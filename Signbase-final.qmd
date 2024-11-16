@@ -187,6 +187,8 @@ artifact_data <- signbase_unique_groups %>%
 ```
 
 ```{r}
+#| label: fig-site-map
+#| fig-cap: "Map of sites divided by group, where sign abundace is represented by point size"
 ##map
 library(rnaturalearth)
 library(rnaturalearthdata)
@@ -243,6 +245,8 @@ ggplot(Europe) +
 ```
 
 ```{r}
+#| label: fig-seriation
+#| fig-cap: "Seriation analysis of the data"
 ##seriation
 library(ggpubr)
 artifact_matrix <- as.matrix(artifact_data %>% 
@@ -302,6 +306,8 @@ artifact_matrix |> concentrate() |> mplot()
 ```
 
 ```{r}
+#| label: fig-neighbor-net
+#| fig-cap: "Neighbor-Net analysis of the data"
 ##network analysis
 library(vegan)
 library(phangorn)
@@ -321,6 +327,8 @@ tiplabels(rownames(artifact_data),
 ```
 
 ```{r}
+#| label: fig-pcoa
+#| fig-cap: "PCoA analysis of the data"
 ##PCoA
 library(ecodist)
 library(ape)
@@ -346,6 +354,8 @@ ggplot(pcoa_df) +
 ```
 
 ```{r}
+#| label: fig-perm-disp
+#| fig-cap: "Multivariate homogeneity of group dispersions"
 ## permanova test
 perman <- adonis2(jac~as.factor(signbase_unique_groups$group), 
                   method = "jaccard",
