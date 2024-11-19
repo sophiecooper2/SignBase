@@ -39,7 +39,7 @@ ggplot(abundance_data_full) +
 ggplot(abundance_data_full) +
   aes(x = object_type, fill = name) +
   geom_bar() +
-  facet_wrap(~site_name) +
+  facet_wrap(~site_name, scales = "free_y") +
   rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)
 
 

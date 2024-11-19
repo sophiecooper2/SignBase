@@ -1,6 +1,6 @@
 library(vegan)
 
-artifact_div <- diversity(artifact_data, index = "shannon")
+artifact_div <- vegan::diversity(artifact_data, index = "shannon")
 
 abundance_data$diversity <- artifact_div
 
@@ -17,7 +17,6 @@ library(ggpubr)
 ggplot(abundance_data) +
   aes(x = site_name, y = sign_total, fill = diversity) +
   geom_col() +
-  facet_wrap(~group) +
   rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)
 
 ## map diversity by site
