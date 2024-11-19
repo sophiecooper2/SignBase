@@ -13,8 +13,8 @@ abundance_data <- signbase_full_clean %>%
 
 abundance_data <- abundance_data %>% 
   left_join(lat_long_df) %>% 
-  left_join(group_df)
-select(site_name, sign_total, longitude, latitude, group)
+  left_join(group_df) %>% 
+  select(site_name, sign_total, longitude, latitude, group)
 
 
 library(rnaturalearth)
@@ -86,13 +86,13 @@ ggplot() +
 ## Elevation vs abundance, point graph
 ggplot(signbase_sf) +
   aes(x = sign_total,
-      y= elevation_from_raster) + 
+      y= elevation$eudem_dem_4258_europe) + 
   geom_point()
 
 ## Elevation by group, boxplot
 elevation_boxplot <- ggplot(signbase_sf) +
   aes(x = group,
-      y = elevation_from_raster) +
+      y = elevation$eudem_dem_4258_europe) +
   geom_boxplot() +
   labs(y = "elevation")
 

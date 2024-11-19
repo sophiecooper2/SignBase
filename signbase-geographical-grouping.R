@@ -93,9 +93,6 @@ as_group
 
 ## Seriation
 
-signbase_geo_groups <- arrange(signbase_geo_groups, .by_group = "group")
-
-
 
 library(ggpubr)
 artifact_matrix <- as.matrix(jaccard_geo_group_data %>% 
@@ -119,7 +116,6 @@ ggplot(sign_type_data) +
   aes(x = sign_type) +
   geom_bar() +
   rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
-  scale_x_discrete(limits = c(x_order)) +
   facet_wrap(~group, nrow = 7)
 
 
