@@ -56,7 +56,7 @@ library(tidyterra)
 
 raster_data <- rast("large-files/EU_DEM_mosaic_5deg/eudem_dem_4258_europe.tif")
 
-elevation <- extract(raster_data, signbase_sf)
+signbase_sf$elevation <- extract(raster_data, signbase_sf)
 
 raster_data <- crop(raster_data, signbase_sf)
 
@@ -97,6 +97,7 @@ elevation_boxplot <- ggplot(signbase_sf) +
   labs(y = "elevation")
 
 
+
 ## group by abundance boxplot
 abundance_boxplot <- ggplot(signbase_sf) +
   aes(x = group,
@@ -106,4 +107,18 @@ abundance_boxplot <- ggplot(signbase_sf) +
 
 library(cowplot)
 plot_grid(elevation_boxplot, abundance_boxplot)
+
+
+##scatterplot of abundace vs elevation
+signbase_sf <- signbase_sf %>% 
+  filter(site_name != "Vogelherd") %>% 
+  mutate("elevation" = elevation$eudem_dem_4258_europe) %>% 
+  mutate(aspect = aspect$aspect) %>% 
+  mutate(slope = slope$slope)
+
+ggplot(signbase_sf) +
+  aes(x = sign_total,
+      y = elevation,
+      color = group) +
+  geom_point()
 
