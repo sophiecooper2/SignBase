@@ -1,6 +1,7 @@
 library(magrittr)
 library(tidyverse)
 
+
 abundance_data <- signbase_full_clean %>% 
   pivot_longer(cols= line:star,
                values_to = "sign_total") %>% 
