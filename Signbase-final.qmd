@@ -52,8 +52,7 @@ signbase_full_clean <- signbase_full %>%
          site_name != "Muralovka",
          site_name != "Shanidar Cave",
          site_name != "Hayonim Cave",
-         site_name != "El Salitre",
-         site_name != "Otaslavice") %>% 
+         site_name != "El Salitre") %>% 
   select(-other, -rectangle)
 
 nsites_clean <- signbase_full_clean%>% 
@@ -115,7 +114,7 @@ date_max <- signbase_years_cal %>%
 date_range <- date_max - date_min
 ```
 
-The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
+The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, Otaslavice was excluded due to a lack of similarity to the other sites, and the rest were excluded due to geographic distance from the other sites. These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
 
 ## Methods
 

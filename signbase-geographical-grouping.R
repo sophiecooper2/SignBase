@@ -4,11 +4,8 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 library(ggrepel)
 library(sf)
-<<<<<<< HEAD
 
 library(terra)
-=======
->>>>>>> 10e315864f4ebc299ae7f8782b878ec646be4d3f
 
 groups <- list("1" = c("La Viña", "El Castillo", 
                        "Hornos de la Pena", "El Rascaño", 
@@ -102,8 +99,8 @@ Europe <- world[which(world$continent == "Europe"),]
 ggplot(Europe) +
   geom_sf() +
   geom_sf(data = signbase_sf,
-          aes(colour = diversity,
-              size = sign_total)) +
+          aes(size = diversity)) +
+  scale_size_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2)) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
@@ -114,9 +111,7 @@ ggplot(Europe) +
                   max.overlaps = 100,
                   size = 2) +
   theme_minimal() +
-  facet_wrap(~group) +
-  labs(color = "Diversity",
-       size = "Sign Count")
+  facet_wrap(~group)
 
 
 
