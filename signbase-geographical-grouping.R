@@ -5,6 +5,7 @@ library(rnaturalearthdata)
 library(ggrepel)
 library(sf)
 <<<<<<< HEAD
+
 library(terra)
 =======
 >>>>>>> 10e315864f4ebc299ae7f8782b878ec646be4d3f

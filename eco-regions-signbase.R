@@ -24,8 +24,15 @@ signbase_unique_groups <- signbase_full_clean %>%
          latitude = as.character(latitude)) %>% 
   group_by(site_name) %>%
   summarize(across(where(is.numeric), sum)) %>% 
-  left_join(lat_long_df)
+  left_join(lat_long_df) %>% 
+  column_to_rownames("site_name") 
 
+artifact_div <- signbase_unique_groups %>% 
+  select(line:star) %>% 
+  vegan::diversity(index = "shannon") %>% 
+  tibble() 
+
+colnames(artifact_div) <- "diversity"
 
 abundance_data <- signbase_full_clean %>% 
   pivot_longer(cols= line:star,
@@ -45,6 +52,9 @@ signbase_sf <-
            remove = FALSE,
            crs = 4326)
 
+signbase_sf <- signbase_sf %>% 
+  add_column(artifact_div)
+
 ##Environmental Zones in Europe, 
 ##as categorized by the Environmental Stratification of Europe (EnS) dataset (European Environmental Agency)
 ##link to download : https://www.eea.europa.eu/en/datahub/datahubitem-view/c8c4144a-8c0e-4686-9422-80dbf86bc0cb?activeAccordion=1082728
@@ -62,7 +72,8 @@ ggplot(Europe) +
   geom_sf() +
   geom_sf(data = signbase_sf,
           aes(color = as.factor(environmental_zone),
-            size = sign_total)) +
+              size = diversity)) +
+  scale_size_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2)) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
@@ -72,7 +83,8 @@ ggplot(Europe) +
                       label = site_name),
                   max.overlaps = 100,
                   size = 2) +
-  theme_minimal()
+  theme_minimal() +
+  facet_wrap(~environmental_zone)
 
 ##looking at distribution of signs within environmental zones
 signbase_unique_groups$environmental_zone<- signbase_sf$environmental_zone
@@ -114,18 +126,23 @@ ggplot(Europe) +
                       label = site_name),
                   max.overlaps = 100,
                   size = 2) +
-  theme_minimal()
+  theme_minimal() +
+  facet_wrap(~biogeographical_region)
 
 ##Hydrobasin data
-
-basin_shp_1 <-read_sf("large-files//hybas_eu_lev01-12_v1c/hybas_eu_lev01_v1c.shp")
-basin_shp_2 <- read_sf("large-files//hybas_eu_lev01-12_v1c/hybas_eu_lev02_v1c.shp")
-st_join(basin_shp_1, basin_shp_2, left = FALSE)
-
-shapefiles <- 'my/data/folder' |>
+library(fs)
+shapefiles <- "large-files/hybas_eu_lev01-12_v1c/" %>% 
   dir_ls(recurse = TRUE, regexp = 'shp$') 
 
-# Loading all files
-sfdf <- shapefiles |>
-  map(st_read) |>
+basin_shapefiles <- shapefiles %>% 
+  map(st_read) %>% 
   bind_rows()
+
+basin_shapefiles <- st_as_sf(basin_shapefiles)
+
+v <- vect(basin_shapefiles)
+r <- rast(v, resolution = 0.001)
+
+basin_raster <- rasterize(v, r)
+
+signbase_sf$basin <- extract(basin_raster, signbase_sf)

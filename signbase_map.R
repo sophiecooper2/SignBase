@@ -1,4 +1,4 @@
-library(magrittr)
+glibrary(magrittr)
 library(tidyverse)
 
 

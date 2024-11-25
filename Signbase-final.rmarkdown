@@ -6,6 +6,8 @@ execute:
 bibliography: references.bib
 ---
 
+
+
 ## Intro
 
 Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation (Dutkiewicz, et al., 2020). The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups. [@dutkiewicz2020; @baker2024evidence]
@@ -23,6 +25,8 @@ In this paper, we use geometric signs on mobile objects as an indicator of cultu
 Our use of geometric signs, in particular, is also supported by Sauvet, et al., where geometric signs, and the variations between them, are used to identify cultural groups. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". \[summarise Sauvet et al, methods, materials, results\]
 
 ## Data
+
+
 
 ```{r}
 ##data
@@ -52,8 +56,7 @@ signbase_full_clean <- signbase_full %>%
          site_name != "Muralovka",
          site_name != "Shanidar Cave",
          site_name != "Hayonim Cave",
-         site_name != "El Salitre",
-         site_name != "Otaslavice") %>% 
+         site_name != "El Salitre") %>% 
   select(-other, -rectangle)
 
 nsites_clean <- signbase_full_clean%>% 
@@ -115,6 +118,8 @@ date_max <- signbase_years_cal %>%
 date_range <- date_max - date_min
 ```
 
+
+
 The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
 
 ## Methods
@@ -122,6 +127,8 @@ The data used was published in the Signbase database (https://www.signbase.org).
 We performed a seriation analysis on the data to identify groups. We also performed a PCoA, a Neighbour-Network analysis, and a PERMDISP2 on the data to visualize the grouping. The dissimilarity of the signbase data was represented using a Jaccard matrix in all of these methods. We performed permutation and modularity tests on the identified groups to determine how strong the grouping was. We also ran a mantel test using the Jaccard similarity matrix and a geographic distance matrix, to determine the influence of geography on the distribution of the signs. \[expand on the details for each method, and give a little justification, why did we use that method, and add citations\]
 
 ## Results
+
+
 
 ```{r}
 ##Add groups
@@ -419,7 +426,7 @@ library(igraph)
 
 reordered_matrix <- artifact_matrix[row.names(concentrate(artifact_matrix)), ]
 
-artifact_matrix_j_dist <- as.matrix(vegdist(reordered_matrix, method = "jaccard", binary = TRUE))
+artifact_matrix_j_dist <- as.matrix(vegdist(reordered_matrix, method = "jaccard"))
 artifact_matrix_j_adj_mat <-
   graph_from_adjacency_matrix(1 - artifact_matrix_j_dist,
                               mode = "undirected")
@@ -470,3 +477,4 @@ bur_man_cor <- mantel.correlog(jac, site_distances, n.class=50, break.pts=NULL, 
 plot(bur_man_cor)
 
 ```
+

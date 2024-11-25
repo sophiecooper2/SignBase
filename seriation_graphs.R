@@ -57,7 +57,7 @@ graph_data <- artifact_matrix %>%
   left_join(df)
 
 sign_type_data <- graph_data %>% 
-  pivot_longer(cols= notch:rectangle,
+  pivot_longer(cols= notch:hashtag,
                names_to = "sign_type",
                values_to = "count") %>% 
   dplyr::filter(count != 0)
@@ -74,7 +74,7 @@ ggplot(sign_type_data) +
   rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
   labs(x = x_order) +
   scale_x_discrete(limits = c(x_order)) +
-  facet_wrap(~group, nrow = 7)
+  facet_wrap(~group, nrow = 11)
 
 
 

@@ -33,9 +33,8 @@ Europe <- world[which(world$continent == "Europe"),]
 ggplot(Europe) +
   geom_sf() +
   geom_sf(data = signbase_sf,
-          aes(colour = diversity,
-              size = sign_total,
-                )) +
+          aes(size = diversity)) +
+  scale_size_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2)) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
