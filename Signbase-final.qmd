@@ -326,16 +326,13 @@ nnet <- neighborNet(dm)
 
 par("mar" = rep(1, 4))
 
+# Reorder the tips according to the seriation grouping
+nnet$tip.label <- nnet$tip.label[match(group_df$site_name, nnet$tip.label)]  
+
 # Plot the network without tip labels initially
 plot(nnet, 
-     show.tip.label = FALSE, 
-     edge.label = round(nnet$edge.length, 3))
-
-# Add tip labels
-tiplabels(rownames(artifact_data),
-          bg = "white",
-          frame = "none", 
-          cex = 0.5)
+     show.tip.label = TRUE,
+      cex = 0.5)
 
 
 ## try new neighbor net
