@@ -42,6 +42,9 @@ ncountries <- signbase_full %>%
 nsigntypes <- ncol(signbase_full %>% 
                      select(line:other))
 
+# BM: "full_clean" is a bit misleading here since we have dropped
+# some sites and signs, you'll need to write about these steps in 
+# your methods section 
 signbase_full_clean <- signbase_full %>% 
   filter(site_name != "Willendorf",
          site_name != "Riparo di Fontana Nuova",
@@ -239,15 +242,15 @@ ggplot(Europe) +
   facet_wrap(~group) +
   labs(color = "Group Number",
        size = "Sign Count")
-  
-
-
 ```
 
 ```{r}
 #| label: fig-seriation
 #| fig-cap: "Seriation analysis of the data"
-##seriation
+
+# BM: this seriation needs to come before the grouping code above, since the groupd were read of the seriation plot
+
+## seriation
 library(ggpubr)
 artifact_matrix <- as.matrix(artifact_data %>% 
  mutate(across(everything(), ~replace(., . > 1, 1))))
@@ -341,22 +344,24 @@ ggplot(sign_type_data) +
 library(vegan)
 library(phangorn)
 
-##neighborNet
+## neighborNet
 jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
 
 dm <- as.matrix(jac)
-
 nnet <- neighborNet(dm)
+
 par("mar" = rep(1, 4))
 
-neighbor_graph <- plot(nnet, show.tip.label = FALSE)
-tiplabels(rownames(artifact_data),
-          bg = "white",
-          frame = "none", 
-          cex = 0.5)
+# Reorder the tips according to the seriation grouping
+nnet$tip.label <- nnet$tip.label[match(group_df$site_name, nnet$tip.label)]  
+
+# Plot the network without tip labels initially
+plot(nnet, 
+     show.tip.label = TRUE,
+      cex = 0.5)
 
 
-##try new neighbor net
+## try new neighbor net
 library(ggraph)
 library(tidygraph)
 library(igraph)
@@ -371,24 +376,90 @@ library(seriation)
 library(purrr)
 library(tnet)
 library(argosfilter)
+
 disim <- 1 - dm
 disim[disim<0.5] <- 0
-disim_net<- network(disim,directed=F,ignore.eval=F,names.eval='weight')
-disim_net %v% 'vertex.names' <- row.names(artifact_data)
+disim_net <- network(disim,
+                    directed=F,
+                    ignore.eval=F,
+                    names.eval='weight')
+
+disim_net %v% 'vertex.names' <- 
+  row.names(artifact_data)
+
 set.seed(500)
+
 ggraph(disim_net, layout="fr") +
-  geom_edge_link(aes(width = weight, alpha=weight), edge_colour = "black", show.legend=T) +
+  geom_edge_link(aes(width = weight, 
+                     alpha=weight), 
+                 edge_colour = "black", 
+                 show.legend=T) +
   scale_edge_width(range=c(0.5,1.5)) +
-  scale_edge_colour_gradient(low = "#CCCCCC",high = "#000000") +
+  scale_edge_colour_gradient(low = "#CCCCCC",
+                             high = "#000000") +
   geom_node_point(alpha=1, size=5) +
-  geom_node_text(aes(label=row.names(artifact_data)), size=6, family= "Times New Roman", repel=T) +
-  theme(text= element_text(size = 20), panel.background = element_rect(fill = 'white'))
+  geom_node_text(aes(label=row.names(artifact_data)), 
+                 size=6, 
+                 family= "Arial", 
+                 repel=T) +
+  theme(text= element_text(size = 20), 
+        panel.background = element_rect(fill = 'white'))
+
+# BM try yet another
+
+# Ensure all edge lengths are positive
+nnet$edge.length <- pmax(nnet$edge.length, 1e-6)
+
+# Create the graph object
+g <- graph_from_edgelist(nnet$edge, directed = FALSE)
+E(g)$weight <- nnet$edge.length
+
+# Create a layout for the nodes
+layout <- layout_with_fr(g)  # Fruchterman-Reingold layout
+
+# Create a data frame for nodes (coordinates and labels)
+nodes <- data.frame(
+  x = layout[, 1],  # x-coordinates
+  y = layout[, 2],  # y-coordinates
+  label = c(nnet$tip.label, rep("internal", nnet$Nnode))
+)
+
+# Create a data frame for edges (start and end coordinates)
+edges_df <- data.frame(
+  from = nnet$edge[, 1],  # Start node of each edge
+  to = nnet$edge[, 2],    # End node of each edge
+  weight = nnet$edge.length  # Corresponding edge weights
+)
+
+# Create a data frame for the edge coordinates
+edges_df$x_start <- nodes$x[edges_df$from]  # x-coordinate of start node
+edges_df$y_start <- nodes$y[edges_df$from]  # y-coordinate of start node
+edges_df$x_end <- nodes$x[edges_df$to]     # x-coordinate of end node
+edges_df$y_end <- nodes$y[edges_df$to]     # y-coordinate of end node
+
+# Plot the network
+library(ggrepel)
+ggplot() +
+  geom_segment(data = edges_df, 
+               aes(x = x_start, y = y_start, xend = x_end, yend = y_end),
+               color = "grey", size = 1) +
+  geom_point(data = nodes %>% 
+               filter(label != "internal"),
+             aes(x = x, y = y), color = "black", size = 3) +
+  geom_text_repel(data = nodes %>% 
+              filter(label != "internal"), 
+            aes(x = x, y = y, label = label), 
+            size = 3, vjust = -1) +
+  theme_void() +
+  theme(legend.position = "none")
+
 
 ```
 
 ```{r}
 #| label: fig-pcoa
 #| fig-cap: "PCoA analysis of the data"
+
 ##PCoA
 library(ecodist)
 library(ape)
@@ -447,10 +518,15 @@ library(igraph)
 
 reordered_matrix <- artifact_matrix[row.names(concentrate(artifact_matrix)), ]
 
-artifact_matrix_j_dist <- as.matrix(vegdist(reordered_matrix, method = "jaccard", binary = TRUE))
+artifact_matrix_j_dist <- 
+  as.matrix(vegdist(reordered_matrix, 
+                    method = "jaccard", 
+                    binary = TRUE))
+
 artifact_matrix_j_adj_mat <-
   graph_from_adjacency_matrix(1 - artifact_matrix_j_dist,
                               mode = "undirected")
+
 gn <- cluster_edge_betweenness(artifact_matrix_j_adj_mat)
 wt <- cluster_walktrap(artifact_matrix_j_adj_mat, steps = 4)
 lv <- cluster_louvain(artifact_matrix_j_adj_mat)
@@ -468,7 +544,7 @@ create_tibble
 ```
 
 ```{r}
-#mantel tests
+# mantel tests
 library(ape)
 library(ade4)
 library(Lock5Data)
