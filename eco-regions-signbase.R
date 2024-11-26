@@ -129,7 +129,7 @@ ggplot(Europe) +
   theme_minimal() +
   facet_wrap(~biogeographical_region)
 
-##Hydrobasin data
+## Hydrobasin data
 library(fs)
 shapefiles <- "large-files/hybas_eu_lev01-12_v1c/" %>% 
   dir_ls(recurse = TRUE, regexp = 'shp$') 
@@ -139,6 +139,12 @@ basin_shapefiles <- shapefiles %>%
   bind_rows()
 
 basin_shapefiles <- st_as_sf(basin_shapefiles)
+
+# BM seems too detailed
+basin_shapefiles_simple <- st_simplify(st_make_valid(basin_shapefiles))
+
+ggplot() +
+  geom_sf(data = basin_shapefiles_simple)
 
 v <- vect(basin_shapefiles)
 r <- rast(v, resolution = 0.001)
