@@ -533,7 +533,7 @@ lv <- cluster_louvain(artifact_matrix_j_adj_mat)
 
 
 artifact_sim <- graph_from_adjacency_matrix(1- dm)
-mem <- as_membership(as.numeric(signbase_unique_groups$group))
+mem <- as_membership(signbase_unique_groups$group)
 as_group <- modularity(artifact_sim, membership = mem)
 
 create_tibble <- data.frame("Seriation groups" = c(as_group),
