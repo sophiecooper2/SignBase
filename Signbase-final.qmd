@@ -482,6 +482,52 @@ ggplot(pcoa_df) +
   geom_text_repel(aes(label = site_name), 
                   size = 2,
                   max.overlaps = 20)
+
+
+
+
+```
+
+```{r}
+##PCoA Hirearchical clustering
+library(factoextra)
+library(FactoMineR)
+hire_data <- artifact_data %>% 
+   mutate(across(everything(), ~replace(., . > 1, 1)))
+  
+signbase_pca <- PCA(hire_data)
+signbase_hcpc <- HCPC(signbase_pca, graph = FALSE)
+
+##phylogenetic tree
+fviz_dend(signbase_hcpc,
+          cex = 0.7,
+          color_labels_by_k = FALSE,
+          type = "phylogenic")
+
+##dendrogram
+fviz_dend(signbase_hcpc,
+          color_labels_by_k = FALSE,
+          cex = 0.7)
+
+## Cluster graph
+fviz_cluster(signbase_hcpc,
+             repel = TRUE,
+             show.clust.cent = FALSE, 
+             color_labels_by_k = FALSE,
+             ellipse.alpha = 0,
+             ggtheme = theme_bw(),
+             main = "Factor map")
+
+##to see clusters in a df
+hcpc_dataframe <- signbase_hcpc$data.clust
+
+## to see quantitative variables for each cluster
+signbase_hcpc$desc.var$quanti
+
+## to see principal dimensions associated with clusters
+signbase_hcpc$desc.axes$quanti
+
+
 ```
 
 ```{r}
@@ -515,32 +561,42 @@ plot(dispersion, hull = FALSE, ellipse=TRUE)
 ```{r}
 ##modularity test
 library(igraph)
+set.seed(500)
 
-reordered_matrix <- artifact_matrix[row.names(concentrate(artifact_matrix)), ]
+modul_matrix <-
+  graph_from_adjacency_matrix(1 - dm, mode = "undirected")
 
-artifact_matrix_j_dist <- 
-  as.matrix(vegdist(reordered_matrix, 
-                    method = "jaccard", 
-                    binary = TRUE))
-
-artifact_matrix_j_adj_mat <-
-  graph_from_adjacency_matrix(1 - artifact_matrix_j_dist,
-                              mode = "undirected")
-
-gn <- cluster_edge_betweenness(artifact_matrix_j_adj_mat)
-wt <- cluster_walktrap(artifact_matrix_j_adj_mat, steps = 4)
-lv <- cluster_louvain(artifact_matrix_j_adj_mat)
+gn <- cluster_edge_betweenness(modul_matrix)
+wt <- cluster_walktrap(modul_matrix, steps = 4)
+lv <- cluster_louvain(modul_matrix)
 
 
-artifact_sim <- graph_from_adjacency_matrix(1- dm)
 mem <- as_membership(signbase_unique_groups$group)
-as_group <- modularity(artifact_sim, membership = mem)
+
+as_group <- modularity(modul_matrix, membership = mem)
 
 create_tibble <- data.frame("Seriation groups" = c(as_group),
                             "Girvan-Newman" = c(max(gn$modularity)), 
                             "Walktrap" = c(max(wt$modularity)),
                             "Louvain" = c(lv$modularity))
-create_tibble
+print(create_tibble)
+
+
+#experimenting with increasing modularity
+core <- coreness(modul_matrix)
+col_set <- heat.colors(max(core), rev = TRUE)
+set.seed(2509)
+plot(modul_matrix, vertex.color = col_set[core])
+
+core_df <- core %>% 
+  data_frame()
+compo <- igraph::components(modul_matrix)
+core_df$components <- compo$membership
+colnames(core_df) <- c("coreness", "components")
+rownames(core_df) <- signbase_unique_groups$site_name
+core_df <- core_df %>% 
+  rownames_to_column("site_name")
+
 ```
 
 ```{r}
