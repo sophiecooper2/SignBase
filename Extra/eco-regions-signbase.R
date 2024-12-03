@@ -143,12 +143,7 @@ basin_shapefiles <- st_as_sf(basin_shapefiles)
 # BM seems too detailed
 basin_shapefiles_simple <- st_simplify(st_make_valid(basin_shapefiles))
 
+signbase_sf$basins <- st_intersection(basin_shapefiles_simple, signbase_sf)
+
 ggplot() +
   geom_sf(data = basin_shapefiles_simple)
-
-v <- vect(basin_shapefiles)
-r <- rast(v, resolution = 0.001)
-
-basin_raster <- rasterize(v, r)
-
-signbase_sf$basin <- extract(basin_raster, signbase_sf)

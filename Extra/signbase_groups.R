@@ -3,11 +3,11 @@ rownames(jac_df) <- rownames(artifact_data)
 jac_df <- jac_df %>% 
   rownames_to_column("site_name") %>% 
   pivot_longer(cols = `Abri Lartet/Gorge d'Enfer`: Žlutava) %>% 
-  filter(value < 0.6)
+  filter(value < 0.8)
 
 
 geis <- jac_df %>% 
-  filter(site_name == "Geissenklösterle")
+  filter(site_name =="Göpfelsteinhöhle")
 
 
 groups <- list("1" = c("Abri Pataud", "El Rascaño", 
