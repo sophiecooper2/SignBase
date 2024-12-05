@@ -8,7 +8,7 @@ bibliography: references.bib
 
 ## Intro
 
-Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation (Dutkiewicz, et al., 2020). The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups. [@dutkiewicz2020; @baker2024evidence]
+Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [Dutkiewicz, et al., 2020]. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups. [@dutkiewicz2020; @baker2024evidence]
 
 ## Background
 
@@ -191,60 +191,6 @@ artifact_data <- signbase_unique_groups %>%
 
 
 ```{r}
-#| label: fig-site-map
-#| fig-cap: "Map of sites divided by group, where sign abundace is represented by point size"
-##map
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(ggrepel)
-library(sf)
-abundance_data <- signbase_full_clean %>% 
-  pivot_longer(cols= line:star,
-               values_to = "sign_total") %>% 
-  filter(sign_total != 0) %>% 
-  mutate(longitude = as.character(longitude),
-         latitude = as.character(latitude)) %>% 
-  group_by(site_name) %>%
-  summarize(across(where(is.numeric), sum))
-
-
-abundance_data <- abundance_data %>% 
-  left_join(lat_long_df) %>% 
-  left_join(group_df) %>% 
-  select(site_name, sign_total, longitude, latitude, group) %>% 
-  mutate(group = parse_number(group))
-  
-signbase_sf <- 
-  st_as_sf(abundance_data, 
-           coords = c("longitude", "latitude"),
-           remove = FALSE,
-           crs = 4326)
-
-
-world <- ne_countries(scale = "medium", returnclass = "sf")
-Europe <- world[which(world$continent == "Europe"),]
-
-ggplot(Europe) +
-  geom_sf() +
-  geom_sf(data = signbase_sf,
-          aes(colour = as.factor(group),
-              size = sign_total)) +
-  coord_sf(xlim = c(-10,30), 
-           ylim = c(35,53), 
-           expand = FALSE) +
-  geom_text_repel(data = signbase_sf,
-                  aes(x = longitude ,
-                      y = latitude,
-                      label = site_name),
-                  max.overlaps = 100,
-                  size = 2) +
-  theme_minimal() +
-  facet_wrap(~group) +
-  labs(color = "Group Number",
-       size = "Sign Count")
-```
-
-```{r}
 #| label: fig-seriation
 #| fig-cap: "Seriation analysis of the data"
 
@@ -307,6 +253,61 @@ concentrate <- function(x){
 artifact_matrix |> concentrate() |> mplot()
 
 ```
+
+```{r}
+#| label: fig-site-map
+#| fig-cap: "Map of sites divided by group, where sign abundace is represented by point size"
+##map
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggrepel)
+library(sf)
+abundance_data <- signbase_full_clean %>% 
+  pivot_longer(cols= line:star,
+               values_to = "sign_total") %>% 
+  filter(sign_total != 0) %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum))
+
+
+abundance_data <- abundance_data %>% 
+  left_join(lat_long_df) %>% 
+  left_join(group_df) %>% 
+  select(site_name, sign_total, longitude, latitude, group) %>% 
+  mutate(group = parse_number(group))
+  
+signbase_sf <- 
+  st_as_sf(abundance_data, 
+           coords = c("longitude", "latitude"),
+           remove = FALSE,
+           crs = 4326)
+
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+Europe <- world[which(world$continent == "Europe"),]
+
+ggplot(Europe) +
+  geom_sf() +
+  geom_sf(data = signbase_sf,
+          aes(colour = as.factor(group),
+              size = sign_total)) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  geom_text_repel(data = signbase_sf,
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  max.overlaps = 100,
+                  size = 2) +
+  theme_minimal() +
+  facet_wrap(~group) +
+  labs(color = "Group Number",
+       size = "Sign Count")
+```
+
 
 ```{r}
 ##graphs showing sign makeup of each group
@@ -423,7 +424,7 @@ library(FactoMineR)
 hire_data <- artifact_data %>% 
    mutate(across(everything(), ~replace(., . > 1, 1)))
   
-signbase_pca <- PCA(hire_data)
+signbase_pca <- PCA(hire_data, graph = FALSE)
 signbase_hcpc <- HCPC(signbase_pca, graph = FALSE)
 
 ##phylogenetic tree
@@ -557,5 +558,5 @@ mantel_dataframe
 bur_man_cor <- mantel.correlog(jac, site_distances, n.class=50, break.pts=NULL, cutoff=FALSE, r.type="pearson", nperm=999, mult="holm", progressive=TRUE)
 
 plot(bur_man_cor)
-
+groups$"1"
 ```
