@@ -10,17 +10,13 @@ bibliography: references.bib
 
 ## Intro
 
-Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation (Dutkiewicz, et al., 2020). The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups. [@dutkiewicz2020; @baker2024evidence]
+Signbase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [Dutkiewicz, et al., 2020]. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurances on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from Signbase to see if we can find evidence of patterns indicating distinct cultural groups. [@dutkiewicz2020; @baker2024evidence]
 
 ## Background
 
 Our understanding of the patterns of cultural and genetic diversity among the hominids of the Upper Paleolithic remains incomplete. The evidence-by-isolation framework proposes that similarity in cultural features will be primarily determined by geographical distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Palelolithic hominids that are dispersed according to geography. @petraglia1994
 
-<<<<<<< HEAD
 In this paper, we use geometric signs on mobile objects as an indicator of cultural variation. Baker, et al. write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". \[summarise Baker et al, methods, materials, results\] Similarly, Vanhaeren, et al. argues for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. \[summarise Vanhaeren et al, methods, materials, results\]
-=======
-In this paper, we use geometric signs on mobile objects as an indicator of cultural variation. Baker, et al. write that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals' role within society". \[summarise Baker et al, methods, materials, results\] Similarly, Vanhaeren, et al. argues for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. \[summarise Vanhaeren et al, methods, materials, results\]
->>>>>>> 7d04ebb82837f1c0e661070c2e808feeddea9f09
 
 Our use of geometric signs, in particular, is also supported by Sauvet, et al., where geometric signs, and the variations between them, are used to identify cultural groups. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". \[summarise Sauvet et al, methods, materials, results\]
 
@@ -50,6 +46,9 @@ ncountries <- signbase_full %>%
 nsigntypes <- ncol(signbase_full %>% 
                      select(line:other))
 
+# BM: "full_clean" is a bit misleading here since we have dropped
+# some sites and signs, you'll need to write about these steps in 
+# your methods section 
 signbase_full_clean <- signbase_full %>% 
   filter(site_name != "Willendorf",
          site_name != "Riparo di Fontana Nuova",
@@ -120,7 +119,7 @@ date_range <- date_max - date_min
 
 
 
-The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
+The data used was published in the Signbase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, Otaslavice was excluded due to a lack of similarity to the other sites, and the rest were excluded due to geographic distance from the other sites. These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The artifacts are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
 
 ## Methods
 
@@ -132,37 +131,40 @@ We performed a seriation analysis on the data to identify groups. We also perfor
 
 ```{r}
 ##Add groups
+
 groups <- list("1" = c("Abri Pataud", "El Rascaño", 
-                       "Fumane", "La Viña",
-                       "Lhotka", "Pod Hradem",
-                       "Riparo Bombrini", "Sirgenstein Cave",
-                       "Šandalja II"),
-               "2" = c("Aurignac", "Gargas",
-                       "Grotte de la Verpillière I", "Hohlenstein-Stadel",
-                       "Istállóskő Cave", "Mladeč",
-                       "d'Engihoul"), 
-               "3" = c("Grottes de Fonds-de-Forêt", "Kvasice",
-                       "Labeko Koba", "Les Rois",
-                       "Breitenbach", "Peskő Cave",
-                       "Vindija Cave", "Wildscheuer"),
-               "4" = c("Le Trou Du Renard", "Trou Magrite", 
-                       "Gatzarria", "Bockstein-Törle",
-                       "Grotte De La Princesse Pauline", "Abri Lartet/Gorge d'Enfer",
-                       "Tuto de Camalhot", "Slatinice"),
-               "5" = c("Spy", "Solutré",
-                       "Nová Dědina", "Grotte de Goyet",
-                       "Brassempouy", "El Castillo",
-                       "Menton/Grottes du Grimaldi", "Geissenklösterle",
-                       "Göpfelsteinhöhle", "Vogelherd"),
-               "6" = c("Castanet", "Maisières-Canal",
-                       "Grotte du Renne", "Hohle Fels",
-                       "Žlutava", "Cellier",
-                       "Blanchard", "La Ferrassie"),
-               "7" = c("La Souquette", "Shelter Birów IV",
-                       "Hornos de la Pena", "Trou al'Wesse",
-                       "Les Cottés", "Le Terme Pialat",
-                       "Abri de Laussel", "Abri du Poisson",
-                       "Otaslavice"))
+                         "Fumane", "La Viña",
+                         "Lhotka", "Pod Hradem",
+                         "Riparo Bombrini", "Sirgenstein Cave",
+                         "Šandalja II"),
+                "2" = c("Kvasice", "Labeko Koba", 
+                        "Les Rois", "Slatinice",
+                        "Göpfelsteinhöhle"),
+                "3" = c("Aurignac", "d'Engihoul",
+                         "Istállóskő Cave", "Hohlenstein-Stadel",
+                         "Gargas", "Grotte de la Verpillière I", 
+                         "Mladeč", "Brassempouy",
+                         "Gatzarria"),
+                "4" = c("Wildscheuer", "Breitenbach",
+                        "Peskő Cave", "Vindija Cave",
+                        "El Castillo"),
+                "5" = c("Tuto de Camalhot","Abri Lartet/Gorge d'Enfer",
+                        "Castanet", "Le Trou Du Renard", 
+                        "Grottes de Fonds-de-Forêt"),
+                "6" = c("Nová Dědina", "Menton/Grottes du Grimaldi",
+                        "Grotte du Renne", "Solutré", 
+                        "Žlutava", "Spy"),
+                "7" = c("Trou Magrite", "Grotte De La Princesse Pauline",
+                        "Grotte de Goyet", "Bockstein-Törle"),
+                "8" = c("Trou al'Wesse", "Maisières-Canal",
+                        "Les Cottés", "Le Terme Pialat"),
+                "9" = c("Vogelherd","Hohle Fels",
+                        "Geissenklösterle"),
+                "10" = c("Cellier", "Blanchard", 
+                         "La Ferrassie", "Hornos de la Pena",
+                         "Otaslavice"),
+                "11" = c("La Souquette", "Shelter Birów IV",
+                         "Abri de Laussel", "Abri du Poisson"))
   
 group_df <- 
   enframe(groups, 
@@ -179,7 +181,8 @@ signbase_unique_groups <- signbase_full_clean %>%
          latitude = as.character(latitude)) %>% 
   group_by(site_name) %>%
   summarize(across(where(is.numeric), sum)) %>% 
-  left_join(group_df)
+  left_join(group_df) %>% 
+  mutate(group = parse_number(group))
 
 signbase_unique_groups <- signbase_unique_groups %>% 
   left_join(lat_long_df)
@@ -195,67 +198,12 @@ artifact_data <- signbase_unique_groups %>%
 ```
 
 ```{r}
-#| label: fig-site-map
-#| fig-cap: "Map of sites divided by group, where sign abundace is represented by point size"
-##map
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(ggrepel)
-library(sf)
-
-
-abundance_data <- signbase_full_clean %>% 
-  pivot_longer(cols= line:star,
-               values_to = "sign_total") %>% 
-  filter(sign_total != 0) %>% 
-  mutate(longitude = as.character(longitude),
-         latitude = as.character(latitude)) %>% 
-  group_by(site_name) %>%
-  summarize(across(where(is.numeric), sum))
-
-
-abundance_data <- abundance_data %>% 
-  left_join(lat_long_df) %>% 
-  left_join(group_df) %>% 
-  select(site_name, sign_total, longitude, latitude, group)
-  
-signbase_sf <- 
-  st_as_sf(abundance_data, 
-           coords = c("longitude", "latitude"),
-           remove = FALSE,
-           crs = 4326)
-
-
-world <- ne_countries(scale = "medium", returnclass = "sf")
-Europe <- world[which(world$continent == "Europe"),]
-
-ggplot(Europe) +
-  geom_sf() +
-  geom_sf(data = signbase_sf,
-          aes(colour = group,
-              size = sign_total)) +
-  coord_sf(xlim = c(-10,30), 
-           ylim = c(35,53), 
-           expand = FALSE) +
-  geom_text_repel(data = signbase_sf,
-                  aes(x = longitude ,
-                      y = latitude,
-                      label = site_name),
-                  max.overlaps = 100,
-                  size = 2) +
-  theme_minimal() +
-  facet_wrap(~group) +
-  labs(color = "Group Number",
-       size = "Sign Count")
-  
-
-
-```
-
-```{r}
 #| label: fig-seriation
 #| fig-cap: "Seriation analysis of the data"
-##seriation
+
+# BM: this seriation needs to come before the grouping code above, since the groupd were read of the seriation plot
+
+## seriation
 library(ggpubr)
 artifact_matrix <- as.matrix(artifact_data %>% 
  mutate(across(everything(), ~replace(., . > 1, 1))))
@@ -314,60 +262,139 @@ artifact_matrix |> concentrate() |> mplot()
 ```
 
 ```{r}
+#| label: fig-site-map
+#| fig-cap: "Map of sites divided by group, where sign abundace is represented by point size"
+##map
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggrepel)
+library(sf)
+abundance_data <- signbase_full_clean %>% 
+  pivot_longer(cols= line:star,
+               values_to = "sign_total") %>% 
+  filter(sign_total != 0) %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum))
+
+
+abundance_data <- abundance_data %>% 
+  left_join(lat_long_df) %>% 
+  left_join(group_df) %>% 
+  select(site_name, sign_total, longitude, latitude, group) %>% 
+  mutate(group = parse_number(group))
+  
+signbase_sf <- 
+  st_as_sf(abundance_data, 
+           coords = c("longitude", "latitude"),
+           remove = FALSE,
+           crs = 4326)
+
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+Europe <- world[which(world$continent == "Europe"),]
+
+ggplot(Europe) +
+  geom_sf() +
+  geom_sf(data = signbase_sf,
+          aes(colour = as.factor(group),
+              size = sign_total)) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  geom_text_repel(data = signbase_sf,
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  max.overlaps = 100,
+                  size = 2) +
+  theme_minimal() +
+  facet_wrap(~group) +
+  labs(color = "Group Number",
+       size = "Sign Count")
+```
+
+```{r}
+##graphs showing sign makeup of each group
+
+graph_data <- artifact_data %>% 
+  concentrate() %>% 
+  rownames_to_column("site_name") %>% 
+  left_join(group_df)
+
+sign_type_data <- graph_data %>% 
+  pivot_longer(cols= notch:hashtag,
+               names_to = "sign_type",
+               values_to = "count") %>% 
+  dplyr::filter(count != 0) %>% 
+  mutate(group = parse_number(group))
+
+x_order <- graph_data %>% 
+  select(-site_name,
+         -group) %>% 
+  colnames() 
+
+ggplot(sign_type_data) +
+  aes(x = sign_type) +
+  geom_bar() +
+  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
+  labs(x = x_order) +
+  scale_x_discrete(limits = c(x_order)) +
+  facet_wrap(~group, nrow = 11)
+```
+
+```{r}
 #| label: fig-neighbor-net
 #| fig-cap: "Neighbor-Net analysis of the data"
-##network analysis
+
 library(vegan)
 library(phangorn)
+library(ggraph)
+library(statnet)
 
-##neighborNet
+
+
 jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
 
 dm <- as.matrix(jac)
 
-nnet <- neighborNet(dm)
-par("mar" = rep(1, 4))
 
-neighbor_graph <- plot(nnet, show.tip.label = FALSE)
-tiplabels(rownames(artifact_data),
-          bg = "white",
-          frame = "none", 
-          cex = 0.5)
-
-
-##try new neighbor net
-library(ggraph)
-library(tidygraph)
-library(igraph)
-library(statnet)
-library(intergraph)
-library(FastKNN)
-library(ggpubr)
-library(reshape2)
-library(patchwork)
-library(ggmap)
-library(seriation)
-library(purrr)
-library(tnet)
-library(argosfilter)
 disim <- 1 - dm
 disim[disim<0.5] <- 0
-disim_net<- network(disim,directed=F,ignore.eval=F,names.eval='weight')
-disim_net %v% 'vertex.names' <- row.names(artifact_data)
+disim_net <- network(disim,
+                    directed=F,
+                    ignore.eval=F,
+                    names.eval='weight')
+
+disim_net %v% 'vertex.names' <- 
+  row.names(artifact_data)
+
 set.seed(500)
+
 ggraph(disim_net, layout="fr") +
-  geom_edge_link(aes(width = weight, alpha=weight), edge_colour = "black", show.legend=T) +
+  geom_edge_link(aes(width = weight, 
+                     alpha=weight), 
+                 edge_colour = "black", 
+                 show.legend=T) +
   scale_edge_width(range=c(0.5,1.5)) +
-  scale_edge_colour_gradient(low = "#CCCCCC",high = "#000000") +
+  scale_edge_colour_gradient(low = "#CCCCCC",
+                             high = "#000000") +
   geom_node_point(alpha=1, size=5) +
-  geom_node_text(aes(label=row.names(artifact_data)), size=6, family= "Times New Roman", repel=T) +
-  theme(text= element_text(size = 20), panel.background = element_rect(fill = 'white'))
+  geom_node_text(aes(label=row.names(artifact_data)), 
+                 size=6, 
+                 family= "Arial", 
+                 repel=T) +
+  theme(text= element_text(size = 15), 
+        panel.background = element_rect(fill = 'white'))
+
 
 ```
 
 ```{r}
 #| label: fig-pcoa
 #| fig-cap: "PCoA analysis of the data"
+
 ##PCoA
 library(ecodist)
 library(ape)
@@ -390,6 +417,53 @@ ggplot(pcoa_df) +
   geom_text_repel(aes(label = site_name), 
                   size = 2,
                   max.overlaps = 20)
+
+
+
+
+```
+
+```{r}
+##PCoA Hirearchical clustering
+library(factoextra)
+library(FactoMineR)
+hire_data <- artifact_data %>% 
+   mutate(across(everything(), ~replace(., . > 1, 1)))
+  
+signbase_pca <- PCA(hire_data, graph = FALSE)
+signbase_hcpc <- HCPC(signbase_pca, graph = FALSE)
+
+##phylogenetic tree
+fviz_dend(signbase_hcpc,
+          cex = 0.7,
+          color_labels_by_k = FALSE,
+          repel = TRUE,
+          type = "phylogenic")
+
+##dendrogram
+fviz_dend(signbase_hcpc,
+          color_labels_by_k = FALSE,
+          cex = 0.7)
+
+## Cluster graph
+fviz_cluster(signbase_hcpc,
+             repel = TRUE,
+             show.clust.cent = FALSE, 
+             color_labels_by_k = FALSE,
+             ellipse.alpha = 0,
+             ggtheme = theme_bw(),
+             main = "Factor map")
+
+##to see clusters in a df
+hcpc_dataframe <- signbase_hcpc$data.clust
+
+## to see quantitative variables for each cluster
+signbase_hcpc$desc.var$quanti
+
+## to see principal dimensions associated with clusters
+signbase_hcpc$desc.axes$quanti
+
+
 ```
 
 ```{r}
@@ -423,31 +497,46 @@ plot(dispersion, hull = FALSE, ellipse=TRUE)
 ```{r}
 ##modularity test
 library(igraph)
+set.seed(500)
 
-reordered_matrix <- artifact_matrix[row.names(concentrate(artifact_matrix)), ]
+modul_matrix <-
+  graph_from_adjacency_matrix(1 - dm, mode = "undirected")
 
-artifact_matrix_j_dist <- as.matrix(vegdist(reordered_matrix, method = "jaccard"))
-artifact_matrix_j_adj_mat <-
-  graph_from_adjacency_matrix(1 - artifact_matrix_j_dist,
-                              mode = "undirected")
-gn <- cluster_edge_betweenness(artifact_matrix_j_adj_mat)
-wt <- cluster_walktrap(artifact_matrix_j_adj_mat, steps = 4)
-lv <- cluster_louvain(artifact_matrix_j_adj_mat)
+gn <- cluster_edge_betweenness(modul_matrix)
+wt <- cluster_walktrap(modul_matrix, steps = 4)
+lv <- cluster_louvain(modul_matrix)
 
 
-artifact_sim <- graph_from_adjacency_matrix(1- dm)
-mem <- as_membership(as.numeric(signbase_unique_groups$group))
-as_group <- modularity(artifact_sim, membership = mem)
+mem <- as_membership(signbase_unique_groups$group)
+
+as_group <- modularity(modul_matrix, membership = mem)
 
 create_tibble <- data.frame("Seriation groups" = c(as_group),
                             "Girvan-Newman" = c(max(gn$modularity)), 
                             "Walktrap" = c(max(wt$modularity)),
                             "Louvain" = c(lv$modularity))
-create_tibble
+print(create_tibble)
+
+
+#experimenting with increasing modularity
+core <- coreness(modul_matrix)
+col_set <- heat.colors(max(core), rev = TRUE)
+set.seed(2509)
+plot(modul_matrix, vertex.color = col_set[core], labex.cex = 0.5)
+
+core_df <- core %>% 
+  data_frame()
+compo <- igraph::components(modul_matrix)
+core_df$components <- compo$membership
+colnames(core_df) <- c("coreness", "components")
+rownames(core_df) <- signbase_unique_groups$site_name
+core_df <- core_df %>% 
+  rownames_to_column("site_name")
+
 ```
 
 ```{r}
-#mantel tests
+# mantel tests
 library(ape)
 library(ade4)
 library(Lock5Data)
@@ -475,6 +564,6 @@ mantel_dataframe
 bur_man_cor <- mantel.correlog(jac, site_distances, n.class=50, break.pts=NULL, cutoff=FALSE, r.type="pearson", nperm=999, mult="holm", progressive=TRUE)
 
 plot(bur_man_cor)
-
+groups$"1"
 ```
 
