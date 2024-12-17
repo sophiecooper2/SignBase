@@ -6,9 +6,10 @@ jac_df <- jac_df %>%
   filter(value < 0.6)
 
 
-geis <- jac_df %>% 
-  filter(site_name == "Geissenklösterle")
+pia <- jac_df %>% 
+  filter(site_name =="Nová Dědina")
 
+deng <- 
 
 groups <- list("1" = c("Abri Pataud", "El Rascaño", 
                          "Fumane", "La Viña",
@@ -31,13 +32,13 @@ groups <- list("1" = c("Abri Pataud", "El Rascaño",
                         "Grottes de Fonds-de-Forêt"),
                 "6" = c("Nová Dědina", "Menton/Grottes du Grimaldi",
                         "Grotte du Renne", "Solutré", 
-                        "Žlutava"),
+                        "Žlutava", "Spy"),
                 "7" = c("Trou Magrite", "Grotte De La Princesse Pauline",
                         "Grotte de Goyet", "Bockstein-Törle"),
                 "8" = c("Trou al'Wesse", "Maisières-Canal",
                         "Les Cottés", "Le Terme Pialat"),
                 "9" = c("Vogelherd","Hohle Fels",
-                        "Geissenklösterle", "Spy"),
+                        "Geissenklösterle"),
                 "10" = c("Cellier", "Blanchard", 
                          "La Ferrassie", "Hornos de la Pena",
                          "Otaslavice"),

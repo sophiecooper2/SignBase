@@ -1,0 +1,608 @@
+---
+title: "Preliminary Report on Using Geometric Signs Found on Paleolithic Mobile Objects to Identify Cultural Groups"
+author: Sophie Cooper
+format: html
+editor: visual
+echo: false
+execute: 
+  warning: false
+bibliography: references.bib
+zotero: "Signbase-study"
+link-citations: true
+---
+
+## Intro
+
+SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [@dutkiewicz2020]. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from SignBase to see if we can find evidence of patterns indicating distinct cultural groups.
+
+## Background
+
+Our understanding of the patterns of cultural and genetic diversity among the hominids of the Upper Paleolithic remains incomplete. Previous papers have attempted to use artefacts to represent and understand these patterns. @baker2024evidence performs analyses on data regarding personal ornamentation types from the Gravettian technocomplex in Europe to attempt to identify discrete cultural groups, finding an east to west cline of nine clusters. Similarly, @Vanhaeren_d uses variation in beadwork patterns from the Aurignacian technocomplex as an indicator for linguistic diversity, finding fourteen geographically cohesive clusters.
+
+In this paper, we use variation in geometric signs on mobile objects as an indicator of cultural difference. @baker2024evidence writes that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". @Vanhaeren_d also argue for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. It is our belief that these qualities also apply to these mobile signs.
+
+Our use of geometric signs, in particular, is also supported by @Sauvet_Bourrillon_Garate_Petrognani_Rivero_Robert_Tosello_2018, in which the authors perform a correspondence analysis on geometric parietal signs to identify Upper Paleolithic cultural groups in the Cantabrian region of Spain. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". They also point to other examples throughout history and various cultures of geometric signs being used as identity markers, thus establishing a precedent for considering signs as such in their study.
+
+Similar to @Lycett_2019, the isolation-by-distance framework serves as our null hypothesis in this study. As explained by @baker2024evidence, the isolation-by-distance framework proposes that similarity in cultural features will be primarily determined by geographical distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic hominids that are dispersed according to geography. Conversely, if geographic distance cannot account for the distribution of the sign types, we would have to assume that other factors are at play, namely, movement of groups or the creation of social networks.
+
+As @Whallon_2006 argues, mobility occurs among hunter-gatherers for multiple reasons. The first two reasons, referred to by Whallon as logistical and residential mobility, occur when groups move in order to procure a new supply of resources once the more immediate ones have been depleted. Another type of mobility defined by Whallon is network mobility, in which groups, or subsets of groups, move in order to make contact with other groups. This occurs in order to form a "safety net", as Whallon puts it, in times of scarce resources, so that groups are assured of a positive reception if they are forced to move. Lastly, and similarily, is informational mobility, in which groups, or individuals, move with the primary goal of gathering information, typically about the environmental conditions and resources in other areas. Again, this operates as a "safety net" of sorts, in that these groups then posses knowledge on where to move in times of resource scarcity. 
+
+Having established that, and knowing that the Paleolithic people were hunter-gatherers, we can then turn our eye to the sign type variation. If the isolation-by-distance framework cannot account for the sign type distribution, and if we are able to identify strong clusters of sites by sign types, it is possible that the distribution of sign variation may indicate group movement.
+
+## Data
+
+```{r}
+##data
+library(tidyverse)
+library(magrittr)
+library(rcarbon)
+signbase_full <- read_csv("data/signBase_Version1.0.csv")
+
+nsites <- signbase_full %>% 
+  pull(site_name ) %>% 
+  unique() %>% 
+  length()
+
+nartifacts <- nrow(signbase_full)
+
+ncountries <- signbase_full %>% 
+  pull(country) %>% 
+  unique() %>% 
+  length()
+
+nsigntypes <- ncol(signbase_full %>% 
+                     select(line:other))
+
+signbase_full_clean <- signbase_full %>% 
+  filter(site_name != "Willendorf",
+         site_name != "Riparo di Fontana Nuova",
+         site_name != "Muralovka",
+         site_name != "Shanidar Cave",
+         site_name != "Hayonim Cave",
+         site_name != "El Salitre") %>% 
+  select(-other, -rectangle)
+
+nsites_clean <- signbase_full_clean%>% 
+  pull(site_name ) %>% 
+  unique() %>% 
+  length()
+
+nartifacts_clean <- nrow(signbase_full_clean)
+
+ncountries_clean <- signbase_full_clean %>% 
+  pull(country) %>% 
+  unique() %>% 
+  length()
+
+nsigntypes_clean <- nsigntypes - 1
+
+signbase_years <- signbase_full_clean %>% 
+  drop_na(date_bp_max_min) %>% 
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>% 
+  separate(date_bp_max_min,
+           sep = " - ",
+           c("date_bp_max", "date_bp_min"),
+           remove = FALSE) %>% 
+  mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"),
+                              str_extract(date_bp_max, ".*?(?=\\/)"),
+                              date_bp_max)) %>% 
+  mutate(date_bp_min = ifelse(str_detect(date_bp_min, "\\/"),
+                              str_extract(date_bp_min, ".*?(?=\\/)"),
+                              date_bp_min)) %>% 
+  separate(date_bp_max,
+           sep = "±",
+           c("date_bp_max_age",
+             "date_bp_max_error")) %>% 
+  separate(date_bp_min,
+           sep = "±",
+           c("date_bp_min_age",
+             "date_bp_min_error")) %>% 
+  drop_na(date_bp_max_age,
+          date_bp_max_error) %>% 
+  mutate(date_bp_max_age = parse_number(date_bp_max_age),
+         date_bp_max_error = parse_number(date_bp_max_error))
+
+signbase_years_cal <- 
+  rcarbon::calibrate(signbase_years$date_bp_max_age,
+            signbase_years$date_bp_max_error,
+            verbose = FALSE) %>% 
+  summary() %>% 
+  data_frame()
+
+date_min <- signbase_years_cal %>% 
+  pull(MedianBP) %>% 
+  min()
+
+date_max <- signbase_years_cal %>% 
+  pull(MedianBP) %>% 
+  max()
+
+date_range <- date_max - date_min
+```
+
+The data used was published in the SignBase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. After those sites were excluded, all signs under the "rectangle" category were also removed as a side effect of that exclusion.
+
+These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The graph below shows the geographic distribution sites included in the study, with the point size corresponding to the number of signs at each site.
+
+```{r}
+#| label: fig-site-map
+#| fig-cap: "Map of sites where sign abundace is represented by point size"
+##map
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggrepel)
+library(sf)
+lat_long_df <- signbase_full_clean %>% 
+  select(site_name, longitude, latitude) %>% 
+  distinct(site_name, .keep_all = TRUE)
+
+abundance_data <- signbase_full_clean %>% 
+  pivot_longer(cols= line:star,
+               values_to = "sign_total") %>% 
+  filter(sign_total != 0) %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum))
+
+
+abundance_data <- abundance_data %>% 
+  left_join(lat_long_df) %>% 
+  select(site_name, sign_total, longitude, latitude)
+  
+signbase_sf <- 
+  st_as_sf(abundance_data, 
+           coords = c("longitude", "latitude"),
+           remove = FALSE,
+           crs = 4326)
+
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+Europe <- world[which(world$continent == "Europe"),]
+
+ggplot(Europe) +
+  geom_sf() +
+  geom_sf(data = signbase_sf,
+          aes(size = sign_total)) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  geom_text_repel(data = signbase_sf,
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  max.overlaps = 10,
+                  size = 2) +
+  theme_minimal() +
+  labs(size = "Sign Count")
+
+```
+
+The artifacts in question are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
+
+Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in @dutkiewicz2020, and we adhered to those categories and placements.
+
+
+## Methods
+
+Before attempting to identify connections between sites or groupings in the data, we had to decide whether to factor sign abundance into our considerations. As we can see in the above map and the below graph, abundance is somewhat variable among the sites, with Vogelherd serving as a more extreme outlier.
+
+```{r}
+#| label: fig-bar_abundance
+#| fig-cap: "Bar plot of sites showing the sign count for each site"
+##map
+library(ggpubr)
+
+ggplot(abundance_data) +
+  aes(x = site_name,
+      y = sign_total) +
+  geom_col() +
+  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
+  labs(x = "Site name",
+       y = "Sign count")
+```
+
+```{r}
+## test for significance of abundance
+library(vegan)
+library(ade4)
+set.seed(200)
+pres_abs <- signbase_full_clean %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum)) %>% 
+  column_to_rownames(var = "site_name") %>% 
+  select(line:star)
+  
+euc_data <- pres_abs %>% 
+  rownames_to_column("site_name") %>% 
+  group_by(site_name) %>% 
+  summarise(sign_count = sum(line:star)) %>% 
+  column_to_rownames("site_name")
+
+euc_dist <- vegdist(x = euc_data, method = "euclidean")
+
+jac <- vegdist(pres_abs, method = "jaccard", binary = TRUE)
+
+euc_mantel <- vegan::mantel(jac, euc_dist,  permutations = 1000)
+
+p_value_abundance_correlation <- euc_mantel$signif
+r_value_abundance_correlation <- euc_mantel$statistic
+
+```
+
+In order to decide whether to factor in abundance, we followed the lead of @Lycett_2019, and generated a Euclidean distance matrix measuring the differences in site abundance for each site, and ran a mantel test to determine if there was a correlation between the Euclidean matrix, and a Jaccard distance matrix for sign presence or absence. We found that there was not a significant correlation (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`), meaning that the results would not liekly be affected by the exclusion of abundance, and made the decision to exclude abundance from the data in order to prevent the results from being affected by outliers like Vogelherd.
+
+```{r}
+##Mantel for geography vs sign type
+set.seed(200)
+
+site_distances <- dist(cbind(abundance_data$longitude, abundance_data$latitude))
+
+mantel_distance <- vegan::mantel(jac, site_distances, permutations = 1000)
+
+p_value_distance_correlation <- mantel_distance$signif
+r_value_distance_correlation <- mantel_distance$statistic
+```
+
+Our second question in approaching the data was to investigate how much of the sign distribution was the result of geographic distance. In order to answer that question, we ran another mantel test, this time comparing a geographic distance matrix with our Jaccard matrix measuring sign presence or absence for each sign type. We found that there was no significant statistical correlation between the two (P = `r p_value_distance_correlation`, Mantel R = `r r_value_distance_correlation`). These results tell us that the distribution of sign types cannot be chalked up to distance, and that there must be other factors at play in explaining the distribution. 
+
+Having established the former, we then proceeded to attempt to identify patterns in the data using a combination of the following methods and visuals. Firstly, we performed a seriation analysis on the data, arranging the sites by sign similarity only, the results of which can be seen below.
+
+```{r}
+#| label: fig-seriation
+#| fig-cap: "Seriation analysis of the data"
+library(ggpubr)
+data_matrix <- as.matrix(pres_abs %>% 
+ mutate(across(everything(), ~replace(., . > 1, 1))))
+rownames(data_matrix) <- rownames(pres_abs)
+
+
+mplot <- function(x,...){
+  d <- data.frame(x = rep(1:ncol(x), each = nrow(x)),
+                  y = rep(nrow(x):1, ncol(x)),
+                  z = as.integer(x))
+  ggplot(d, aes(x, y, fill = factor(z))) +
+    geom_tile(col = "grey50", linewidth = 0.5) +
+    scale_fill_manual(values = c("0" = "white", "1" = "black")) +
+    coord_equal(expand = FALSE) +
+    scale_x_continuous(breaks = 1:ncol(x), 
+                       labels = colnames(x),
+                       position = "top") +
+    scale_y_continuous(breaks = 1:nrow(x), 
+                       labels = rev(rownames(x))) +
+    theme(axis.text = element_text(size = rel(0.5)),
+          axis.ticks = element_blank(),
+          legend.position = "none",
+          plot.title = element_text(hjust = 0.25)) +
+    labs(x = "Sign Type",
+         y = "Site Name",
+         fill = "Count") +
+    rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)}
+
+
+increase_focus <- function(x){
+  mcp <- apply(
+    x, 
+    MARGIN = 1, 
+    FUN = \(z){ mean(which(z == 1)) }, 
+    simplify = FALSE
+  ) |> unlist()
+  x <- x[order(mcp), ]
+  mrp <- apply(
+    x, 
+    MARGIN = 2, 
+    FUN = \(z){ mean(which(z == 1)) }, 
+    simplify = FALSE) |> unlist()
+  x[, order(mrp)]}
+
+concentrate <- function(x){
+  old <- x
+  not_identical <- TRUE
+  while(not_identical){
+    new <- increase_focus(old)
+    not_identical <- !identical(old, new)
+    old <- new}
+  new}
+
+data_matrix %>% concentrate() %>% mplot()
+```
+
+Next, we generated a network analysis of the Jaccard matrix, which showed us the similarities and strength of connections between the sites based on sign similarity. Again, this figure arranges the sites based on similarity in sign type distribution.
+
+```{r}
+#| label: fig-neighbor-net
+#| fig-cap: "Network analysis of the data"
+
+library(vegan)
+library(ggraph)
+library(statnet)
+
+dm <- as.matrix(jac)
+
+
+disim <- 1 - dm
+disim[disim<0.5] <- 0
+disim_net <- network(disim,
+                    directed=F,
+                    ignore.eval=F,
+                    names.eval='weight')
+
+disim_net %v% 'vertex.names' <- 
+  row.names(pres_abs)
+
+set.seed(500)
+
+ggraph(disim_net, layout="fr") +
+  geom_edge_link(aes(width = weight, 
+                     alpha=weight), 
+                 edge_colour = "black", 
+                 show.legend=T) +
+  scale_edge_width(range=c(0.5,1.5)) +
+  scale_edge_colour_gradient(low = "#CCCCCC",
+                             high = "#000000") +
+  geom_node_point(alpha=1, size=5) +
+  geom_node_text(aes(label=row.names(pres_abs)), 
+                 size=3, 
+                 family= "Arial", 
+                 repel=T, max.overlaps = 20) +
+  theme(text= element_text(size = 15), 
+        panel.background = element_rect(fill = 'white'))
+
+
+```
+
+We also performed a principal coordinate decomposition analysis (PCoA) on the Jaccard Matrix, as well as a principal component analysis (PCA). We then performed a hirearchical clustering upon that PCA, the results of which can be seen below.
+
+```{r}
+#| label: fig-pcoa
+#| fig-cap: "Principal coordinate decomposition analysis (PCoA) of the data"
+
+library(ecodist)
+library(ape)
+pcoa <- pcoa(jac)
+
+pcoa_df <- data.frame(pcoa1 = pcoa$vectors[,1], 
+                      pcoa2 = pcoa$vectors[,2])
+
+pcoa_df <- pcoa_df %>% 
+  mutate(site_name = rownames(pres_abs))
+
+library(ggrepel)
+ggplot(pcoa_df) +
+  aes(x=pcoa1, 
+      y=pcoa2) +
+  geom_point() +
+  labs(x = "PC1",
+       y = "PC2",) +
+  theme(title = element_text(size = 10)) +
+  geom_text_repel(aes(label = site_name), 
+                  size = 2,
+                  max.overlaps = 20)
+```
+
+```{r}
+#| label: fig-pca
+#| fig-cap: "Principal component analysis (PCA) of the sites"
+library(factoextra)
+library(FactoMineR)
+hire_data <- pres_abs %>% 
+   mutate(across(everything(), ~replace(., . > 1, 1)))
+  
+signbase_pca <- PCA(hire_data, graph = FALSE)
+
+plot.PCA(signbase_pca, choix = "ind", repel = TRUE, autoLab = "yes")
+
+```
+
+```{r fig.height= 10, fig.width = 10}
+#| label: fig-hire_pca
+#| fig-cap: "Hirearchical classification on PCA results"
+
+signbase_hcpc <- HCPC(signbase_pca, graph = FALSE)
+plot.HCPC(signbase_hcpc, choice = "tree", rect = FALSE)
+
+```
+
+We used these results, as well as the raw similarity data from the Jaccard matrix, in order to group the sites together based on sign similarity.
+
+## Results
+
+```{r}
+groups <- list("1" = c("Abri Pataud", "El Rascaño", 
+                         "Fumane", "La Viña",
+                         "Lhotka", "Pod Hradem",
+                         "Riparo Bombrini", "Sirgenstein Cave",
+                         "Šandalja II"),
+                "2" = c("Kvasice", "Labeko Koba", 
+                        "Les Rois", "Slatinice",
+                        "Göpfelsteinhöhle"),
+                "3" = c("Aurignac", "d'Engihoul",
+                         "Istállóskő Cave", "Hohlenstein-Stadel",
+                         "Gargas", "Grotte de la Verpillière I", 
+                         "Mladeč", "Brassempouy",
+                         "Gatzarria"),
+                "4" = c("Wildscheuer", "Breitenbach",
+                        "Peskő Cave", "Vindija Cave",
+                        "El Castillo"),
+                "5" = c("Tuto de Camalhot","Abri Lartet/Gorge d'Enfer",
+                        "Castanet", "Le Trou Du Renard", 
+                        "Grottes de Fonds-de-Forêt"),
+                "6" = c("Nová Dědina", "Menton/Grottes du Grimaldi",
+                        "Grotte du Renne", "Solutré", 
+                        "Žlutava", "Spy"),
+                "7" = c("Trou Magrite", "Grotte De La Princesse Pauline",
+                        "Grotte de Goyet", "Bockstein-Törle"),
+                "8" = c("Trou al'Wesse", "Maisières-Canal",
+                        "Les Cottés", "Le Terme Pialat"),
+                "9" = c("Vogelherd","Hohle Fels",
+                        "Geissenklösterle"),
+                "10" = c("Cellier", "Blanchard", 
+                         "La Ferrassie", "Hornos de la Pena",
+                         "Otaslavice"),
+                "11" = c("La Souquette", "Shelter Birów IV",
+                         "Abri de Laussel", "Abri du Poisson"))
+  
+group_df <- 
+  enframe(groups, 
+          name = "group", 
+          value = "site_name") %>%
+  unnest(cols = site_name)
+
+signbase_unique_groups <- signbase_full_clean %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum)) %>% 
+  left_join(group_df) %>% 
+  mutate(group = parse_number(group))
+
+signbase_unique_groups <- signbase_unique_groups %>% 
+  left_join(lat_long_df)
+
+artifact_data <- signbase_unique_groups %>% 
+  column_to_rownames(var = "site_name") %>% 
+  select(line:star)
+```
+
+As we can see from the visuals, there are a few definite group clusters which are immediately identifiable. For the rest, we compared the visuals with each other, as well as the Jaccard indices between sites, in order to determine the optimal grouping. We organized the sites into 11 groups, as seen below.
+
+```{r}
+#| label: fig-group-table
+#| fig-cap: "Table of the sites by group"
+library(knitr)
+group_1 <- c("Abri Pataud, El Rascaño, Fumane, La Viña, Lhotka, Pod Hradem, Riparo Bombrini, Sirgenstein Cave, Šandalja II")
+group_2 <- c("Kvasice, Labeko Koba, Les Rois, Slatinice, Göpfelsteinhöhle")
+group_3 <- c("Aurignac, d'Engihoul, Istállóskő Cave, Hohlenstein-Stadel, Gargas, Grotte de la Verpillière I, Mladeč, Brassempouy, Gatzarria")
+group_4 <- c("Wildscheuer, Breitenbach, Peskő Cave, Vindija Cave, El Castillo")
+group_5 <- c("Tuto de Camalhot, Abri Lartet/Gorge d'Enfer, Castanet, Le Trou Du Renard, Grottes de Fonds-de-Forêt")
+group_6 <- c("Nová Dědina, Menton/Grottes du Grimaldi, Grotte du Renne, Solutré, Žlutava, Spy")
+group_7 <- c("Trou Magrite, Grotte De La Princesse Pauline, Grotte de Goyet, Bockstein-Törle")
+group_8 <- c("Trou al'Wesse, Maisières-Canal, Les Cottés, Le Terme Pialat")
+group_9 <- c("Vogelherd, Hohle Fels, Geissenklösterle")
+group_10 <- c("Cellier, Blanchard, La Ferrassie, Hornos de la Pena, Otaslavice")
+group_11 <- c("La Souquette, Shelter Birów IV, Abri de Laussel, Abri du Poisson")
+
+
+group_table <- data_frame("Group" = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), "Site Names" = c(group_1, group_2, group_3, group_4, group_5, group_6, group_7, group_8, group_9, group_10, group_11))
+
+kable(group_table)
+
+  
+```
+
+```{r fig.height= 5, fig.width=10}
+#| label: fig-group-map
+#| fig-cap: "Map of sites faceted and colored by group number"
+  
+signbase_sf_group <- 
+  st_as_sf(signbase_unique_groups, 
+           coords = c("longitude", "latitude"),
+           remove = FALSE,
+           crs = 4326)
+
+ggplot(Europe) +
+  geom_sf() +
+  geom_sf(data = signbase_sf_group,
+          aes(colour = as.factor(group))) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  geom_text_repel(data = signbase_sf_group,
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  max.overlaps = 100,
+                  size = 2) +
+  theme_minimal() +
+  facet_wrap(~group) +
+  labs(color = "Group Number")
+```
+
+```{r fig.height= 10, fig.width=10}
+#| label: fig-group-sign
+#| fig-cap: "Bar plot of signs by group"
+
+graph_data <- artifact_data %>% 
+  mutate(across(everything(), ~replace(., . > 1, 1))) %>% 
+  concentrate() %>% 
+  rownames_to_column("site_name") %>% 
+  left_join(group_df)
+
+sign_type_data <- graph_data %>% 
+  pivot_longer(cols= notch:hashtag,
+               names_to = "sign_type",
+               values_to = "count") %>% 
+  dplyr::filter(count != 0) %>% 
+  mutate(group = parse_number(group))
+
+x_order <- graph_data %>% 
+  select(-site_name,
+         -group) %>% 
+  colnames() 
+
+
+ggplot(sign_type_data) +
+  aes(x = sign_type) +
+  geom_bar() +
+  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
+  labs(x = x_order) +
+  scale_x_discrete(limits = c(x_order)) +
+  scale_y_continuous(labels = NULL) +
+  facet_wrap(~group, nrow = 11)
+
+```
+
+```{r}
+##modularity test
+library(igraph)
+set.seed(500)
+
+modul_matrix <-
+  graph_from_adjacency_matrix(1 - dm, mode = "undirected")
+
+mem <- as_membership(signbase_unique_groups$group)
+
+as_group <- modularity(modul_matrix, membership = mem)
+```
+
+```{r}
+## permanova test
+perman <- adonis2(jac~as.factor(signbase_unique_groups$group), 
+                  method = "jaccard",
+                  sqrt.dist = TRUE)
+perman <- perman %>% 
+  data_frame() %>% 
+  slice_head()
+
+perman_r <- perman$R2
+perman_p <- perman$`Pr(>F)`
+```
+
+In order to test the strength of the groups, we ran a modularity test on the groupings, resulting in a score of `r as_group`. We also ran a perMANOVA test, producing an R-squared value of `r perman_r` and a P value of `r perman_p`, and a multivariate homogeneity test of group dispersions, resulting in the visual seen below.
+
+```{r fig.height= 8, fig.width=5}
+#| label: fig-perm-disp
+#| fig-cap: "Multivariate homogeneity of group dispersions"
+
+dispersion <- betadisper(jac, group = signbase_unique_groups$group)
+
+disp <- (permutest(dispersion))
+
+plot(dispersion, hull = FALSE, ellipse=TRUE)
+
+```
+
+As we can see, the strength of these groupings is quite high. The perMANOVA test tells us that 52% of the variability in the sign distribution can be attributed to group membership, and the modularity score tells us that the groupings have a strong community structure. We can also see from @fig-perm-disp that the overlap between groups is fairly minimal.
+
+## Discussion
+
+In this study, we saw that the isolation-by-distance framework could not account for the distribution of sign types. Specifically, our Mantel test found no statistically significant relationship between geographic distance and sign variation. Therefore, we must look to other factors to explain the distribution.
+
+As explained earlier, mobility for various reasons is commonly found in hunter-gatherer groups. Therefore, one explanation for the sign type distribution could be that the site groups represent cultural groups, as indicated by sign type patterns, and the geographic distribution between sites represent group mobility. The mobility may have occurred for all the reasons listed earlier. One point of note is that Whallon writes that decorative objects may be exchanged as a method of network formation, which may account for the presence of some signs at some sites. 
+
+Further research will need to be done on this topic in order to understand these patterns. In particular, the ecological and biogeographical conditions at the sites will need to be analyzed for potential connections, as mobility is heavily environmentally-motivated. Additionally, further analysis of the sign type categories as created by @dutkiewicz2020, as it is possible, when it comes to the simpler signs, for identical creation to occur independently.
+
+However, this preliminary research has been able to produce some conclusions to be reasonably confident in. Firstly, we know, definitively, that distribution and variation of sign types is not the result of geographic distance. Secondly, we have found clusters of sites that correspond in sign type, possibly indicating mobility of specific cultural groups. These conclusions contribute to, and broaden our current understanding of cultural and biological diversity among Upper Paleolithic hominids in Europe.
+
+
