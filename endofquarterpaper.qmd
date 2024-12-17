@@ -15,21 +15,56 @@ link-citations: true
 
 SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [@dutkiewicz2020]. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. In this paper, we will analyze the data from SignBase to see if we can find evidence of patterns indicating distinct cultural groups.
 
+<!--
+
+BM: The intro needs to be more centred on the research question and hypotheses, not the data set. Details about the data can come later. First we need to tell the reader about the general themes, problems, and questions we are tackling. It should have a question that ends in a question mark.
+
+-->
+
 ## Background
 
 Our understanding of the patterns of cultural and genetic diversity among the hominids of the Upper Paleolithic remains incomplete. Previous papers have attempted to use artefacts to represent and understand these patterns. @baker2024evidence performs analyses on data regarding personal ornamentation types from the Gravettian technocomplex in Europe to attempt to identify discrete cultural groups, finding an east to west cline of nine clusters. Similarly, @Vanhaeren_d uses variation in beadwork patterns from the Aurignacian technocomplex as an indicator for linguistic diversity, finding fourteen geographically cohesive clusters.
 
+<!--
+
+BM: 'previous work' not 'previous papers' ... 'Baker et al. analysed' not 'Baker et al. performs analyses', we need past tense, and as few words as possible to convey the meaning - omit needless words. Also, what analysis did they perform? More specific detail needed, expand your description of Baker et al into its own para. Describing the work of Vanhaeren and d’Errico (2006) should be a second paragraph, with a nice transition between the two. Do not use quotes. ' cultural difference' should be  'cultural relatedness' meaning both similarity and difference
+-->
+
 In this paper, we use variation in geometric signs on mobile objects as an indicator of cultural difference. @baker2024evidence writes that "It is generally accepted that artefacts with exclusively symbolic functions, such as personal ornaments and mobiliary art, are more informative than functional objects when characterizing cultural and social systems as well as individuals’ role within society". @Vanhaeren_d also argue for the advantages of studying personal ornamentation as an indicator for cultural groups. Some of the reasons that they point to are their exclusively symbolic function, and the well-documented history of societies using personal ornamentation as cultural indicators. It is our belief that these qualities also apply to these mobile signs.
+
+<!-- 
+BM: Do not use quotes. 'cultural difference' should be  'cultural relatedness' meaning both similarity and difference
+-->
 
 Our use of geometric signs, in particular, is also supported by @Sauvet_Bourrillon_Garate_Petrognani_Rivero_Robert_Tosello_2018, in which the authors perform a correspondence analysis on geometric parietal signs to identify Upper Paleolithic cultural groups in the Cantabrian region of Spain. They write, "It has been proposed at various times that these graphic expressions, generally called 'signs', constitute veritable 'identity markers' that can be perceived at multiple levels. Within a group, they serve to signal the membership of an individual to a social status or category. In intergroup relationships, they can have a more general role as markers of territory or ethnicity". They also point to other examples throughout history and various cultures of geometric signs being used as identity markers, thus establishing a precedent for considering signs as such in their study.
 
+<!-- 
+BM: Do not use quotes. Give more details about what specifically Sauvet et al. (2018) did, and what their findings were.
+-->
+
 Similar to @Lycett_2019, the isolation-by-distance framework serves as our null hypothesis in this study. As explained by @baker2024evidence, the isolation-by-distance framework proposes that similarity in cultural features will be primarily determined by geographical distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic hominids that are dispersed according to geography. Conversely, if geographic distance cannot account for the distribution of the sign types, we would have to assume that other factors are at play, namely, movement of groups or the creation of social networks.
 
-As @Whallon_2006 argues, mobility occurs among hunter-gatherers for multiple reasons. The first two reasons, referred to by Whallon as logistical and residential mobility, occur when groups move in order to procure a new supply of resources once the more immediate ones have been depleted. Another type of mobility defined by Whallon is network mobility, in which groups, or subsets of groups, move in order to make contact with other groups. This occurs in order to form a "safety net", as Whallon puts it, in times of scarce resources, so that groups are assured of a positive reception if they are forced to move. Lastly, and similarily, is informational mobility, in which groups, or individuals, move with the primary goal of gathering information, typically about the environmental conditions and resources in other areas. Again, this operates as a "safety net" of sorts, in that these groups then posses knowledge on where to move in times of resource scarcity. 
+<!-- 
+BM: This belongs in the Method section, where we describe our hypotheses in detail. Give more detail about  Lycett's  (2019) study. Delete 'As explained by Baker et al. (2024),'
+-->
+
+As @Whallon_2006 argues, mobility occurs among hunter-gatherers for multiple reasons. The first two reasons, referred to by Whallon as logistical and residential mobility, occur when groups move in order to procure a new supply of resources once the more immediate ones have been depleted. Another type of mobility defined by Whallon is network mobility, in which groups, or subsets of groups, move in order to make contact with other groups. This occurs in order to form a "safety net", as Whallon puts it, in times of scarce resources, so that groups are assured of a positive reception if they are forced to move. Lastly, and similarily, is informational mobility, in which groups, or individuals, move with the primary goal of gathering information, typically about the environmental conditions and resources in other areas. Again, this operates as a "safety net" of sorts, in that these groups then posses knowledge on where to move in times of resource scarcity.
+
+<!-- 
+BM: Spell out Whallon's arguments and evidence in a bit more detail. Make his ideas more prominent in your writing than his name. Show the reader that you know what you are talking about here. 
+-->
 
 Having established that, and knowing that the Paleolithic people were hunter-gatherers, we can then turn our eye to the sign type variation. If the isolation-by-distance framework cannot account for the sign type distribution, and if we are able to identify strong clusters of sites by sign types, it is possible that the distribution of sign variation may indicate group movement.
 
+<!-- 
+BM: What is 'that', it's not clear. This para might be better as the start of the Methods section 
+-->
+
 ## Data
+
+<!-- 
+BM: Let's change this to "Methods and Materials", that's more typical for a journal article
+-->
 
 ```{r}
 ##data
@@ -110,20 +145,49 @@ signbase_years_cal <-
   summary() %>% 
   data_frame()
 
+pretty_print_dates <- 
+  function(x) formatC(x, 
+                      decimal.mark=".", 
+                      big.mark=",", 
+                      digits = 0, 
+                      format = "f")
+
 date_min <- signbase_years_cal %>% 
   pull(MedianBP) %>% 
-  min()
+  min() 
+
+date_min_pretty <- pretty_print_dates(date_min)
 
 date_max <- signbase_years_cal %>% 
   pull(MedianBP) %>% 
-  max()
+  max() 
+
+date_max_pretty <- pretty_print_dates(date_max)
 
 date_range <- date_max - date_min
+date_range_pretty <- pretty_print_dates(date_range)
 ```
 
 The data used was published in the SignBase database (https://www.signbase.org). It consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We decided to exclude any sign counts if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the "other" category, and the rest were excluded due to geographic distance from the other sites. After those sites were excluded, all signs under the "rectangle" category were also removed as a side effect of that exclusion.
 
+<!-- 
+BM: Need to cite the main SignBase pubication in the first sentence of this para, not the website. 
+
+Change "We decided to exclude any sign counts if they fell under the “other” category..." to We excluded signs in the “other” category..." do you see how that says the same thing but with many fewer words? This is expected in professional writing - omit needless words.
+
+Change "We also decided to exclude the data from five sites: Willendorf, Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave. Willendorf was excluded because its only sign count fell under the “other” category, and the rest were excluded due to geographic distance from the other sites. " to "We also excluded Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites)."
+
+-->
+
 These decisions brought our data down to `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. The graph below shows the geographic distribution sites included in the study, with the point size corresponding to the number of signs at each site.
+
+<!--
+
+Change "These decisions brought our data down to 516 artifacts found at 59 sites in 9 countries, encapsulating 30 sign types." to "These exclusions resulted in 516 artifacts found at 59 sites in 9 countries, encapsulating 30 sign types (Figure 1)."
+
+Delete "The graph below shows the geographic distribution sites..." now that we cross-ref that fig in the previous sentence, no need for it. 
+
+-->
 
 ```{r}
 #| label: fig-site-map
@@ -179,14 +243,44 @@ ggplot(Europe) +
 
 ```
 
-The artifacts in question are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min` BP to `r date_max` BP, spanning an overall time range of `r date_range` years.
+
+<!-- 
+
+BM change: "Map of sites where sign abundace is represented by point size" to ""Map of Palaeolithic sites containing signs, sign abundance is represented by point size, data from Dutkiewicz et al. (2020)"
+
+--> 
+
+The artifacts in question are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years.
+
+<!-- 
+
+BM delete "The artifacts in question are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex" and let's convert those 2.7691^{4} BP numbers to something nicer. We can also add a histogram of the ages to the Fig 1 with the map, to make a multi-panel figure that gives some basic details about the data.
+
+--> 
 
 Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in @dutkiewicz2020, and we adhered to those categories and placements.
 
+<!-- 
+
+BM delete. This is a once sentence paragraph, which is rarely a good idea
+
+--> 
 
 ## Methods
 
+<!-- 
+
+BM change this heading to be more specific about the method you are describing, eg. "Mantel tests", then another header later "Seriation, etc. 
+
+--> 
+
 Before attempting to identify connections between sites or groupings in the data, we had to decide whether to factor sign abundance into our considerations. As we can see in the above map and the below graph, abundance is somewhat variable among the sites, with Vogelherd serving as a more extreme outlier.
+
+<!-- 
+
+BM delete. This paragraph does not provide the reader with specific information about our methods. We are not narrating every decision about how we went about our analysis. That is not typical for professional writing. We are describing, after the fact, in the past tense, the methods that we used to generate the results that answer our questions that we present in the intro
+
+--> 
 
 ```{r}
 #| label: fig-bar_abundance
@@ -195,13 +289,20 @@ Before attempting to identify connections between sites or groupings in the data
 library(ggpubr)
 
 ggplot(abundance_data) +
-  aes(x = site_name,
+  aes(x = reorder(site_name, sign_total),
       y = sign_total) +
   geom_col() +
   rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
   labs(x = "Site name",
        y = "Sign count")
 ```
+
+<!-- 
+
+BM much better to have these bars ordered, I have made them now. I think this is another figure that can be combined into Fig 1, as part of the basic details of the data
+
+--> 
+
 
 ```{r}
 ## test for significance of abundance
@@ -226,12 +327,18 @@ jac <- vegdist(pres_abs, method = "jaccard", binary = TRUE)
 
 euc_mantel <- vegan::mantel(jac, euc_dist,  permutations = 1000)
 
-p_value_abundance_correlation <- euc_mantel$signif
-r_value_abundance_correlation <- euc_mantel$statistic
+p_value_abundance_correlation <- round(euc_mantel$signif, 3)
+r_value_abundance_correlation <- round(euc_mantel$statistic, 3)
 
 ```
 
 In order to decide whether to factor in abundance, we followed the lead of @Lycett_2019, and generated a Euclidean distance matrix measuring the differences in site abundance for each site, and ran a mantel test to determine if there was a correlation between the Euclidean matrix, and a Jaccard distance matrix for sign presence or absence. We found that there was not a significant correlation (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`), meaning that the results would not liekly be affected by the exclusion of abundance, and made the decision to exclude abundance from the data in order to prevent the results from being affected by outliers like Vogelherd.
+
+<!-- 
+
+BM re-write this so it is much less wordy. Also, the reader needs more context and motivation to this issue. Tell them more about Lycett's work. Set this up as a question that we will answer in our results section.
+
+--> 
 
 ```{r}
 ##Mantel for geography vs sign type
@@ -241,13 +348,25 @@ site_distances <- dist(cbind(abundance_data$longitude, abundance_data$latitude))
 
 mantel_distance <- vegan::mantel(jac, site_distances, permutations = 1000)
 
-p_value_distance_correlation <- mantel_distance$signif
-r_value_distance_correlation <- mantel_distance$statistic
+p_value_distance_correlation <- round(mantel_distance$signif, 3)
+r_value_distance_correlation <- round(mantel_distance$statistic, 3)
 ```
 
-Our second question in approaching the data was to investigate how much of the sign distribution was the result of geographic distance. In order to answer that question, we ran another mantel test, this time comparing a geographic distance matrix with our Jaccard matrix measuring sign presence or absence for each sign type. We found that there was no significant statistical correlation between the two (P = `r p_value_distance_correlation`, Mantel R = `r r_value_distance_correlation`). These results tell us that the distribution of sign types cannot be chalked up to distance, and that there must be other factors at play in explaining the distribution. 
+Our second question in approaching the data was to investigate how much of the sign distribution was the result of geographic distance. In order to answer that question, we ran another mantel test, this time comparing a geographic distance matrix with our Jaccard matrix measuring sign presence or absence for each sign type. We found that there was no significant statistical correlation between the two (P = `r p_value_distance_correlation`, Mantel R = `r r_value_distance_correlation`). These results tell us that the distribution of sign types cannot be chalked up to distance, and that there must be other factors at play in explaining the distribution.
+
+<!-- 
+
+BM this is a bit of a mix-up of methods and results. Stick to describing the methods here and do not give the result yet. Since the result of this analysis is the answer to one of our major research questions, we should put it in the "Results" section. 
+
+--> 
 
 Having established the former, we then proceeded to attempt to identify patterns in the data using a combination of the following methods and visuals. Firstly, we performed a seriation analysis on the data, arranging the sites by sign similarity only, the results of which can be seen below.
+
+<!-- 
+
+BM again is a bit of a mix-up of methods and results. Here we only want to be telling the reader about the seriation method in detail. What question is this method going to help us answer? We need citations to information about the method to show the reader we know what we are talking about. We need to help the reader see this connection between our question and our methods. Not giving the result yet. 
+
+--> 
 
 ```{r}
 #| label: fig-seriation
@@ -310,6 +429,12 @@ data_matrix %>% concentrate() %>% mplot()
 
 Next, we generated a network analysis of the Jaccard matrix, which showed us the similarities and strength of connections between the sites based on sign similarity. Again, this figure arranges the sites based on similarity in sign type distribution.
 
+<!-- 
+
+BM same issue as the previous para.  
+
+--> 
+
 ```{r}
 #| label: fig-neighbor-net
 #| fig-cap: "Network analysis of the data"
@@ -353,6 +478,14 @@ ggraph(disim_net, layout="fr") +
 ```
 
 We also performed a principal coordinate decomposition analysis (PCoA) on the Jaccard Matrix, as well as a principal component analysis (PCA). We then performed a hirearchical clustering upon that PCA, the results of which can be seen below.
+
+<!-- 
+
+BM same issue as the previous para.  
+
+Change "We then performed a hirearchical clustering upon that PCA, the results of which can be seen below." to We then performed a hirearchical clustering upon that PCA (Figure 5)" See how we use a cross-ref to the fig to save words?
+
+--> 
 
 ```{r}
 #| label: fig-pcoa
@@ -406,7 +539,20 @@ plot.HCPC(signbase_hcpc, choice = "tree", rect = FALSE)
 
 We used these results, as well as the raw similarity data from the Jaccard matrix, in order to group the sites together based on sign similarity.
 
+<!-- 
+
+BM same issue as the previous para.  
+
+
+--> 
+
 ## Results
+
+<!-- 
+
+BM we need some sub-headings in here to organise this section. The results section should have the same structure as the methods section, which should take its structure from our set of research questions that we present in the intro.
+
+--> 
 
 ```{r}
 groups <- list("1" = c("Abri Pataud", "El Rascaño", 
@@ -466,6 +612,12 @@ artifact_data <- signbase_unique_groups %>%
 ```
 
 As we can see from the visuals, there are a few definite group clusters which are immediately identifiable. For the rest, we compared the visuals with each other, as well as the Jaccard indices between sites, in order to determine the optimal grouping. We organized the sites into 11 groups, as seen below.
+
+<!-- 
+
+BM delete "As we can see from the visuals" and "as seen below" and replace with cross-refs to figures. Replace 'visuals' with figures in every place
+
+--> 
 
 ```{r}
 #| label: fig-group-table
@@ -581,6 +733,14 @@ perman_p <- perman$`Pr(>F)`
 
 In order to test the strength of the groups, we ran a modularity test on the groupings, resulting in a score of `r as_group`. We also ran a perMANOVA test, producing an R-squared value of `r perman_r` and a P value of `r perman_p`, and a multivariate homogeneity test of group dispersions, resulting in the visual seen below.
 
+<!-- 
+
+BM modularity test needs to be described in the methods section, with citation to the source of our info
+
+--> 
+
+
+
 ```{r fig.height= 8, fig.width=5}
 #| label: fig-perm-disp
 #| fig-cap: "Multivariate homogeneity of group dispersions"
@@ -595,14 +755,64 @@ plot(dispersion, hull = FALSE, ellipse=TRUE)
 
 As we can see, the strength of these groupings is quite high. The perMANOVA test tells us that 52% of the variability in the sign distribution can be attributed to group membership, and the modularity score tells us that the groupings have a strong community structure. We can also see from @fig-perm-disp that the overlap between groups is fairly minimal.
 
+<!-- 
+
+BM delete "As we can see" and replace with a cross-ref
+
+--> 
+
 ## Discussion
+
+<!-- 
+
+BM This section should start with a re-statment of our research questions from the intro to remind the reader
+
+--> 
 
 In this study, we saw that the isolation-by-distance framework could not account for the distribution of sign types. Specifically, our Mantel test found no statistically significant relationship between geographic distance and sign variation. Therefore, we must look to other factors to explain the distribution.
 
-As explained earlier, mobility for various reasons is commonly found in hunter-gatherer groups. Therefore, one explanation for the sign type distribution could be that the site groups represent cultural groups, as indicated by sign type patterns, and the geographic distribution between sites represent group mobility. The mobility may have occurred for all the reasons listed earlier. One point of note is that Whallon writes that decorative objects may be exchanged as a method of network formation, which may account for the presence of some signs at some sites. 
+<!-- 
+
+BM this para should summarise the key findings
+
+--> 
+
+As explained earlier, mobility for various reasons is commonly found in hunter-gatherer groups. Therefore, one explanation for the sign type distribution could be that the site groups represent cultural groups, as indicated by sign type patterns, and the geographic distribution between sites represent group mobility. The mobility may have occurred for all the reasons listed earlier. One point of note is that Whallon writes that decorative objects may be exchanged as a method of network formation, which may account for the presence of some signs at some sites.
+
+<!-- 
+
+BM delete "As explained earlier"  and "reasons listed earlier" that is considered poor style. The reader has a memory, you need to artfully invoke it, not with a sledge-hammer like this. 
+
+replace "is that Whallon writes" with just a citation 
+
+--> 
 
 Further research will need to be done on this topic in order to understand these patterns. In particular, the ecological and biogeographical conditions at the sites will need to be analyzed for potential connections, as mobility is heavily environmentally-motivated. Additionally, further analysis of the sign type categories as created by @dutkiewicz2020, as it is possible, when it comes to the simpler signs, for identical creation to occur independently.
 
 However, this preliminary research has been able to produce some conclusions to be reasonably confident in. Firstly, we know, definitively, that distribution and variation of sign types is not the result of geographic distance. Secondly, we have found clusters of sites that correspond in sign type, possibly indicating mobility of specific cultural groups. These conclusions contribute to, and broaden our current understanding of cultural and biological diversity among Upper Paleolithic hominids in Europe.
 
+<!-- 
 
+BM overall, this is a very good first attempt at a rough draft. It is a very long way from a manuscript we can submit to a journal. Your writing style and structure is very different from our goal. You need to very closely imitate the style and structure of the papers that you cite in your report here. Journals are very conservative and only accept papers that match the established style and structure. So you need to match those as close as you can. 
+
+If you want to get to that point, you need to very thoroughly study and exactly follow the instructions in these resources (and we can find more also):
+
+Turbek, S.P., Chock, T.M., Donahue, K., Havrilla, C.A., Oliverio, A.M., Polutchko, S.K., Shoemaker, L.G. and Vimercati, L. (2016), Scientific Writing Made Easy: A Step-by-Step Guide to Undergraduate Writing in the Biological Sciences. Bull Ecol Soc Am, 97: 417-426. https://doi.org/10.1002/bes2.1258 
+
+Ecarnot, F., Seronde, M.-F., Chopard, R., Schiele, F., & Meneveau, N. (2015). Writing a scientific article: A step-by-step guide for beginners. European Geriatric Medicine, 6(6), 573–579. https://sci-hub.se/https://doi.org/10.1016/j.eurger.2015.08.005 
+
+Hoogenboom BJ, Manske RC. How to write a scientific article. Int J Sports Phys Ther. 2012 Oct;7(5):512-7. https://pmc.ncbi.nlm.nih.gov/articles/PMC3474301/ 
+
+5 Steps To Write A Research Paper In A Weekend https://www.youtube.com/watch?v=yt6zuQbETMI 5:49
+
+The Structure of Scientific Research Papers https://www.youtube.com/watch?v=BAS9I4tFgV8 10:18
+
+How to Write a Paper in a Weekend  https://www.youtube.com/watch?v=UY7sVKJPTMA 11:38 
+
+How to write a great research paper https://www.youtube.com/watch?v=1AYxMbYZQ1Y 1:00:00
+
+You will see they repeat the same key suggestions, these are things we need to get into your report (you should use the key words that they use, like 'gap in knowledge', etc.) so that it's obvious to readers that you have written a profession paper and not a class essay. 
+
+
+
+-->
