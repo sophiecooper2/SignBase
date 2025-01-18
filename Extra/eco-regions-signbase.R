@@ -8,11 +8,10 @@ env_raster <- rast("large-files//eea_r_3035_1_km_env-zones_p_2018_v01_r00.tif")
 
 env_raster_reproj <- terra::project(env_raster, "epsg:4326")
 
-signbase_sf$environmental_zone <- terra::extract(env_raster, signbase_sf)
+signbase_sf$environmental_zone <- terra::extract(env_raster_reproj, signbase_sf)
 
 signbase_sf <- signbase_sf %>% 
   mutate(environmental_zone = environmental_zone$eea_r_3035_1_km_env)
-
 
 ##Plotting out distribution of signs over environmental zone raster
 ggplot(Europe) + 
@@ -26,8 +25,8 @@ ggplot(Europe) +
 
 ## plot out env zone by group 
 ggplot(signbase_sf) +
-  aes(x = group) +
-  geom_bar(fill = environmental_zone)
+  aes(x = group, fill= as.factor(environmental_zone)) +
+  geom_bar()
 
 ## Biogeographical regions of Europe - (https://pmc.ncbi.nlm.nih.gov/articles/PMC7340631/#sec24)
 #3 as determined by the European Environment Agency
@@ -49,17 +48,18 @@ ggplot(Europe) +
   facet_wrap(~group)
 
 ## elevation data
+library(geodata)
+elev_rast <- elevation_global(res = 0.5, path = "/Users/sophiecooper/Independent Research Study/SignBase/large-files")
 
-elev_rast <- rast("large-files/EU_DEM_mosaic_5deg/eudem_dem_4258_europe.tif")
-elev_raster_reproj <- terra::project(elev_rast, "epsg:4326")
 
-signbase_sf$elevation <- extract(elev_raster_reproj, signbase_sf)
+signbase_sf$elevation <- extract(elev_rast, signbase_sf)
 
-elev_crop <- crop(elev_raster_reproj, signbase_sf)
 
-aspect_data <- terrain(elev_crop, v = "aspect", unit = "degrees", neighbors=8)
-slope_data <- terrain(elev_crop, v = "slope", unit = "degrees", neighbors=8)
+aspect_data <- terrain(elev_rast, v = "aspect", unit = "degrees", neighbors=8)
+slope_data <- terrain(elev_rast, v = "slope", unit = "degrees", neighbors=8)
 
 signbase_sf$aspect <- extract(aspect_data, signbase_sf)
 signbase_sf$slope <- extract(slope_data, signbase_sf)
+
+
 
