@@ -62,6 +62,8 @@ signbase_sf$aspect <- extract(aspect_data, signbase_sf)
 signbase_sf$slope <- extract(slope_data, signbase_sf)
 
 
+
+
 ##climate data
 
 clim_files <- c("large-files/cclgmbi_2-5m/cclgmbi1.tif", "large-files/cclgmbi_2-5m/cclgmbi10.tif",
@@ -75,10 +77,23 @@ clim_files <- c("large-files/cclgmbi_2-5m/cclgmbi1.tif", "large-files/cclgmbi_2-
                 "large-files/cclgmbi_2-5m/cclgmbi7.tif", "large-files/cclgmbi_2-5m/cclgmbi8.tif",
                 "large-files/cclgmbi_2-5m/cclgmbi9.tif")
 
-clim_stack <- raster::stack(clim_files)
+mean_temp_rast <- rast("large-files/cclgmbi_2-5m/cclgmbi1.tif")
 
-clim_raster <- rast(clim_stack)
+clim_raster<- rast(clim_files)
 
 
+signbase_sf$climate <- extract(clim_raster, signbase_sf)
 
+mean_temp_rast <- rast("large-files/cclgmbi_2-5m/cclgmbi1.tif")
+
+signbase_sf$mean_temperature <- extract(mean_temp_rast, signbase_sf)
+
+ggplot(Europe) + 
+  geom_spatraster(data = mean_temp_rast) +
+  scale_fill_gradient(low = "blue", high = "red") +
+  geom_sf(data = signbase_sf) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  facet_wrap(~group)
 
