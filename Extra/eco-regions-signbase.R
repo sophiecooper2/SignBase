@@ -13,20 +13,24 @@ signbase_sf$environmental_zone <- terra::extract(env_raster_reproj, signbase_sf)
 signbase_sf <- signbase_sf %>% 
   mutate(environmental_zone = environmental_zone$eea_r_3035_1_km_env)
 
+
 ##Plotting out distribution of signs over environmental zone raster
 ggplot(Europe) + 
   geom_spatraster(data = env_raster_reproj) +
-  scale_fill_grass_c(palette = "viridis") +
+  scale_fill_grass_d(palette = "viridis") +
   geom_sf(data = signbase_sf) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
   facet_wrap(~group)
 
+unique(signbase_sf$environmental_zone)
 ## plot out env zone by group 
 ggplot(signbase_sf) +
   aes(x = group, fill= as.factor(environmental_zone)) +
   geom_bar()
+
+#3 plot 
 
 ## Biogeographical regions of Europe - (https://pmc.ncbi.nlm.nih.gov/articles/PMC7340631/#sec24)
 #3 as determined by the European Environment Agency
@@ -61,21 +65,22 @@ slope_data <- terrain(elev_rast, v = "slope", unit = "degrees", neighbors=8)
 signbase_sf$aspect <- extract(aspect_data, signbase_sf)
 signbase_sf$slope <- extract(slope_data, signbase_sf)
 
+ggplot(Europe) + 
+  geom_spatraster(data = elev_rast) +
+  geom_sf(data = signbase_sf, color = "red") +
+  scale_fill_grass_c(palette = "viridis") +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  facet_wrap(~group)
 
 
 
 ##climate data
 
-clim_files <- c("large-files/cclgmbi_2-5m/cclgmbi1.tif", "large-files/cclgmbi_2-5m/cclgmbi10.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi11.tif", "large-files/cclgmbi_2-5m/cclgmbi12.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi13.tif", "large-files/cclgmbi_2-5m/cclgmbi14.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi15.tif", "large-files/cclgmbi_2-5m/cclgmbi16.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi17.tif", "large-files/cclgmbi_2-5m/cclgmbi18.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi19.tif", "large-files/cclgmbi_2-5m/cclgmbi2.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi3.tif", "large-files/cclgmbi_2-5m/cclgmbi4.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi5.tif", "large-files/cclgmbi_2-5m/cclgmbi6.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi7.tif", "large-files/cclgmbi_2-5m/cclgmbi8.tif",
-                "large-files/cclgmbi_2-5m/cclgmbi9.tif")
+
+
+clim_files <- list.files(path = "large-files/cclgmbi_2-5m", full.names = TRUE)
 
 mean_temp_rast <- rast("large-files/cclgmbi_2-5m/cclgmbi1.tif")
 
