@@ -245,10 +245,6 @@ date_graph <- ggplot(signbase_years_cal) +
   aes(x = MedianBP) +
   geom_bar(width = 150) +
   labs(x = "Median calibrated BP")
-signbase_3000 <- signbase_years_cal
-signbase_3000$site_name <- signbase_years$site_name
-signbase_3000 <- signbase_3000 %>% 
-  filter(MedianBP < 30000)
 
 abundance_graph <- ggplot(abundance_data) +
   aes(x = sign_total, y = reorder(site_name, sign_total)) +
