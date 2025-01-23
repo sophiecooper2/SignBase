@@ -13,38 +13,64 @@ signbase_sf$environmental_zone <- terra::extract(env_raster_reproj, signbase_sf)
 signbase_sf <- signbase_sf %>% 
   mutate(environmental_zone = environmental_zone$eea_r_3035_1_km_env)
 
-
 ##Plotting out distribution of signs over environmental zone raster
+
+env_zone_data <- signbase_sf %>% 
+  mutate(environmental_zone_clean = as.factor(environmental_zone))
+  
+
 ggplot(Europe) + 
   geom_spatraster(data = env_raster_reproj) +
-  scale_fill_grass_d(palette = "viridis") +
-  geom_sf(data = signbase_sf) +
+  geom_sf(data = env_zone_data, mapping = aes(fill = as.factor(environmental_zone_clean))) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
   facet_wrap(~group)
 
-unique(signbase_sf$environmental_zone)
 ## plot out env zone by group 
 ggplot(signbase_sf) +
   aes(x = group, fill= as.factor(environmental_zone)) +
   geom_bar()
 
-#3 plot 
+## diversity vs env zone
+
+signbase_div <- vegan::diversity(artifact_data, index = "shannon")
+
+signbase_sf$diversity <- signbase_div
+
+ggplot(signbase_sf) +
+  aes(x = environmental_zone, y = diversity, color = group) +
+  geom_point()
+
+ggplot(Europe) + 
+  geom_spatraster(data = env_raster_reproj) +
+  geom_sf(data = signbase_sf, 
+          mapping = aes(size = diversity, )) +
+  scale_size_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25)) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  facet_wrap(~group)
+
+
 
 ## Biogeographical regions of Europe - (https://pmc.ncbi.nlm.nih.gov/articles/PMC7340631/#sec24)
 #3 as determined by the European Environment Agency
 
 bio_geo_raster <- rast("data/bdj-08-e53720-s002.tif")
 
+res(bio_geo_raster)
+
 signbase_sf$biogeographical_region <- terra::extract(bio_geo_raster, signbase_sf)
+
+
 
 signbase_sf <- signbase_sf %>% 
   mutate(biogeographical_region = biogeographical_region$bdj)
 
 ggplot(Europe) + 
   geom_spatraster(data = bio_geo_raster) +
-  scale_fill_grass_c(palette = "viridis") +
+  scale_fill_grass_d(palette = "viridis") +
   geom_sf(data = signbase_sf) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
@@ -58,6 +84,8 @@ elev_rast <- elevation_global(res = 0.5, path = "/Users/sophiecooper/Independent
 
 signbase_sf$elevation <- extract(elev_rast, signbase_sf)
 
+signbase_sf <- signbase_sf %>% 
+  mutate(elevation = elevation$wc2.1_30s_elev)
 
 aspect_data <- terrain(elev_rast, v = "aspect", unit = "degrees", neighbors=8)
 slope_data <- terrain(elev_rast, v = "slope", unit = "degrees", neighbors=8)
@@ -65,19 +93,53 @@ slope_data <- terrain(elev_rast, v = "slope", unit = "degrees", neighbors=8)
 signbase_sf$aspect <- extract(aspect_data, signbase_sf)
 signbase_sf$slope <- extract(slope_data, signbase_sf)
 
+signbase_sf <- signbase_sf %>% 
+  mutate(aspect = aspect$aspect)
+
+signbase_sf <- signbase_sf %>% 
+  mutate(slope = slope$slope)
+
 ggplot(Europe) + 
   geom_spatraster(data = elev_rast) +
   geom_sf(data = signbase_sf, color = "red") +
-  scale_fill_grass_c(palette = "viridis") +
+  scale_fill_grass_d(palette = "viridis") +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
   facet_wrap(~group)
 
+# sign count vs elevation
 
+signbase_sf$sign_count <- abundance_data$sign_total
+
+ggplot(signbase_sf) +
+  aes(x = sign_count, y = elevation) +
+  geom_point()
+
+# diversity vs elevation
+
+ggplot(signbase_sf) +
+  aes(x = diversity, y = elevation) +
+  geom_point()
+
+# boxplot of elevation by group
+
+ggplot(signbase_sf) +
+  aes(x = group, y = elevation) +
+  geom_boxplot()
+
+##boxplot of elevation by sign
+
+sign_long <- signbase_sf %>% 
+  pivot_longer(cols = line:star)
+
+sign_long <- sign_long %>% 
+  select(site_name, group, environmental_zone, biogeographical_region, elevation, aspect, slope, mean_temperature, name, value) %>% 
+  filter(value!= 0)
+
+table(sign_long$name)
 
 ##climate data
-
 
 
 clim_files <- list.files(path = "large-files/cclgmbi_2-5m", full.names = TRUE)
