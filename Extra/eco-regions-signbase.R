@@ -6,7 +6,6 @@ library(geodata)
 elev_rast <- elevation_global(res = 0.5, path = "/Users/sophiecooper/Independent Research Study/SignBase/large-files") %>% 
   crop(rast_ext)
 
-
 signbase_sf$elevation <- extract(elev_rast, signbase_sf)
 
 signbase_sf <- signbase_sf %>% 
@@ -24,12 +23,10 @@ signbase_sf <- signbase_sf %>%
 signbase_sf <- signbase_sf %>% 
   mutate(slope = slope$slope)
 
-
 ##climate data
 
 ## creation of Koggen Geiger climate zones
 library(climetrics)
-)
 
 month_avg_min_tmp_files <- list.files(path = "large-files/cclgmtn_2-5m/", full.names = TRUE)
 
@@ -48,7 +45,10 @@ month_precip <- rast(month_precip_files) %>%
 
 mean_month_temp_rast <- ((month_avg_min_tmp + month_avg_max_tmp)/2)
 
-koppen_geiger_zones <- kgc(p = month_precip, tmin = month_avg_min_tmp, tmax = month_avg_max_tmp, tmean = mean_month_temp_rast)
+koppen_geiger_zones <- kgc(p = month_precip, 
+                           tmin = month_avg_min_tmp, 
+                           tmax = month_avg_max_tmp, 
+                           tmean = mean_month_temp_rast)
 
 koppen_geiger_zones_df <- as.data.frame(koppen_geiger_zones, xy = TRUE)
 
@@ -67,8 +67,7 @@ ggplot(Europe) +
   facet_wrap(~group)
 
 
-##pca on climate data
-
+## pca on climate data
 
 clim_pca_df <- as.data.frame(month_avg_min_tmp, xy= TRUE) %>% 
   st_as_sf(coords = c("x", "y"),
@@ -80,7 +79,6 @@ clim_pca_df$elevation <- extract(elev_rast, clim_pca_df)
 clim_pca_df$max_monthly_temp <- extract(month_avg_max_tmp, clim_pca_df)
 
 clim_pca_df$slope <- extract(slope_data, clim_pca_df)
-
 
 clim_pca_df$precipitation <- extract(month_precip, clim_pca_df)
 
@@ -113,20 +111,15 @@ clim_pca_df$x <- clim_xy$x
 
 clim_pca_df$y <- clim_xy$y
 
-
 clim_pca_sf <- clim_pca_df %>% 
   st_as_sf(coords = c("x", "y"),
            remove = FALSE,
-           crs = 4326) %>% 
-  select(-x, -y)
-
-clim_pca_rast <- rast(clim_pca_sf, nrows = 259129, ncol = 4800, nlyrs = 38, crs = "EPSG:4326", 
-                      xmin = -10, xmax = 30, ymin=35, ymax = 53)
-
-clim_pca_values <- clim_pca_sf %>% 
-  st_drop_geometry()
-
-setValues(clim_pca_rast, clim_pca_values)
+           crs = 4326)
 
 
-clim_pca <- princomp(values(clim_pca_rast), cor = TRUE)
+clim_pca_rast <- as_spatraster(clim_pca_df,
+                   xycols = 40:41,
+                   crs = "EPSG:4326")
+
+library(RStoolbox)
+clim_pca <- terra::princomp(clim_pca_rast)
