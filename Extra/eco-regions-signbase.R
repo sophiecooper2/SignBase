@@ -88,10 +88,10 @@ clim_df <- clim_df %>%
   unnest(c(max_monthly_temp, precipitation, elevation, slope), names_repair = "universal") 
 
 clim_xy <- clim_df %>% 
-  select(x, y)
+  dplyr::select(x, y)
 
 clim_df <- clim_df%>% 
-  select(-x)
+  dplyr::select(-x)
 
 colnames(clim_df) <-  c("northing", "min_temp_jan", "min_temp_oct", "min_temp_nov", 
                                "min_temp_dec", "min_temp_feb", "min_temp_mar", "min_temp_apr",
@@ -105,7 +105,7 @@ colnames(clim_df) <-  c("northing", "min_temp_jan", "min_temp_oct", "min_temp_no
                                "precip_sep")
 
 clim_df <- clim_df %>% 
-  select(-maxID, -precipID, -elevID, -slopeID)
+  dplyr::select(-maxID, -precipID, -elevID, -slopeID)
 
 
 clim_df$x <- clim_xy$x
@@ -124,11 +124,34 @@ clim_pca_rast <- clim_pca$rasters
 clim_pca_df<- as.data.frame(clim_pca_rast, xy = TRUE) %>% 
   mutate(PC1 = as.factor(PC1))
 
+
+clim_pca_comp <- clim_pca$pca.object
+
+x <- clim_pca_comp$x %>% 
+  as.data.frame()
+
+x$PC1
+
+
+
 ggplot(Europe) +
   geom_spatraster(data = clim_pca_rast)+
-  scale_fill_grass_c() +
+  scale_fill_grass_b(breaks = c(-17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)) +
   geom_sf(data = signbase_sf) +
   coord_sf(xlim = c(-10,30),
            ylim = c(35,53), 
-           expand = FALSE)
+           expand = FALSE) +
+  facet_wrap(~group) +
+  theme()
+
+
+signbase_sf$PCA <- extract(clim_pca_rast, signbase_sf) 
+
+signbase_sf <- signbase_sf %>% 
+  mutate(PCA = PCA$PC1)
+
+ggplot(signbase_sf) +
+  aes(x = group, y = PCA) +
+  geom_boxplot()
+
 
