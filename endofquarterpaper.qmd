@@ -298,51 +298,138 @@ library(ggpubr)
 artifact_matrix <- as.matrix(artifact_data %>% 
  mutate(across(everything(), ~replace(., . > 1, 1))))
 rownames(artifact_matrix) <- rownames(artifact_data)
-mplot <- function(x,...){
-  d <- data.frame(x = rep(1:ncol(x), each = nrow(x)),
-                  y = rep(nrow(x):1, ncol(x)),
-                  z = as.integer(x))
-  ggplot(d, aes(x, y, fill = factor(z))) +
-    geom_tile(col = "grey50", linewidth = 0.5) +
-    scale_fill_manual(values = c("0" = "white", "1" = "black")) +
+
+# Load required libraries
+library(ggplot2)
+
+# Define the mplot function
+mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL, col_labels = NULL, country_colors = NULL) {
+  # Create the data frame
+  d <- data.frame(
+    x = rep(1:ncol(x), each = nrow(x)),
+    y = rep(nrow(x):1, ncol(x)),
+    z = as.integer(x)
+  )
+  
+  # Add country colors to the data frame if provided
+  if (!is.null(country_colors)) {
+    d$country_color <- rep(country_colors, ncol(x))
+  }
+  
+  # Use custom row/column labels if provided, otherwise use defaults
+  if (is.null(col_labels)) col_labels <- colnames(x)
+  if (is.null(row_labels)) row_labels <- rev(rownames(x))
+  
+  # Plot
+  p <- ggplot(d, aes(x, y)) +
+    geom_tile(col = "grey50", linewidth = 0.5, aes(fill = ifelse(z == 1, country_color, "white"))) +
+    scale_fill_identity() +  # Use the fill values directly
     coord_equal(expand = FALSE) +
-    scale_x_continuous(breaks = 1:ncol(x), 
-                       labels = colnames(x),
-                       position = "top") +
-    scale_y_continuous(breaks = 1:nrow(x), 
-                       labels = rev(rownames(x))) +
-    theme(axis.text = element_text(size = rel(0.5)),
-          axis.ticks = element_blank(),
-          legend.position = "none",
-          plot.title = element_text(hjust = 0.25)) +
-    labs(x = "Sign Type",
-         y = "Site Name",
-         fill = "Count") +
-    rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)}
-increase_focus <- function(x){
+    scale_x_continuous(
+      breaks = 1:ncol(x),
+      labels = col_labels,
+      position = "top"
+    ) +
+    scale_y_continuous(
+      breaks = 1:nrow(x),
+      labels = row_labels
+    ) +
+    theme(
+      axis.text = element_text(size = rel(0.5)),
+      axis.ticks = element_blank(),
+      legend.position = "none",
+      plot.title = element_text(hjust = 0.25)
+    ) +
+    labs(x = "Sign Type", y = "Site Name", fill = "Count", title = title) +
+    rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)
+  
+  p
+}
+
+# Define the increase_focus function
+increase_focus <- function(x, country = NULL) {
+  # Reorder rows by the mean position of 1s in each row
   mcp <- apply(
     x, 
     MARGIN = 1, 
-    FUN = \(z){ mean(which(z == 1)) }, 
+    FUN = \(z) { mean(which(z == 1)) }, 
     simplify = FALSE
   ) |> unlist()
-  x <- x[order(mcp), ]
+  row_order <- order(mcp, na.last = TRUE)
+  x <- x[row_order, ]
+  
+  # Reorder the country vector if provided
+  if (!is.null(country)) {
+    country <- country[row_order]
+  }
+  
+  # Reorder columns by the mean position of 1s in each column
   mrp <- apply(
     x, 
     MARGIN = 2, 
-    FUN = \(z){ mean(which(z == 1)) }, 
-    simplify = FALSE) |> unlist()
-  x[, order(mrp)]}
-concentrate <- function(x){
+    FUN = \(z) { mean(which(z == 1)) }, 
+    simplify = FALSE
+  ) |> unlist()
+  x <- x[, order(mrp, na.last = TRUE)]
+  
+  # Return the reordered matrix and country vector
+  list(matrix = x, country = country)
+}
+
+# Define the concentrate function
+concentrate <- function(x, country = NULL, max_iter = 100) {
   old <- x
   not_identical <- TRUE
-  while(not_identical){
-    new <- increase_focus(old)
+  iter <- 0
+  
+  while (not_identical && iter < max_iter) {
+    result <- increase_focus(old, country)
+    new <- result$matrix
+    country <- result$country
     not_identical <- !identical(old, new)
-    old <- new}
-  new}
-artifact_matrix |> concentrate() |> mplot()
+    old <- new
+    iter <- iter + 1
+  }
+  
+  if (iter == max_iter) {
+    warning("Reached maximum iterations without convergence.")
+  }
+  
+  list(matrix = new, country = country)
+}
 
+
+# get country names, for example
+x_df <- 
+  artifact_data %>% 
+  rownames_to_column("site_name") %>% 
+  left_join(signbase_full_clean %>% 
+              distinct(site_name, .keep_all = TRUE) %>% 
+              select(site_name,
+                     country),
+            by = "site_name")
+
+countries <- x_df$country
+
+# Generate a named vector of colors, one for each unique country
+unique_countries <- unique(countries)
+color_palette <-  RColorBrewer::brewer.pal(length(unique_countries), "Set3")   # Generate distinct colors
+row_colors <- setNames(color_palette, unique_countries) 
+countries_colors <- row_colors[countries]
+
+# Concentrate the matrix and reorder the country vector
+result <- concentrate(artifact_matrix, country = countries)
+concentrated_matrix <- result$matrix
+reordered_countries <- result$country
+
+# Map countries to colors
+country_colors <- row_colors[reordered_countries]
+
+# Plot the concentrated matrix with country colors
+mplot(
+  concentrated_matrix,
+  country_colors = country_colors
+)
 ```
 
 ```{r}
@@ -461,19 +548,22 @@ ggplot(Europe) +
 #| fig-cap: "Bar plot of signs by group"
 graph_data <- artifact_data %>% 
   mutate(across(everything(), ~replace(., . > 1, 1))) %>% 
-  concentrate() %>% 
+ # concentrate() %>% 
   rownames_to_column("site_name") %>% 
   left_join(group_df)
+
 sign_type_data <- graph_data %>% 
   pivot_longer(cols= notch:hashtag,
                names_to = "sign_type",
                values_to = "count") %>% 
   dplyr::filter(count != 0) %>% 
   mutate(group = parse_number(group))
+
 x_order <- graph_data %>% 
   dplyr::select(-site_name,
          -group) %>% 
   colnames() 
+
 ggplot(sign_type_data) +
   aes(x = sign_type) +
   geom_bar() +
