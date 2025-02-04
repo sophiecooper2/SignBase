@@ -54,26 +54,19 @@ signbase_years_cal$object_id <- signbase_years$object_id
 
 signbase_full_clean <- inner_join(signbase_full_clean, signbase_years_cal)
 
-
 signbase_full_clean <- signbase_full_clean %>% 
   filter(MedianBP > 37500) %>% 
   filter(MedianBP < 42500)
 
 
-lat_long_df <- signbase_full_clean %>% 
-  dplyr::select(site_name, longitude, latitude) %>% 
-  distinct(site_name, .keep_all = TRUE)
-
-signbase_unique_groups <- signbase_full_clean %>% 
-  mutate(longitude = as.character(longitude),
-         latitude = as.character(latitude)) %>% 
-  group_by(site_name) %>%
-  summarize(across(where(is.numeric), sum)) %>% 
-  left_join(lat_long_df)
-
-artifact_data <- signbase_unique_groups %>% 
-  column_to_rownames("site_name") %>% 
+artifact_data <- signbase_full_clean %>% 
+  column_to_rownames("object_id") %>% 
   dplyr::select(line:concenline)
+
+artifact_data <- artifact_data %>% 
+  mutate(row_sums = rowSums(.)) %>% 
+  filter(row_sums >= 2) %>% 
+  dplyr::select(-row_sums)
 
 # seriation
 
@@ -227,6 +220,11 @@ group_df <-
           name = "group", 
           value = "site_name") %>%
   unnest(cols = site_name)
+
+
+jac_df <- jac %>% 
+  as.matrix() %>% 
+  as.data.frame()
 
 signbase_unique_groups <- signbase_unique_groups %>% 
   left_join(group_df)
