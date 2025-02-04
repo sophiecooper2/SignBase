@@ -3,12 +3,12 @@ library(tidyverse)
 library(rvest)
 library(httr)
 
-signbase_full <- read_csv("signBase_Version1.0.csv")
+signbase_full <- read_csv("data/signBase_Version1.0.csv")
 
 # find objects with hatching or grid
 sb_grid_hatch <- 
 signbase_full %>% 
-  filter(grid == 1 | hatching == 1)
+  filter(notch == 1)
 
 # urls to each object data webpage
 urls_object_webpage <- 
@@ -44,7 +44,7 @@ for(i in 1:length(sb_grid_hatch_img$img_urls)){
 if (!is.na(img_url)) {
   img <- GET(img_url)
   writeBin(content(img, "raw"), 
-           paste0("images/signbase-", 
+           paste0("Extra/images/signbase-", 
                   sb_grid_hatch_img$object_id[i], 
            ".jpg"))  
            }
