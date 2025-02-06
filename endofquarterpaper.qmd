@@ -299,9 +299,6 @@ artifact_matrix <- as.matrix(artifact_data %>%
  mutate(across(everything(), ~replace(., . > 1, 1))))
 rownames(artifact_matrix) <- rownames(artifact_data)
 
-# Load required libraries
-library(ggplot2)
-
 # Define the mplot function
 mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL, col_labels = NULL, country_colors = NULL) {
   # Create the data frame
