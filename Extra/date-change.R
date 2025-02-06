@@ -15,7 +15,7 @@ signbase_full_clean <- signbase_full %>%
          site_name != "Šandalja II",
          site_name != "Les Cottés",
          site_name != "Trou al'Wesse") %>% 
-  dplyr::select(-other, -rectangle, -circumline, -pinleft, -pinright, -star, -circumspiral)
+  dplyr::select(-other, -rectangle, -circumline, -pinleft, -pinright, -star, -circumspiral, -circumnotch, -maccaroni)
 
 signbase_years <- signbase_full_clean %>% 
   drop_na(date_bp_max_min) %>% 
@@ -151,128 +151,5 @@ ggplot(Europe) +
                   size = 2) +
   theme_minimal()
 
-# network analysis
-
-library(phangorn)
-library(ggraph)
-library(statnet)
-library(vegan)
-jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
-dm <- as.matrix(jac)
-disim <- 1 - dm
-disim[disim<0.35] <- 0
-disim_net <- network(disim,
-                     directed=F,
-                     ignore.eval=F,
-                     names.eval='weight')
-disim_net %v% 'vertex.names' <- 
-  row.names(artifact_data)
-
-set.seed(500)
-
-ggraph(disim_net, layout="fr") +
-  geom_edge_link(aes(width = weight, 
-                     alpha=weight), 
-                 edge_colour = "black", 
-                 show.legend=T) +
-  scale_edge_width(range=c(0.5,1.5)) +
-  scale_edge_colour_gradient(low = "#CCCCCC",
-                             high = "#000000") +
-  geom_node_point(alpha=1, size=5) +
-  geom_node_text(aes(label=row.names(artifact_data)), 
-                 size=6, 
-                 family= "Arial", 
-                 repel=T) +
-  theme(text= element_text(size = 15), 
-        panel.background = element_rect(fill = 'white'))
-
-
-#pcoa
-library(ecodist)
-library(ape)
-pcoa <- pcoa(jac)
-pcoa_df <- data.frame(pcoa1 = pcoa$vectors[,1], 
-                      pcoa2 = pcoa$vectors[,2])
-pcoa_df <- pcoa_df %>% 
-  mutate(site_name = rownames(artifact_data))
-library(ggrepel)
-ggplot(pcoa_df) +
-  aes(x=pcoa1, 
-      y=pcoa2) +
-  geom_point() +
-  labs(x = "PC1",
-       y = "PC2",) +
-  theme(title = element_text(size = 10)) +
-  geom_text_repel(aes(label = site_name), 
-                  size = 2,
-                  max.overlaps = 20)
-
-#create groups
-
-groups <- list("1" = c("Abri Pataud", "Riparo Bombrini", "Grottes de Fonds-de-Forêt"), 
-               "2" = c("Gatzarria", "Grotte de la Verpillière I", "Hohlenstein-Stadel", "Mladeč"),
-               "3" = c("Labeko Koba", "Vindija Cave"),
-               "4" = c( "Geissenklösterle", "Hohle Fels", "Vogelherd", "Spy", "Solutré","Grotte du Renne"),
-               "5" = c("Castanet",  "Blanchard", "La Ferrassie", "Cellier"))
-
-group_df <- 
-  enframe(groups, 
-          name = "group", 
-          value = "site_name") %>%
-  unnest(cols = site_name)
-
-
-jac_df <- jac %>% 
-  as.matrix() %>% 
-  as.data.frame()
-
-signbase_unique_groups <- signbase_unique_groups %>% 
-  left_join(group_df)
-
-artifact_data <- signbase_unique_groups %>% 
-  column_to_rownames("site_name") %>% 
-  dplyr::select(line:concenline)               
-
-
-# modularity test for groupings
-library(igraph)
-set.seed(500)
-modul_matrix <-
-  graph_from_adjacency_matrix(1 - dm, mode = "undirected")
-mem <- as_membership(parse_number(signbase_unique_groups$group))
-as_group <- modularity(modul_matrix, membership = mem)
-
-# permanova test for groupings
-perman <- adonis2(jac~as.factor(signbase_unique_groups$group), 
-                  method = "jaccard",
-                  sqrt.dist = TRUE)
-perman <- perman %>% 
-  data_frame() %>% 
-  slice_head()
-perman_r <- perman$R2
-perman_p <- perman$`Pr(>F)`
-
-
-dispersion <- betadisper(jac, group = signbase_unique_groups$group)
-plot(dispersion, hull = FALSE, ellipse=TRUE)
-
-
-## mantel test
-
-site_distances <- dist(cbind(signbase_unique_groups$longitude, signbase_unique_groups$latitude))
-mantel_distance <- vegan::mantel(jac, site_distances, permutations = 1000)
-p_value_distance_correlation <- round(mantel_distance$signif, 3)
-r_value_distance_correlation <- round(mantel_distance$statistic, 3)
-
-
-signbase_full_clean <- signbase_full_clean %>% 
-  left_join(group_df)
-
-
-
-ggplot(signbase_full_clean) +
-  aes(x = MedianBP, fill = group) +
-  geom_bar(width = 150) +
-  labs(x = "Median calibrated BP")
 
 
