@@ -119,37 +119,36 @@ date_range_pretty <- pretty_print_dates(date_range)
 
 ```{r}
 groups <- list("1" = c("Abri Pataud", "El Rascaño", 
-                         "Fumane", "La Viña",
-                         "Lhotka", "Pod Hradem",
-                         "Riparo Bombrini", "Sirgenstein Cave"),
-                "2" = c("Kvasice", "Labeko Koba", 
-                        "Les Rois", "Slatinice",
-                        "Göpfelsteinhöhle"),
-                "3" = c("Aurignac", "d'Engihoul",
-                         "Istállóskő Cave", "Hohlenstein-Stadel",
-                         "Gargas", "Grotte de la Verpillière I", 
-                         "Mladeč", "Brassempouy",
-                         "Gatzarria"),
-                "4" = c("Wildscheuer", "Breitenbach",
-                        "Peskő Cave", "Vindija Cave",
-                        "El Castillo"),
-                "5" = c("Trou Magrite",
-                        "Grotte de Goyet", "Bockstein-Törle"),
-                "6" = c("Trou al'Wesse", "Maisières-Canal",
-                        "Les Cottés", "Le Terme Pialat"),
-                "7" = c("Vogelherd","Hohle Fels",
-                        "Geissenklösterle"),
-               "8" = c("Tuto de Camalhot","Abri Lartet/Gorge d'Enfer",
-                        "Castanet", "Le Trou Du Renard", 
-                        "Grottes de Fonds-de-Forêt" ),
-               "9" = c("Nová Dědina", "Menton/Grottes du Grimaldi",
-                        "Grotte du Renne", "Solutré", 
-                        "Žlutava", "Spy"),
-                "10" = c("Cellier", "Blanchard", 
-                         "La Ferrassie", "Hornos de la Pena",
-                         "Otaslavice"),
-                "11" = c("La Souquette", "Shelter Birów IV",
-                         "Abri de Laussel", "Abri du Poisson"))
+                       "Fumane", "La Viña",
+                       "Lhotka", "Pod Hradem",
+                       "Riparo Bombrini", "Sirgenstein Cave"),
+               "2" = c("Aurignac", "Gargas",
+                       "Grotte de la Verpillière I","Hohlenstein-Stadel",
+                       "Istállóskő Cave", "Mladeč",
+                       "d'Engihoul"),
+               "3" = c("Breitenbach", "Peskő Cave",
+                       "Vindija Cave", "Wildscheuer"),
+               "4" = c("Kvasice", "Labeko Koba", 
+                       "Les Rois"),
+               "5" = c("Le Trou Du Renard", "Abri Lartet/Gorge d'Enfer",
+                       "Tuto de Camalhot", "Castanet", 
+                       "Gatzarria", "Abri du Poisson"),
+               "6" = c("Bockstein-Törle", "Grotte de Goyet",
+                        "Trou Magrite", "Brassempouy"),
+               "7" = c( "Göpfelsteinhöhle",  "Slatinice", 
+                        "Grotte du Renne"),
+               "8" = c( "El Castillo", "Trou al'Wesse", 
+                        "Maisières-Canal"),
+               "9" = c("Vogelherd","Hohle Fels",
+                       "Geissenklösterle", "Le Terme Pialat", 
+                       "Les Cottés", "Spy",  "Grottes de Fonds-de-Forêt"),
+               "10" = c("Nová Dědina", "Menton/Grottes du Grimaldi",
+                        "Solutré", "Žlutava", 
+                        "Hornos de la Pena", "Otaslavice"),
+               "11" = c("Cellier", "Blanchard", 
+                        "La Ferrassie"),
+               "12" = c("La Souquette", "Shelter Birów IV",
+                        "Abri de Laussel"))
 group_df <- 
   enframe(groups, 
           name = "group", 
@@ -400,13 +399,12 @@ concentrate <- function(x, country = NULL, max_iter = 100) {
 x_df <- 
   artifact_data %>% 
   rownames_to_column("site_name") %>% 
-  left_join(signbase_full_clean %>% 
-              distinct(site_name, .keep_all = TRUE) %>% 
+  left_join(signbase_unique_groups %>% 
               select(site_name,
-                     country),
+                     group),
             by = "site_name")
 
-countries <- x_df$country
+countries <- x_df$group
 
 # Generate a named vector of colors, one for each unique country
 unique_countries <- unique(countries)
@@ -460,7 +458,7 @@ ggraph(disim_net, layout="fr") +
   geom_node_text(aes(label=row.names(artifact_data)), 
                  size=6, 
                  family= "Arial", 
-                 repel=T) +
+                 repel=T, max.overlaps = 100) +
   theme(text= element_text(size = 15), 
         panel.background = element_rect(fill = 'white'))
 ```
