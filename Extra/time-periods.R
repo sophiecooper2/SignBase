@@ -4,7 +4,7 @@ library(rcarbon)
 library(readxl)
 signbase_full <- read_csv("data/signBase_Version1.0.csv")
 
-signbase_full_clean <- signbase_full %>% 
+signbase_full_clean <- signbase_full %>%  # 511 rows
   filter(site_name != "Willendorf",
          site_name != "Riparo di Fontana Nuova",
          site_name != "Muralovka",
@@ -15,7 +15,7 @@ signbase_full_clean <- signbase_full %>%
          site_name != "Šandalja II") %>% 
   dplyr::select(-other, -rectangle)
 
-signbase_years <- signbase_full_clean %>% 
+signbase_years <- signbase_full_clean %>%  # 446
   drop_na(date_bp_max_min) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>% 
@@ -41,6 +41,7 @@ signbase_years <- signbase_full_clean %>%
           date_bp_max_error) %>% 
   mutate(date_bp_max_age = parse_number(date_bp_max_age),
          date_bp_max_error = parse_number(date_bp_max_error))
+
 signbase_years_cal <- 
   rcarbon::calibrate(signbase_years$date_bp_max_age,
                      signbase_years$date_bp_max_error,
@@ -55,7 +56,7 @@ signbase_full_clean <- signbase_full_clean %>%
   inner_join(signbase_years %>% 
               select(object_id, MedianBP))
 
-signbase_full_clean <- signbase_full_clean %>% 
+signbase_full_clean <- signbase_full_clean %>%  # 446
   mutate(time_period = case_when((MedianBP > 42999) ~ "transitional",
                                  (MedianBP > 39899) ~ "proto_aurignacian",
                                  (MedianBP > 36999) ~ "early_aurignacian",
