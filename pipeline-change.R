@@ -1,8 +1,9 @@
-## most abundant signs
+## Most distinct signs
+
 library(tidyverse)
 library(magrittr)
 library(rcarbon)
-library(readxl)
+
 signbase_full <- read_csv("data/signBase_Version1.0.csv")
 
 signbase_full_clean <- signbase_full %>% 
@@ -14,29 +15,63 @@ signbase_full_clean <- signbase_full %>%
          site_name != "El Salitre",
          site_name != "Grotte De La Princesse Pauline",
          site_name != "Šandalja II",
-         site_name!= "Le Terme Pialat",
-         site_name != "Les Cottés",
-         site_name != "Otaslavice",
-         site_name != "Trou al'Wesse",
-         site_name != "Hornos de la Pena",
-         site_name != "Göpfelsteinhöhle") %>% 
-  dplyr::select(-other, -rectangle)
+         site_name != "Žlutava",
+         site_name != "Trou Magrite",
+         site_name != "Le Terme Pialat",
+         site_name != "Le Trou Du Renard",
+         site_name !=  "Otaslavice",
+         site_name != "Brassempouy") %>% 
+  dplyr::select(site_name, object_id, country, longitude, latitude, date_bp_max_min, 
+                cross, v, star, zigzag, zigzagrow, grid, hashtag, hatching, 
+                anthropomorph,zoomorph, vulva, rhombus, rectangle)
 
 
-sign_long <- signbase_full_clean %>% 
-  pivot_longer(cols = line:star) %>% 
-  dplyr::select(name, value) %>% 
-  filter(value!= 0) %>% 
-  group_by(name) %>% 
-  summarise(total = sum(value)) %>% 
-  dplyr::arrange(desc(total)) %>% 
-  dplyr::slice(1:10)
-  
-abundant_sign_names <- c(sign_long$name)
+signbase_years <- signbase_full_clean %>% 
+  drop_na(date_bp_max_min) %>% 
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>% 
+  separate(date_bp_max_min,
+           sep = " - ",
+           c("date_bp_max", "date_bp_min"),
+           remove = FALSE) %>% 
+  mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"),
+                              str_extract(date_bp_max, ".*?(?=\\/)"),
+                              date_bp_max)) %>% 
+  mutate(date_bp_min = ifelse(str_detect(date_bp_min, "\\/"),
+                              str_extract(date_bp_min, ".*?(?=\\/)"),
+                              date_bp_min)) %>% 
+  separate(date_bp_max,
+           sep = "±",
+           c("date_bp_max_age",
+             "date_bp_max_error")) %>% 
+  separate(date_bp_min,
+           sep = "±",
+           c("date_bp_min_age",
+             "date_bp_min_error")) %>% 
+  drop_na(date_bp_max_age,
+          date_bp_max_error) %>% 
+  mutate(date_bp_max_age = parse_number(date_bp_max_age),
+         date_bp_max_error = parse_number(date_bp_max_error))
+signbase_years_cal <- 
+  rcarbon::calibrate(signbase_years$date_bp_max_age,
+                     signbase_years$date_bp_max_error,
+                     verbose = FALSE) %>% 
+  summary() %>% 
+  data_frame()
+
+
+signbase_years$MedianBP <- signbase_years_cal$MedianBP
+
+
+
 
 signbase_full_clean <- signbase_full_clean %>% 
-  dplyr::select(object_id, site_name, longitude, latitude,
-                all_of(abundant_sign_names), date_bp_max_min, country)
+  mutate(row_sum = rowSums(x = (signbase_full_clean %>% 
+                                  dplyr::select(cross:rectangle)))) %>% 
+  filter(row_sum >= 1) %>% 
+  select(-row_sum) %>% 
+  left_join(signbase_years %>% 
+              dplyr::select(object_id, MedianBP))
 
 lat_long_df <- signbase_full_clean %>% 
   dplyr::select(site_name, longitude, latitude) %>% 
@@ -51,121 +86,116 @@ signbase_unique_groups <- signbase_full_clean %>%
 
 artifact_data <- signbase_unique_groups %>% 
   column_to_rownames("site_name") %>% 
-  dplyr::select(notch:obnotch)
+  dplyr::select(cross:rectangle)
 
 
-groups <- list("1" = c("Abri Pataud", "El Rascaño", 
-                       "Fumane", "La Viña",
-                       "Lhotka", "Pod Hradem",
-                       "Riparo Bombrini", "Sirgenstein Cave",
-                       "Grottes de Fonds-de-Forêt", "Maisières-Canal"),
-               "2" = c("Aurignac", "d'Engihoul",
-                       "Gargas", "Gatzarria",
-                       "Grotte de la Verpillière I", "Hohlenstein-Stadel",
-                       "Istállóskő Cave",  "Mladeč", 
-                       "Cellier", "Brassempouy"),
-               "3" = c("Kvasice", "Labeko Koba", 
-                       "Les Rois"),
-               "4" = c("Le Trou Du Renard", "Solutré"),
-               "5" = c("Wildscheuer", "Breitenbach",
-                       "Peskő Cave", "Vindija Cave",
-                       "El Castillo"),
-               "6" = c("Slatinice", "Grotte du Renne",
-                      "Nová Dědina", "Menton/Grottes du Grimaldi"),
-               "7" = c("Tuto de Camalhot","Abri Lartet/Gorge d'Enfer",
-                       "Blanchard", "La Ferrassie", "Castanet"),
-               "8" = c("Trou Magrite", "Geissenklösterle"),
-               "9" = c("Spy", "Vogelherd",
-                       "Hohle Fels", "Žlutava"),
-               "10" = c("Grotte de Goyet", "Bockstein-Törle"),
-               "11" = c("La Souquette", "Shelter Birów IV",
-                        "Abri de Laussel", "Abri du Poisson"))
-group_df <- 
-  enframe(groups, 
-          name = "group", 
-          value = "site_name") %>%
-  unnest(cols = site_name)
-
-signbase_unique_groups <- signbase_unique_groups %>% 
-  left_join(group_df)
+long_site_distinct_location <- signbase_unique_groups %>% 
+  pivot_longer(cols = cross:rectangle) %>% 
+  filter(value != 0) %>% 
+  rename(sign_type = name)
 
 
-##map out sites
-signbase_sf_group <- 
-  st_as_sf(signbase_unique_groups, 
+signbase_sf <- 
+  st_as_sf(long_site_distinct_location, 
            coords = c("longitude", "latitude"),
            remove = FALSE,
            crs = 4326)
 world <- ne_countries(scale = "medium", returnclass = "sf")
 Europe <- world[which(world$continent == "Europe"),]
 
+
+#| 
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggrepel)
+library(sf)
+
+library(ggpubr)
+
 ggplot(Europe) +
   geom_sf() +
-  geom_sf(data = signbase_sf_group,
-          aes(colour = as.factor(group))) +
+  geom_sf(data = signbase_sf) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
-  geom_text_repel(data = signbase_sf_group,
+  geom_text_repel(data = signbase_sf,
                   aes(x = longitude ,
                       y = latitude,
                       label = site_name),
-                  max.overlaps = 100,
+                  max.overlaps = 30,
                   size = 2) +
   theme_minimal() +
-  facet_wrap(~group) +
-  labs(color = "Group Number")
+  facet_wrap(~sign_type)
 
 
 
+##plot out signs by date:
 
-## Most distinct signs
-
-library(tidyverse)
-library(magrittr)
-library(rcarbon)
-library(readxl)
-signbase_full <- read_csv("data/signBase_Version1.0.csv")
-
-signbase_full_clean <- signbase_full %>% 
-  filter(site_name != "Willendorf",
-         site_name != "Riparo di Fontana Nuova",
-         site_name != "Muralovka",
-         site_name != "Shanidar Cave",
-         site_name != "Hayonim Cave",
-         site_name != "El Salitre",
-         site_name != "Grotte De La Princesse Pauline",
-         site_name != "Šandalja II",
-         site_name != "Blanchard") %>% 
-  dplyr::select(-other, -rectangle) %>% 
-  dplyr::select(site_name, country, longitude, latitude, date_bp_max_min, cross, paw, 
-                maccaroni, star, zigzag, grid, zoomorph, anthropomorph, zigzagrow)
-
-artifact_total <- signbase_full_clean %>%
-  dplyr::select(-site_name, -country, -longitude, -latitude, -date_bp_max_min) %>% 
-  mutate(row_sums = rowSums(.)) 
+long_distinct_dates <- signbase_full_clean %>% 
+  pivot_longer(cols = cross:rectangle) %>% 
+  select(site_name, name, value, MedianBP) %>% 
+  filter(value != 0) %>% 
+  drop_na()
 
 
-signbase_full_clean$row_sum <- artifact_total$row_sums
+ggplot(long_distinct_dates) +
+  aes(x = MedianBP, fill = )+
+  geom_bar(width = 150) +
+  facet_wrap(~name)
 
 
-signbase_full_clean <- signbase_full_clean %>% 
-  filter(row_sum >= 1)
-
-lat_long_df <- signbase_full_clean %>% 
-  dplyr::select(site_name, longitude, latitude) %>% 
-  distinct(site_name, .keep_all = TRUE)
-
-signbase_unique_groups <- signbase_full_clean %>% 
-  mutate(longitude = as.character(longitude),
-         latitude = as.character(latitude)) %>% 
-  group_by(site_name) %>%
-  summarize(across(where(is.numeric), sum)) %>% 
-  left_join(lat_long_df)
-
-artifact_data <- signbase_unique_groups %>% 
-  column_to_rownames("site_name") %>% 
-  dplyr::select(cross:zigzagrow)
+##divide signs into groups
 
 
+sim_df <- jac %>% 
+  as.matrix() %>% 
+  as.data.frame()
+
+sim_df <- sim_df %>% 
+  mutate(siteB = colnames(sim_df)) %>% 
+  pivot_longer(cols = `Abri de Laussel`:Vogelherd)
+
+poisson_sim <- sim_df %>% 
+  filter(name == "Abri du Poisson") %>% 
+  filter(value < 0.7)
+
+groups <- list("1" = c("Geissenklösterle", "Solutré"),
+               "2" = c("Vogelherd", "Spy","Hohle Fels", "Menton/Grottes du Grimaldi", "Castanet"),
+               "3" = c("Göpfelsteinhöhle", "Slatinice"),
+               "4" = c("Grotte de Goyet", "Grotte du Renne", "Nová Dědina"),
+               "5" = c("Bockstein-Törle", "Maisières-Canal", "Hornos de la Pena"),
+               "6" = c("La Ferrassie", "Blanchard",  "Cellier"),
+               "7" = c("Abri du Poisson", "Abri de Laussel"))
+group_df <- 
+  enframe(groups, 
+          name = "group", 
+          value = "site_name") %>%
+  unnest(cols = site_name)
+     
+
+signbase_unique_groups <- signbase_unique_groups %>% 
+  left_join(group_df)
+
+
+##map out groups
+
+signbase_group_sf <- 
+  st_as_sf(signbase_unique_groups, 
+           coords = c("longitude", "latitude"),
+           remove = FALSE,
+           crs = 4326)
+
+ggplot(Europe) +
+  geom_sf() +
+  geom_sf(data = signbase_group_sf, mapping = aes(color = group)) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  geom_text_repel(data = signbase_group_sf,
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  max.overlaps = 30,
+                  size = 2) +
+  theme_minimal()
 
