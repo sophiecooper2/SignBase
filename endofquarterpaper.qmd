@@ -595,7 +595,7 @@ perman_p <- perman$`Pr(>F)`
 
 ```
 
-The modularity test, when run on the above groupings, resulted in a score of `r as_group`. The perMANOVA test produced an R-squared value of `r perman_r` and a P value of `r perman_p`, which tells us that the groupings are statisically significant, and that 52% of the variability in the sign distribution can be attributed to group membership. The multivariate homogeneity test of group dispersions produced @fig-perm-disp, showing that the overlap between groups is fairly minimal.
+The modularity test, when run on the above groupings, resulted in a score of `r as_group`. The perMANOVA test produced an R-squared value of `r perman_r` and a P value of `r perman_p`, which tells us that the groupings are statistically significant, and that 52% of the variability in the sign distribution can be attributed to group membership. The multivariate homogeneity test of group dispersions produced @fig-perm-disp, showing that the overlap between groups is fairly minimal.
 
 ```{r fig.height= 8, fig.width=5}
 #| label: fig-perm-disp
