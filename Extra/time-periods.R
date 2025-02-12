@@ -136,19 +136,19 @@ ggplot(Europe) +
   theme_minimal() +
   facet_wrap(~time_period)
 
-ser_data_trans <- trans_unique_data %>% 
+trans_artifact_data <- trans_unique_data %>% 
   column_to_rownames("site_name") %>% 
   dplyr::select(line:star)
 
-ser_data_proto <- proto_unique_data %>% 
+proto_artifact_data <- proto_unique_data %>% 
   column_to_rownames("site_name") %>% 
   dplyr::select(line:star)
 
-ser_data_early <- early_unique_data %>% 
+early_artifact_data <- early_unique_data %>% 
   column_to_rownames("site_name") %>% 
   dplyr::select(line:star)
 
-ser_data_evolved <- evolved_unique_data%>% 
+evolved_artifact_data <- evolved_unique_data%>% 
   column_to_rownames("site_name") %>% 
   dplyr::select(line:star)
 
@@ -284,6 +284,10 @@ mplot(
   country_colors = country_colors
 )
 
+
+
+to_investigate<- signbase_full %>% 
+  filter(is.na(date_bp_max_min))
 
 
 
