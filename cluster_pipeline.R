@@ -25,7 +25,7 @@ mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL
   
   p <- ggplot(d, aes(x, y)) +
     geom_tile(col = "grey50", linewidth = 0.5, aes(fill = ifelse(z == 1, country_color, "white"))) +
-    scale_fill_identity() +  # Use the fill values directly
+    scale_fill_identity() +  
     coord_equal(expand = FALSE) +
     scale_x_continuous(
       breaks = 1:ncol(x),
@@ -42,7 +42,7 @@ mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL
       legend.position = "none",
       plot.title = element_text(hjust = 0.25)
     ) +
-    labs(x = "Sign Type", y = "Site Name", fill = "Count", title = title) +
+    labs(x = "", y = "") +
     rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)
   
   p
@@ -95,7 +95,9 @@ concentrate <- function(x, country = NULL, max_iter = 100) {
 }
 
 
-produce_clusters <- function(artifact_data, artifact_data_full, method = "seriation"){
+produce_clusters <- function(artifact_data, artifact_data_unique, method = "seriation"){
+  artifact_data <- artifact_data %>% 
+    select_if(~ !is.numeric(.) || sum(.) != 0)
   jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
   dm <- as.matrix(jac)
   
@@ -103,7 +105,8 @@ produce_clusters <- function(artifact_data, artifact_data_full, method = "seriat
   artifact_matrix <- as.matrix(artifact_data %>% 
                                  mutate(across(everything(), ~replace(., . > 1, 1))))
   rownames(artifact_matrix) <- rownames(artifact_data)
-  x_df <- artifact_data_full %>% 
+  
+  x_df <- artifact_data_unique %>% 
     left_join(signbase_full_clean,
               by = "site_name")
   countries <- x_df$country
@@ -133,17 +136,21 @@ produce_clusters <- function(artifact_data, artifact_data_full, method = "seriat
       geom_edge_link(aes(width = weight, 
                          alpha=weight), 
                      edge_colour = "black", 
-                     show.legend=T) +
+                     show.legend= F,
+                    ) +
       scale_edge_width(range=c(0.5,1.5)) +
       scale_edge_colour_gradient(low = "#CCCCCC",
                                  high = "#000000") +
       geom_node_point(alpha=1, size=5) +
       geom_node_text(aes(label=row.names(artifact_data)), 
-                     size=6, 
+                     size=3, 
                      family= "Arial", 
                      repel=T, max.overlaps = 100) +
       theme(text= element_text(size = 15), 
-            panel.background = element_rect(fill = 'white'))}
+            panel.background = element_rect(fill = 'white')) +
+    border(color = "black", size = 0.5)
+    
+  }
   
   
   if(method == "pcoa"){
@@ -159,7 +166,7 @@ produce_clusters <- function(artifact_data, artifact_data_full, method = "seriat
     geom_point() +
     labs(x = "PC1",
          y = "PC2",) +
-    theme(title = element_text(size = 10)) +
+    theme(title = element_text(size = 5)) +
     geom_text_repel(aes(label = site_name), 
                     size = 2,
                     max.overlaps = 20)}
@@ -167,11 +174,14 @@ produce_clusters <- function(artifact_data, artifact_data_full, method = "seriat
   return(final_plot)
 }
 
-produce_clusters(trans_artifact_data, trans_unique_data, method = "pcoa")
+
 
 
 
 strength_function <- function(artifact_data, group_data, type = "table"){
+  artifact_data <- artifact_data %>% 
+    select_if(~ !is.numeric(.) || sum(.) != 0)
+  
   set.seed(500)
   jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
   dm <- as.matrix(jac)
@@ -196,18 +206,56 @@ strength_function <- function(artifact_data, group_data, type = "table"){
   p_value_distance_correlation <- round(mantel_distance$signif, 3)
   r_value_distance_correlation <- round(mantel_distance$statistic, 3)
   
-  final_table <- data_frame("type" = c("R-score", "P-score"),
-                            "modularity" = c(as_group, "NA"), 
-                            "permanova" = c(perman_r, perman_p),
-                            "distance_mantel" = c(r_value_distance_correlation, p_value_distance_correlation))
+  final_table <- data_frame("modularity" = as_group, 
+                            "permanova_r" = perman_r,
+                            "permanova_p" = perman_p,
+                            "distance_mantel_r" = r_value_distance_correlation, 
+                            "distance_mantel_p" = p_value_distance_correlation)
 
   return(final_table)}
   
   if(type == "dispersion"){
     set.seed(500)
-    dispersion <- betadisper(jac, group = signbase_unique_groups$group)
+    dispersion <- betadisper(jac, group = group_data$group)
     disp_plot<- plot(dispersion, hull = FALSE, ellipse=TRUE)
     return(disp_plot)}
 }
 
-strength_function(artifact_data, signbase_unique_groups)
+
+
+
+trans_network <- function(artifact_data){
+  artifact_data <- artifact_data %>% 
+    select_if(~ !is.numeric(.) || sum(.) != 0)
+    jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
+    dm <- as.matrix(jac)
+    disim <- 1 - dm
+    disim[disim<0.1] <- 0
+    disim_net <- network(disim,
+                         directed=F,
+                         ignore.eval=F,
+                         names.eval='weight')
+    disim_net %v% 'vertex.names' <- row.names(artifact_data)
+    set.seed(500)
+    final_plot <- ggraph(disim_net, layout="fr") +
+      geom_edge_link(aes(width = weight, 
+                         alpha=weight), 
+                       edge_colour = "black", 
+                       show.legend=F) +
+      scale_edge_width(range=c(0.5,1.5)) +
+      scale_edge_colour_gradient(low = "#CCCCCC",
+                                   high = "#000000") +
+      geom_node_point(alpha=1, size=5) +
+      geom_node_text(aes(label=row.names(artifact_data)), 
+                     size=3, 
+                     family= "Arial", 
+                     repel=T, max.overlaps = 100) +
+      theme(text= element_text(size = 15), 
+            panel.background = element_rect(fill = 'white')) +
+      border(color = "black", size = 0.5)
+    return(final_plot)
+    }
+
+
+
+

@@ -43,31 +43,7 @@ month_precip_files <- list.files(path = "large-files/cclgmpr_2-5m/", full.names 
 month_precip <- rast(month_precip_files) %>% 
   crop(rast_ext)
 
-mean_month_temp_rast <- ((month_avg_min_tmp + month_avg_max_tmp)/2)
 
-koppen_geiger_zones <- kgc(p = month_precip, 
-                           tmin = month_avg_min_tmp, 
-                           tmax = month_avg_max_tmp, 
-                           tmean = mean_month_temp_rast)
-
-koppen_geiger_zones_df <- as.data.frame(koppen_geiger_zones, xy = TRUE)
-
-koppen_geiger_zones_df <- koppen_geiger_zones_df %>% 
-  mutate(mean = as.factor(mean))
-
-ggplot(Europe) + 
-  geom_raster(data = koppen_geiger_zones_df,
-              aes(x = x,
-                  y = y,
-                  fill = mean)) +
-  geom_sf(data = signbase_sf) +
-  coord_sf(xlim = c(-10,30),
-           ylim = c(35,53), 
-           expand = FALSE) +
-  facet_wrap(~group)
-
-
-## pca on climate data
 
 clim_df <- as.data.frame(month_avg_min_tmp, xy= TRUE) %>% 
   st_as_sf(coords = c("x", "y"),
@@ -137,11 +113,11 @@ x$PC1
 ggplot(Europe) +
   geom_spatraster(data = clim_pca_rast)+
   scale_fill_grass_b(breaks = c(-17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)) +
-  geom_sf(data = signbase_sf) +
+  geom_sf(data = signbase_sf, aes(color = group)) +
   coord_sf(xlim = c(-10,30),
            ylim = c(35,53), 
            expand = FALSE) +
-  facet_wrap(~group) +
+  facet_wrap(~time_period) +
   theme()
 
 
@@ -151,7 +127,7 @@ signbase_sf <- signbase_sf %>%
   mutate(PCA = PCA$PC1)
 
 ggplot(signbase_sf) +
-  aes(x = group, y = PCA) +
+  aes(x = time_period, y = PCA, fill = group) +
   geom_boxplot()
 
 
