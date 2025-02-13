@@ -15,6 +15,10 @@ signbase_full_clean <- signbase_full %>%  # 511 rows
          site_name != "Šandalja II") %>% 
   dplyr::select(-other, -rectangle)
 
+
+to_examine <- signbase_full_clean %>% 
+  filter(is.na(date_bp_max_min))
+
 signbase_years <- signbase_full_clean %>%  # 446
   drop_na(date_bp_max_min) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
@@ -54,13 +58,14 @@ signbase_years$MedianBP <- signbase_years_cal$MedianBP
 
 signbase_full_clean <- signbase_full_clean %>% 
   inner_join(signbase_years %>% 
-              select(object_id, MedianBP))
+              dplyr::select(object_id, MedianBP))
 
 signbase_full_clean <- signbase_full_clean %>%  # 446
   mutate(time_period = case_when((MedianBP > 42999) ~ "transitional",
                                  (MedianBP > 39899) ~ "proto_aurignacian",
                                  (MedianBP > 36999) ~ "early_aurignacian",
                                  (MedianBP > 31999) ~ "evolved_aurignacian"))
+  
 
 
 ggplot(signbase_full_clean) +
@@ -108,12 +113,109 @@ evolved_unique_data <- signbase_full_clean %>%
   mutate(time_period = "evolved_aurignacian")
 
 
+trans_artifact_data <- trans_unique_data %>% 
+  column_to_rownames("site_name") %>% 
+  dplyr::select(line:star)
+
+
+proto_artifact_data <- proto_unique_data %>% 
+  column_to_rownames("site_name") %>% 
+  dplyr::select(line:star)
+
+early_artifact_data <- early_unique_data %>% 
+  column_to_rownames("site_name") %>% 
+  dplyr::select(line:star)
+
+evolved_artifact_data <- evolved_unique_data %>% 
+  column_to_rownames("site_name") %>% 
+  dplyr::select(line:star)
+
+
+##collective plots
+
+library(cowplot)
+
+seriation_trans <- produce_clusters(trans_artifact_data, trans_unique_data, method = "seriation")
+seriation_proto <- produce_clusters(proto_artifact_data, proto_unique_data, method = "seriation")
+seriation_early <- produce_clusters(early_artifact_data, early_unique_data, method = "seriation")
+seriation_evolved <- produce_clusters(evolved_artifact_data, evolved_unique_data, method = "seriation")
+
+plot_grid(seriation_trans,seriation_proto, seriation_early , seriation_evolved, 
+          ncol = 2, align = "hv", 
+          labels = c("Transitional", "Proto", "Early", "Evolved"), label_size = 10)
+
+network_trans <- trans_network(trans_artifact_data)
+network_proto <- produce_clusters(proto_artifact_data, proto_unique_data, method = "network")
+network_early <- produce_clusters(early_artifact_data, early_unique_data, method = "network")
+network_evolved <- produce_clusters(evolved_artifact_data, evolved_unique_data, method = "network")
+
+plot_grid(network_trans, network_proto, network_early, network_evolved, 
+          ncol = 2, align = "hv", labels = c("Transitional", "Proto", "Early", "Evolved"), 
+          label_size = 7, label_colour = "black", label_y = 1.02, label_x = -0.03)
+
+pcoa_trans <- produce_clusters(trans_artifact_data, trans_unique_data, method = "pcoa")
+pcoa_proto <- produce_clusters(proto_artifact_data, proto_unique_data, method = "pcoa")
+pcoa_early <- produce_clusters(early_artifact_data, early_unique_data, method = "pcoa")
+pcoa_evolved <- produce_clusters(evolved_artifact_data, evolved_unique_data, method = "pcoa")
+
+plot_grid(pcoa_trans, pcoa_proto, pcoa_early, pcoa_evolved, 
+          align = "hv", labels = c("Transitional", "Proto", "Early", "Evolved"),
+          label_size = 7, label_colour = "red", label_y = 1.02)
+
+
+##groups within time periods 
+trans_unique_data <- trans_unique_data %>% 
+  mutate(group = case_when((site_name == "Pod Hradem") ~ "1",
+                           (site_name == "El Castillo" | site_name == "Hohle Fels") ~ "2"))
+
+proto_unique_data <- proto_unique_data %>% 
+  mutate(group = case_when((site_name == "Labeko Koba" | 
+                              site_name == "Gatzarria" | 
+                              site_name == "Hohlenstein-Stadel" | 
+                              site_name == "Mladeč" | 
+                              site_name == "Abri Pataud" | 
+                              site_name == "Fumane") ~ "1",
+                           (site_name == "Geissenklösterle" |
+                              site_name == "Grotte du Renne" |
+                              site_name == "Vogelherd" |
+                              site_name == "Spy" |
+                              site_name == "La Ferrassie" |
+                              site_name == "Les Cottés") ~ "2"))
+
+early_unique_data <- early_unique_data %>% 
+  mutate(group = case_when((site_name == "Grottes de Fonds-de-Forêt" |
+                              site_name == "Riparo Bombrini"|
+                              site_name == "Grotte de la Verpillière I"|
+                              site_name == "Vindija Cave" |
+                              site_name == "Trou al'Wesse") ~ "1",
+                           (site_name == "Hohle Fels" | 
+                              site_name == "Solutré" |
+                              site_name == "Castanet"|
+                              site_name == "Cellier" | 
+                              site_name == "Blanchard") ~ "2"))
+
+
+evolved_unique_data <- evolved_unique_data %>% 
+  mutate(group = case_when((site_name == "Les Rois" |
+                              site_name == "Gargas" |
+                              site_name == "La Viña"|
+                              site_name ==  "Sirgenstein Cave") ~ "1",
+                           (site_name == "Bockstein-Törle"|
+                              site_name == "Vogelherd" |
+                              site_name == "Hohle Fels"|
+                              site_name == "Trou Magrite") ~ "2"))
+
+
+time_unique_data_full <-rbind(trans_unique_data, proto_unique_data, 
+                              early_unique_data, evolved_unique_data)
+
+time_unique_data_full$time_period <- factor(time_unique_data_full$time_period, 
+                                            levels = c("transitional", "proto_aurignacian", "early_aurignacian", "evolved_aurignacian"))
+
+library(rnaturalearth)
 library(rnaturalearthdata)
 library(ggrepel)
 library(sf)
-
-library(ggpubr)
-time_unique_data_full <-rbind(trans_unique_data, proto_unique_data, early_unique_data, evolved_unique_data)
 
 signbase_sf <- time_unique_data_full  %>% 
   st_as_sf(coords = c("longitude", "latitude"),
@@ -124,7 +226,7 @@ Europe <- world[which(world$continent == "Europe"),]
 
 ggplot(Europe) +
   geom_sf() +
-  geom_sf(data = signbase_sf) +
+  geom_sf(data = signbase_sf, aes(color = group)) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
@@ -137,160 +239,47 @@ ggplot(Europe) +
   theme_minimal() +
   facet_wrap(~time_period)
 
-trans_artifact_data <- trans_unique_data %>% 
-  column_to_rownames("site_name") %>% 
+
+
+##testing overall dataset
+time_unique_data_test <- time_unique_data_full 
+
+time_unique_data_artifact_test <- time_unique_data_full %>% 
   dplyr::select(line:star)
 
-proto_artifact_data <- proto_unique_data %>% 
-  column_to_rownames("site_name") %>% 
-  dplyr::select(line:star)
+strength_function(time_unique_data_artifact_test, time_unique_data_test, type = "dispersion")
 
-early_artifact_data <- early_unique_data %>% 
-  column_to_rownames("site_name") %>% 
-  dplyr::select(line:star)
+## test groupings in individual time period
 
-evolved_artifact_data <- evolved_unique_data%>% 
-  column_to_rownames("site_name") %>% 
-  dplyr::select(line:star)
+trans_strength <- strength_function(trans_artifact_data, trans_unique_data, type = "table")
+proto_strength <- strength_function(proto_artifact_data, proto_unique_data, type = "table")
+early_strength <- strength_function(early_artifact_data, early_unique_data, type = "table")
+evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data, type = "table")
 
-library(ggpubr)
-artifact_matrix <- as.matrix(ser_data_evolved %>% 
-                               mutate(across(everything(), ~replace(., . > 1, 1))))
-rownames(artifact_matrix) <- rownames(ser_data_evolved)
 
-# Define the mplot function
-mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL, col_labels = NULL, country_colors = NULL) {
-  # Create the data frame
-  d <- data.frame(
-    x = rep(1:ncol(x), each = nrow(x)),
-    y = rep(nrow(x):1, ncol(x)),
-    z = as.integer(x)
-  )
+total_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
+  mutate(time_period = c("transitional", "proto", "early", "evolved"), .before = 1)
+
+
+
+trans_strength_plot <- strength_function(trans_artifact_data, trans_unique_data, type = "dispersion")
+proto_strength_plot <- strength_function(proto_artifact_data, proto_unique_data, type = "dispersion")
+early_strength_plot <- strength_function(early_artifact_data, early_unique_data, type = "dispersion")
+evolved_strength_plot <- strength_function(evolved_artifact_data, evolved_unique_data, type = "dispersion")
+
+
+
+
+
+##look at individual signs over time
+
+full_data_long <- time_unique_data_full %>% 
+  pivot_longer(cols = line:star) %>% 
+  filter(value != 0)
+
+ggplot(full_data_long) +
+  aes(x = name, fill = group) +
+  geom_bar() +
+  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) + 
+  facet_wrap(~time_period)
   
-  # Add country colors to the data frame if provided
-  if (!is.null(country_colors)) {
-    d$country_color <- rep(country_colors, ncol(x))
-  }
-  
-  # Use custom row/column labels if provided, otherwise use defaults
-  if (is.null(col_labels)) col_labels <- colnames(x)
-  if (is.null(row_labels)) row_labels <- rev(rownames(x))
-  
-  # Plot
-  p <- ggplot(d, aes(x, y)) +
-    geom_tile(col = "grey50", linewidth = 0.5, aes(fill = ifelse(z == 1, country_color, "white"))) +
-    scale_fill_identity() +  # Use the fill values directly
-    coord_equal(expand = FALSE) +
-    scale_x_continuous(
-      breaks = 1:ncol(x),
-      labels = col_labels,
-      position = "top"
-    ) +
-    scale_y_continuous(
-      breaks = 1:nrow(x),
-      labels = row_labels
-    ) +
-    theme(
-      axis.text = element_text(size = rel(0.5)),
-      axis.ticks = element_blank(),
-      legend.position = "none",
-      plot.title = element_text(hjust = 0.25)
-    ) +
-    labs(x = "Sign Type", y = "Site Name", fill = "Count", title = title) +
-    rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)
-  
-  p
-}
-
-# Define the increase_focus function
-increase_focus <- function(x, country = NULL) {
-  # Reorder rows by the mean position of 1s in each row
-  mcp <- apply(
-    x, 
-    MARGIN = 1, 
-    FUN = \(z) { mean(which(z == 1)) }, 
-    simplify = FALSE
-  ) |> unlist()
-  row_order <- order(mcp, na.last = TRUE)
-  x <- x[row_order, ]
-  
-  # Reorder the country vector if provided
-  if (!is.null(country)) {
-    country <- country[row_order]
-  }
-  
-  # Reorder columns by the mean position of 1s in each column
-  mrp <- apply(
-    x, 
-    MARGIN = 2, 
-    FUN = \(z) { mean(which(z == 1)) }, 
-    simplify = FALSE
-  ) |> unlist()
-  x <- x[, order(mrp, na.last = TRUE)]
-  
-  # Return the reordered matrix and country vector
-  list(matrix = x, country = country)
-}
-
-# Define the concentrate function
-concentrate <- function(x, country = NULL, max_iter = 100) {
-  old <- x
-  not_identical <- TRUE
-  iter <- 0
-  
-  while (not_identical && iter < max_iter) {
-    result <- increase_focus(old, country)
-    new <- result$matrix
-    country <- result$country
-    not_identical <- !identical(old, new)
-    old <- new
-    iter <- iter + 1
-  }
-  
-  if (iter == max_iter) {
-    warning("Reached maximum iterations without convergence.")
-  }
-  
-  list(matrix = new, country = country)
-}
-
-
-# get country names, for example
-x_df <- 
-  evolved_unique_data%>% 
-  left_join(signbase_full_clean %>% 
-              select(site_name,
-                     country),
-            by = "site_name")
-
-countries <- x_df$country
-
-# Generate a named vector of colors, one for each unique country
-unique_countries <- unique(countries)
-color_palette <-  RColorBrewer::brewer.pal(length(unique_countries), "Set3")   # Generate distinct colors
-row_colors <- setNames(color_palette, unique_countries) 
-countries_colors <- row_colors[countries]
-
-# Concentrate the matrix and reorder the country vector
-result <- concentrate(artifact_matrix, country = countries)
-concentrated_matrix <- result$matrix
-reordered_countries <- result$country
-
-# Map countries to colors
-country_colors <- row_colors[reordered_countries]
-
-# Plot the concentrated matrix with country colors
-mplot(
-  concentrated_matrix,
-  country_colors = country_colors
-)
-
-
-
-to_investigate<- signbase_full %>% 
-  filter(is.na(date_bp_max_min))
-
-
-
-
-
