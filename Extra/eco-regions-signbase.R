@@ -131,3 +131,7 @@ ggplot(signbase_sf) +
   geom_boxplot()
 
 
+ggplot(signbase_sf) +
+  aes(x = time_period, y = elevation, fill = group) +
+  geom_boxplot()
+

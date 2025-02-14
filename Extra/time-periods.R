@@ -16,9 +16,6 @@ signbase_full_clean <- signbase_full %>%  # 511 rows
   dplyr::select(-other, -rectangle)
 
 
-to_examine <- signbase_full_clean %>% 
-  filter(is.na(date_bp_max_min))
-
 signbase_years <- signbase_full_clean %>%  # 446
   drop_na(date_bp_max_min) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
@@ -267,11 +264,7 @@ proto_strength_plot <- strength_function(proto_artifact_data, proto_unique_data,
 early_strength_plot <- strength_function(early_artifact_data, early_unique_data, type = "dispersion")
 evolved_strength_plot <- strength_function(evolved_artifact_data, evolved_unique_data, type = "dispersion")
 
-
-
-
-
-##look at individual signs over time
+##look at individual sign distribution across periods
 
 full_data_long <- time_unique_data_full %>% 
   pivot_longer(cols = line:star) %>% 
@@ -281,5 +274,6 @@ ggplot(full_data_long) +
   aes(x = name, fill = group) +
   geom_bar() +
   rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) + 
-  facet_wrap(~time_period)
+  facet_wrap(~time_period, nrow = 4)
+
   
