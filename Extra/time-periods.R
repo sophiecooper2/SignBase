@@ -13,8 +13,9 @@ signbase_full_clean <- signbase_full %>%  # 511 rows
          site_name != "El Salitre",
          site_name != "Grotte De La Princesse Pauline",
          site_name != "Šandalja II") %>% 
-  dplyr::select(-other, -rectangle)
-
+  dplyr::select(-other, -rectangle) %>% 
+  mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>% 
+  mutate(latitude = ifelse(site_name == "Riparo Bombrini", 43.77083, latitude))
 
 signbase_years <- signbase_full_clean %>%  # 446
   drop_na(date_bp_max_min) %>% 
@@ -207,7 +208,8 @@ time_unique_data_full <-rbind(trans_unique_data, proto_unique_data,
                               early_unique_data, evolved_unique_data)
 
 time_unique_data_full$time_period <- factor(time_unique_data_full$time_period, 
-                                            levels = c("transitional", "proto_aurignacian", "early_aurignacian", "evolved_aurignacian"))
+                                            levels = c("transitional", "proto_aurignacian", 
+                                                       "early_aurignacian", "evolved_aurignacian"))
 
 library(rnaturalearth)
 library(rnaturalearthdata)
@@ -239,7 +241,8 @@ ggplot(Europe) +
 
 
 ##testing overall dataset
-time_unique_data_test <- time_unique_data_full 
+time_unique_data_test <- time_unique_data_full %>% 
+  mutate(group = time_period)
 
 time_unique_data_artifact_test <- time_unique_data_full %>% 
   dplyr::select(line:star)
@@ -275,5 +278,7 @@ ggplot(full_data_long) +
   geom_bar() +
   rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) + 
   facet_wrap(~time_period, nrow = 4)
+
+
 
   

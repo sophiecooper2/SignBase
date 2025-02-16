@@ -69,10 +69,6 @@ clim_pca <- raster.pca(clim_rast, n = 1)
 
 clim_pca_rast <- clim_pca$rasters
 
-clim_pca_df<- as.data.frame(clim_pca_rast, xy = TRUE) %>% 
-  mutate(PC1 = as.factor(PC1))
-
-clim_pca_fill <- clim_pca$pca.object$x
 
 ggplot(Europe) +
   geom_spatraster(data = clim_pca_rast)+
@@ -81,6 +77,12 @@ ggplot(Europe) +
   coord_sf(xlim = c(-10,30),
            ylim = c(35,53), 
            expand = FALSE) +
+  geom_text_repel(data = signbase_sf,
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  max.overlaps = 30,
+                  size = 2) +
   facet_wrap(~time_period) +
   theme()
 
@@ -90,17 +92,71 @@ signbase_sf$PCA <- extract(clim_pca_rast, signbase_sf)
 signbase_sf <- signbase_sf %>% 
   mutate(PCA = PCA$PC1)
 
+library(ggbeeswarm)
 ggplot(signbase_sf) +
-  aes(x = time_period, y = PCA, fill = group) +
-  geom_boxplot()
+  aes(x = time_period, 
+      y = PCA,
+      fill = group,
+      colour = group) +
+  geom_boxplot(outliers = FALSE,
+               alpha = 0.1) +
+  geom_quasirandom(size = 4,
+                   dodge.width = 0.5,
+                   alpha = 0.3) +
+  theme_minimal()
 
-signbase_sf$elevation <- extract(elev_rast, signbase_sf)
+
+## Permanova test for environmental zones - how much is the impact on group?
+
+signbase_sf$clim <- terra::extract(clim_rast, signbase_sf)
 
 signbase_sf <- signbase_sf %>% 
-  mutate(elevation = elevation$wc2.1_30s_elev)
+  unnest(clim)
 
+min_temp_df <- signbase_sf %>% 
+  dplyr::select(min_temp_jan:min_temp_sep) %>% 
+  st_drop_geometry() %>% 
+  mutate(avg = rowSums(.)/12)
+
+signbase_sf$min_temp_avg <- min_temp_df$avg
+
+max_temp_df <- signbase_sf %>% 
+  dplyr::select(max_temp_jan:max_temp_sep) %>% 
+  st_drop_geometry() %>% 
+  mutate(avg = rowSums(.)/12)
+
+signbase_sf$max_temp_avg <- max_temp_df$avg
+
+precip_df <- signbase_sf %>% 
+  dplyr::select(precip_jan:precip_sep) %>% 
+  st_drop_geometry() %>% 
+  mutate(avg = rowSums(.)/12)
+
+signbase_sf$precip_avg <- precip_df$avg
+
+
+
+
+
+
+
+
+
+clim_pca_df<- as.data.frame(clim_pca_rast, xy = TRUE) %>% 
+  mutate(PCA = PC1)
+
+clim_pca_fill <- clim_pca$pca.object$x %>% 
+  as_data_frame()
+
+clim_pca_df$PC2 <- clim_pca_fill$PC2
+
+signbase_sf <- signbase_sf %>% 
+  left_join(clim_pca_df)
 
 ggplot(signbase_sf) +
-  aes(x = time_period, y = elevation, fill = group) +
-  geom_boxplot()
+  aes(x = PCA, y = PC2,  color = group) +
+  geom_point() +
+  facet_wrap(~time_period) 
+
+
 
