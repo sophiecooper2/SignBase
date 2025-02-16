@@ -8,6 +8,7 @@ library(ggrepel)
 library(vegan)
 library(cowplot)
 library(igraph)
+library(tidyverse)
 
 mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL, col_labels = NULL, country_colors = NULL) {
   d <- data.frame(
@@ -256,6 +257,34 @@ trans_network <- function(artifact_data){
     return(final_plot)
     }
 
+
+perm_function <- function(period = "none", variable = PCA){
+  if(period == "none"){perm_df <- signbase_sf}
+  
+  if(period == "transitional"){perm_df <- signbase_sf %>% 
+    filter(time_period == "transitional")}
+  
+  if(period == "proto_aurignacian"){perm_df <- signbase_sf %>% 
+    filter(time_period == "proto_aurignacian")}
+  
+  if(period == "early_aurignacian"){perm_df <- signbase_sf %>% 
+    filter(time_period == "early_aurignacian")}
+  
+  if(period == "evolved_aurignacian"){perm_df <- signbase_sf %>% 
+    filter(time_period == "evolved_aurignacian")}
+  
+  perm_jac <- perm_df %>% 
+    st_drop_geometry() %>% 
+    dplyr::select(id, {{variable}}) %>% 
+    column_to_rownames("id") %>% 
+    vegdist("jaccard")
+  
+  perm_result <- adonis2(perm_jac~as.factor(perm_df$group), 
+                         method = "jaccard",
+                         sqrt.dist = TRUE)
+  
+  return(perm_result)
+}
 
 
 

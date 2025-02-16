@@ -271,7 +271,7 @@ Seriation analysis is the arrangement of data into a linear order to reveal patt
 
 Network analysis represents the relationship between nodes [@Mills_2017]. In this network analysis, each node is a site, and each edge is a measure of sign similarity, with the direct value represented by edge weight. The results were plotted with the Fruchterman-Reingold layout [@Fruchterman_Reingold_1991], a force-directed graph layout for uniform edge lengths.
 
-Principal coordinate decomposition analysis (PCoA) analyzes the eigenvalue decomposition of the Jaccard matrix and arranges the sites by dissimilarity [@Legendre_Legendre_2012]. This provides a visual of sign similarity as visualized by spacing and arrangement. The PCoA in this paper is calibrated to be plotted on a scatterplot, as opposed to a biplot.
+Principal coordinate decomposition analysis (PCoA) analyzes the eigenvalue decomposition of the Jaccard matrix and arranges the sites by dissimilarity [@Legendre_Legendre_2012]. This provides a visual of sign similarity as visualized by spacing and arrangement.
 
 ## Testing Strength of Cultural Groupings
 
