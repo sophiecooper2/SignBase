@@ -141,7 +141,6 @@ signbase_sf$precip_avg <- precip_df$avg
 
 
 
-
 clim_pca_df<- as.data.frame(clim_pca_rast, xy = TRUE) %>% 
   mutate(PCA = PC1)
 
@@ -156,7 +155,13 @@ signbase_sf <- signbase_sf %>%
 ggplot(signbase_sf) +
   aes(x = PCA, y = PC2,  color = group) +
   geom_point() +
-  facet_wrap(~time_period) 
+  stat_ellipse(mapping = aes(color = time_period))
 
 
 
+proto_mantel <- perm_function(period = "proto_aurignacian", variable = min_temp_jan:northing, method = "mantel")
+
+
+proto_perm <- perm_function(period = c("early_aurignacian" | "transitional"), variable = PCA, method = "permanova")
+
+                            
