@@ -258,32 +258,46 @@ trans_network <- function(artifact_data){
     }
 
 
-perm_function <- function(period = "none", variable = PCA){
+
+## mantel function tells us whether changes in sign makeup is correlated with chosen variable change. 
+## Permanova tells us how similar in chosen variable members of group are
+
+perm_function <- function(period = "none", variable = PCA, method = "permanova"){
+  set.seed(500)
+  
   if(period == "none"){perm_df <- signbase_sf}
   
-  if(period == "transitional"){perm_df <- signbase_sf %>% 
-    filter(time_period == "transitional")}
-  
-  if(period == "proto_aurignacian"){perm_df <- signbase_sf %>% 
-    filter(time_period == "proto_aurignacian")}
-  
-  if(period == "early_aurignacian"){perm_df <- signbase_sf %>% 
-    filter(time_period == "early_aurignacian")}
-  
-  if(period == "evolved_aurignacian"){perm_df <- signbase_sf %>% 
-    filter(time_period == "evolved_aurignacian")}
-  
-  perm_jac <- perm_df %>% 
-    st_drop_geometry() %>% 
-    dplyr::select(id, {{variable}}) %>% 
-    column_to_rownames("id") %>% 
-    vegdist("jaccard")
-  
-  perm_result <- adonis2(perm_jac~as.factor(perm_df$group), 
+  else{perm_df <- signbase_sf %>% 
+    filter(time_period == {{period}})}
+
+  if(method == "permanova"){
+  var_jac <- perm_df %>% 
+      st_drop_geometry() %>% 
+      column_to_rownames("id") %>% 
+      dplyr::select({{variable}}) %>% 
+      vegdist("jaccard")
+    
+  result <- adonis2(var_jac~as.factor(perm_df$group), 
                          method = "jaccard",
-                         sqrt.dist = TRUE)
+                         sqrt.dist = TRUE)}
   
-  return(perm_result)
+  if(method == "mantel"){
+    sign_jac <- perm_df %>% 
+      st_drop_geometry() %>% 
+      column_to_rownames("id") %>% 
+      dplyr::select(line:star) %>% 
+      vegdist("jaccard", binary = TRUE)
+      
+    var_sim <- perm_df %>% 
+      st_drop_geometry() %>% 
+      column_to_rownames("id") %>% 
+      dplyr::select({{variable}}) %>% 
+      dist()
+    
+    result <- vegan::mantel(sign_jac,  var_sim, permutations = 1000)
+  }
+  
+  return(result)
 }
 
 
