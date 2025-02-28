@@ -11,10 +11,15 @@ link-citations: true
 ---
 
 # Introduction
+One distinctive quality of the Upper Paleolithic is the large rise in artwork, both parietal and mobile. During this period, we also see a rise in organized settlements and more complex social organizations across Europe [@Boyd_Silk_2020]. Archaeologists have frequently relied upon that artwork as a proxy for cultural difference in order to understand these shifting patterns of social organization and diversity 
 
-A distinctive quality of the Upper Paleolithic is the large rise in artwork, both parietal and mobile. Archaeologists have frequently relied upon that artwork as a proxy for cultural difference in order to understand the grouping patterns of early modern humans [@McDonald_Harper_2016; @Pereira_Manen_2023; @Fuentes_Lucas_Robert_2019]. During this period, we also see a rise in organized settlements, more complex social organizations, and more advanced tool-making across Europe [@Boyd_Silk_2020]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian period (ca. 43,000 - 30,000 years BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by certain lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], many of which are decorated with geometric signs [@dutkiewicz2020].The Aurignacian can be divided up into four chronological periods: Transitional, Proto-Aurignacian, Early Aurignacian, and Evolved Aurignacian [@Banks_dErrico_Zilhao_2013, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021].
+ <!-- change citations maybe -->
+[@McDonald_Harper_2016; @Pereira_Manen_2023; @Fuentes_Lucas_Robert_2019].
+<!-- add more about aurignacian -->
+ 
+Considered to be the starting point of the Upper Paleolithic, the Aurignacian period (ca. 43,000 - 30,000 years BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by certain lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], many of which are decorated with geometric signs [@dutkiewicz2020].The Aurignacian can be divided up into four chronological periods: Transitional, Proto-Aurignacian, Early Aurignacian, and Evolved Aurignacian [@Banks_dErrico_Zilhao_2013, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021].
 
-In this paper, we analyze the distribution and variation of geometric sign types found on mobile artefacts from the Upper Paleolithic in Europe across the subsections of the Aurignacian period. The basis of this analysis is the idea that variations in signs can serve as an indicator of group membership and cultural similarity. This approach is supported by ethnographic and historical evidence [@texier2010howiesons; @Hodder1979; @Hodder1977; @Vanhaeren_2005] as well as similar archaeological studies of ornamental and parietal art [@Pereira_Manen_2023; @Sauvet_2018; @Rigaud_dErrico_Vanhaeren_2015; @baker2024evidence; @Lycett_2019; @Vanhaeren_d; @McDonald_Harper_2016]. In this study, we address the following questions: How does sign distribution change across periods of the Aurignacian, what do the patterns tell us about cultural diversity patterns and movement of Upper Paleolithic humans throughout the Aurignacian?
+In this paper, we analyze the distribution and variation of geometric sign types found on mobile artefacts from the Upper Paleolithic in Europe across the subsections of the Aurignacian period. The basis of this analysis is the idea that variations in signs can serve as an indicator of group membership and cultural similarity. This approach is supported by ethnographic and historical evidence [@texier2010howiesons; @Hodder1979; @Hodder1977; @Vanhaeren_2005] as well as similar archaeological studies of ornamental and parietal art [@Pereira_Manen_2023; @Sauvet_2018; @Rigaud_dErrico_Vanhaeren_2015; @baker2024evidence; @Lycett_2019; @Vanhaeren_d; @McDonald_Harper_2016]. In this study, we address the following questions: How does sign distribution change across periods of the Aurignacian? How do the groupings vary in diversity, size, connectivity, and boundaries? What do the patterns tell us about the cultural groupings and movement of Upper Paleolithic humans throughout the Aurignacian? 
 
 # Background
 
@@ -22,17 +27,35 @@ The purpose of this study is to contribute to our understanding of the patterns 
 
 Similar analyses (seriation, correspondence and GIS) were also performed upon personal ornament types from the Aurignacian period as a proxy for linguistic diversity. The data set consisted of 157 distinct ornament types, and the analyses identified fourteen geographically cohesive clusters sharing similar ornament type associations [@Vanhaeren_d]. The clusters identified are geographically discrete and sweep counter-clockwise throughout western France, northern Spain, the Pyrenees, and the Mediterranean region. The possibility that observed patterns were influenced by availability of raw materials was considered, and ultimately discarded as an explanation for the patterns.
 
+
+<!-- remove section on mobility? -->
+
 Following the established precedent of using ornamentation and signs to identify cultural groups, we look to see if designs on mobile objects can be applicable here, and what it can add to the research being done. The additional dimension of mobility and comparison of in this study allows us to potentially identify more geographically dispersed cultural groups, which might help visualize the migration patterns of early modern humans. Previous studies have primarily excluded mobile objects, and tend to find more geographically compact cultural groups as a result.
 
-Our use of geometric signs in this study is supported by @Sauvet_2018, in which used quadrilateral geometric parietal signs are used to identify Upper Paleolithic cultural groups in the Cantabrian region of Spain. The authors identified and classified the signs based on variations in form, then performed a factorial correspondence analysis and ascending hierarchical clustering upon the data in order to identify two clusters, which they argued represents distinct and separate groups of humans. In their study, @Sauvet_2018 made a case for the relevance of signs as identity markers, pointing to both the relevant qualities of signs, which are similar to those explained above, and the case studies throughout history where they served a similar purpose.
+<!--  -->
 
 
-In this paper, we test the hypothesis that cultural groups are discernible in a data set of geometric signs on mobile objects. Firstly, we identify clusters within each time period using seriation and network analysis. We then test the strength of the clusters using modularity, perMANOVA, and PERMDISP2 tests. Lastly, we use mantel tests to evaluate the null hypothesis of isolation-by-distance,
+
+Our use of geometric signs in this study is supported by @Sauvet_2018, in which quadrilateral geometric parietal signs are used to identify Upper Paleolithic cultural groups in the Cantabrian region of Spain. The authors identified and classified the signs based on variations in form, then performed a factorial correspondence analysis and ascending hierarchical clustering upon the data in order to identify two clusters, which they argued represents distinct and separate groups of humans. In their study, @Sauvet_2018 made a case for the relevance of signs as identity markers, pointing to both the relevant qualities of signs, which are similar to those explained above, and the case studies throughout history where they served a similar purpose.
+
+<!-- add more about aurignacian time period - what was going on, what was the criteria -->
+
+
+The Aurignacian period occurred roughly 43,000 - 30,000 years BP, and is largely characterized by material culture indicators, as well as an ongoing biological shift from Neanderthals to early modern humans. The Aurignacian can be further divided into subphases, again mainly distinguished by shifts in material culture [@Tartar_2015], Proto, Early, Evolved, and Late Aurignacian.  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 divided the Aurignacian into two main periods, Aur-P1 (Proto/Early), whose typological observations corresponded with the time period of 43–37 kyr BP, and Aur-P2 (Evolved/Late), which corresponds with the time periods kyr BP and 37-32 kyr BP. @Banks_dErrico_Zilhao_2013 used Bayesian modeling methods to further divide Aur-P1 into the Proto and Early Aurignacian, placing the Proto-Aurignacian at 41.5 - 39.9 k cal BP, and the early Aurignacian at 39.8 - 37.8 k cal BP. They found that the Proto-Aurignacian occurs during the Greenland Interstadials 9 and 10, periods of climatic amelioration, while the Early Aurignacian began with the Henrich Stadial, which is characterized by dry and arid conditions, and ended with Greenland Interstadial 8.
+
+
+<!-- change hypothesis -->
+In this paper, we test the hypothesis that cultural groups are discernible in a data set of geometric signs on mobile objects. Firstly, we identify clusters within each time period using seriation and network analysis. We then test the strength of the clusters using modularity, perMANOVA, and PERMDISP2 tests. Lastly, we use mantel tests to evaluate the null hypothesis of isolation-by-distance.
 
 # Methods and Materials
 
 ```{r}
 ## clean the data
+library(tidyverse)
+library(magrittr)
+library(rcarbon)
+library(readxl)
+
 library(tidyverse)
 library(magrittr)
 library(rcarbon)
@@ -48,7 +71,8 @@ ncountries <- signbase_full %>%
   unique() %>% 
   length()
 nsigntypes <- ncol(signbase_full)
-signbase_full_clean <- signbase_full %>% 
+
+signbase_full_clean <- signbase_full %>%  # 511 rows
   filter(site_name != "Willendorf",
          site_name != "Riparo di Fontana Nuova",
          site_name != "Muralovka",
@@ -57,18 +81,11 @@ signbase_full_clean <- signbase_full %>%
          site_name != "El Salitre",
          site_name != "Grotte De La Princesse Pauline",
          site_name != "Šandalja II") %>% 
-  dplyr::select(-other, -rectangle)
-nsites_clean <- signbase_full_clean%>% 
-  pull(site_name ) %>% 
-  unique() %>% 
-  length()
-nartifacts_clean <- nrow(signbase_full_clean)
-ncountries_clean <- signbase_full_clean %>% 
-  pull(country) %>% 
-  unique() %>% 
-  length()
-nsigntypes_clean <- nsigntypes - 1
-signbase_years <- signbase_full_clean %>% 
+  dplyr::select(-other, -rectangle) %>% 
+  mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>% 
+  mutate(latitude = ifelse(site_name == "Riparo Bombrini", 43.77083, latitude))
+
+signbase_years <- signbase_full_clean %>%  # 446
   drop_na(date_bp_max_min) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>% 
@@ -94,12 +111,41 @@ signbase_years <- signbase_full_clean %>%
           date_bp_max_error) %>% 
   mutate(date_bp_max_age = parse_number(date_bp_max_age),
          date_bp_max_error = parse_number(date_bp_max_error))
+
 signbase_years_cal <- 
   rcarbon::calibrate(signbase_years$date_bp_max_age,
-            signbase_years$date_bp_max_error,
-            verbose = FALSE) %>% 
+                     signbase_years$date_bp_max_error,
+                     verbose = FALSE) %>% 
   summary() %>% 
   data_frame()
+
+signbase_years$MedianBP <- signbase_years_cal$MedianBP
+
+
+signbase_full_clean <- signbase_full_clean %>% 
+  inner_join(signbase_years %>% 
+              dplyr::select(object_id, MedianBP))
+
+signbase_full_clean <- signbase_full_clean %>%
+  mutate(time_period = case_when((MedianBP > 42999) ~ "transitional",
+                                 (MedianBP > 39899) ~ "proto_aurignacian",
+                                 (MedianBP > 36999) ~ "early_aurignacian",
+                                 (MedianBP > 31999) ~ "evolved_aurignacian"))
+
+
+
+
+nsites_clean <- signbase_full_clean%>% 
+  pull(site_name ) %>% 
+  unique() %>% 
+  length()
+nartifacts_clean <- nrow(signbase_full_clean)
+ncountries_clean <- signbase_full_clean %>% 
+  pull(country) %>% 
+  unique() %>% 
+  length()
+nsigntypes_clean <- nsigntypes - 1
+
 pretty_print_dates <- 
   function(x) formatC(x, 
                       decimal.mark=".", 
@@ -119,59 +165,108 @@ date_range_pretty <- pretty_print_dates(date_range)
 ```
 
 ```{r}
-groups <- list("1" = c("Abri Pataud", "El Rascaño", 
-                       "Fumane", "La Viña",
-                       "Lhotka", "Pod Hradem",
-                       "Riparo Bombrini", "Sirgenstein Cave"),
-               "2" = c("Aurignac", "Gargas",
-                       "Grotte de la Verpillière I","Hohlenstein-Stadel",
-                       "Istállóskő Cave", "Mladeč",
-                       "d'Engihoul"),
-               "3" = c("Breitenbach", "Peskő Cave",
-                       "Vindija Cave", "Wildscheuer"),
-               "4" = c("Kvasice", "Labeko Koba", 
-                       "Les Rois"),
-               "5" = c("Le Trou Du Renard", "Abri Lartet/Gorge d'Enfer",
-                       "Tuto de Camalhot", "Castanet", 
-                       "Gatzarria", "Abri du Poisson"),
-               "6" = c("Bockstein-Törle", "Grotte de Goyet",
-                        "Trou Magrite", "Brassempouy"),
-               "7" = c( "Göpfelsteinhöhle",  "Slatinice", 
-                        "Grotte du Renne"),
-               "8" = c( "El Castillo", "Trou al'Wesse", 
-                        "Maisières-Canal"),
-               "9" = c("Vogelherd","Hohle Fels",
-                       "Geissenklösterle", "Le Terme Pialat", 
-                       "Les Cottés", "Spy",  "Grottes de Fonds-de-Forêt"),
-               "10" = c("Nová Dědina", "Menton/Grottes du Grimaldi",
-                        "Solutré", "Žlutava", 
-                        "Hornos de la Pena", "Otaslavice"),
-               "11" = c("Cellier", "Blanchard", 
-                        "La Ferrassie"),
-               "12" = c("La Souquette", "Shelter Birów IV",
-                        "Abri de Laussel"))
-group_df <- 
-  enframe(groups, 
-          name = "group", 
-          value = "site_name") %>%
-  unnest(cols = site_name)
-
 lat_long_df <- signbase_full_clean %>% 
   dplyr::select(site_name, longitude, latitude) %>% 
   distinct(site_name, .keep_all = TRUE)
 
-signbase_unique_groups <- signbase_full_clean %>% 
+trans_unique_data <- signbase_full_clean %>% 
+  filter(time_period == "transitional") %>% 
   mutate(longitude = as.character(longitude),
          latitude = as.character(latitude)) %>% 
   group_by(site_name) %>%
   summarize(across(where(is.numeric), sum)) %>% 
-  left_join(group_df) %>% 
-  left_join(lat_long_df)
+  left_join(lat_long_df) %>% 
+  mutate(time_period = "transitional")
 
-artifact_data <- signbase_unique_groups %>% 
+proto_unique_data <- signbase_full_clean %>% 
+  filter(time_period == "proto_aurignacian") %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum)) %>% 
+  left_join(lat_long_df) %>% 
+  mutate(time_period = "proto_aurignacian")
+
+early_unique_data <- signbase_full_clean %>% 
+  filter(time_period == "early_aurignacian") %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum)) %>% 
+  left_join(lat_long_df) %>% 
+  mutate(time_period = "early_aurignacian")
+
+evolved_unique_data <- signbase_full_clean %>% 
+  filter(time_period == "evolved_aurignacian") %>% 
+  mutate(longitude = as.character(longitude),
+         latitude = as.character(latitude)) %>% 
+  group_by(site_name) %>%
+  summarize(across(where(is.numeric), sum)) %>% 
+  left_join(lat_long_df) %>% 
+  mutate(time_period = "evolved_aurignacian")
+
+
+trans_artifact_data <- trans_unique_data %>% 
   column_to_rownames("site_name") %>% 
   dplyr::select(line:star)
+
+
+proto_artifact_data <- proto_unique_data %>% 
+  column_to_rownames("site_name") %>% 
+  dplyr::select(line:star)
+
+early_artifact_data <- early_unique_data %>% 
+  column_to_rownames("site_name") %>% 
+  dplyr::select(line:star)
+
+evolved_artifact_data <- evolved_unique_data %>% 
+  column_to_rownames("site_name") %>% 
+  dplyr::select(line:star)
+
+
+trans_unique_data <- trans_unique_data %>% 
+  mutate(group = case_when((site_name == "Pod Hradem") ~ "1",
+                           (site_name == "El Castillo" | site_name == "Hohle Fels") ~ "2"))
+
+proto_unique_data <- proto_unique_data %>% 
+  mutate(group = case_when((site_name == "Labeko Koba" | 
+                              site_name == "Gatzarria" | 
+                              site_name == "Hohlenstein-Stadel" | 
+                              site_name == "Mladeč" | 
+                              site_name == "Abri Pataud" | 
+                              site_name == "Fumane") ~ "1",
+                           (site_name == "Geissenklösterle" |
+                              site_name == "Grotte du Renne" |
+                              site_name == "Vogelherd" |
+                              site_name == "Spy" |
+                              site_name == "La Ferrassie" |
+                              site_name == "Les Cottés") ~ "2"))
+
+early_unique_data <- early_unique_data %>% 
+  mutate(group = case_when((site_name == "Grottes de Fonds-de-Forêt" |
+                              site_name == "Riparo Bombrini"|
+                              site_name == "Grotte de la Verpillière I"|
+                              site_name == "Vindija Cave" |
+                              site_name == "Trou al'Wesse") ~ "1",
+                           (site_name == "Hohle Fels" | 
+                              site_name == "Solutré" |
+                              site_name == "Castanet"|
+                              site_name == "Cellier" | 
+                              site_name == "Blanchard") ~ "2"))
+
+
+evolved_unique_data <- evolved_unique_data %>% 
+  mutate(group = case_when((site_name == "Les Rois" |
+                              site_name == "Gargas" |
+                              site_name == "La Viña"|
+                              site_name ==  "Sirgenstein Cave") ~ "1",
+                           (site_name == "Bockstein-Törle"|
+                              site_name == "Vogelherd" |
+                              site_name == "Hohle Fels"|
+                              site_name == "Trou Magrite") ~ "2"))
+
 ```
+
 
 ```{r}
 # mantel abundance
@@ -193,6 +288,7 @@ p_value_abundance_correlation <- round(euc_mantel$signif, 3)
 r_value_abundance_correlation <- round(euc_mantel$statistic, 3)
 ```
 
+
 ## Data
 
 ```{r fig.height= 10, fig.width=10}
@@ -203,27 +299,21 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 library(ggrepel)
 library(sf)
-
 library(ggpubr)
+time_unique_data_full <-rbind(trans_unique_data, proto_unique_data, 
+                              early_unique_data, evolved_unique_data)
 
-abundance_data <- signbase_full_clean %>% 
-  pivot_longer(cols= line:star,
-               values_to = "sign_total") %>% 
-  filter(sign_total != 0) %>% 
-  mutate(longitude = as.character(longitude),
-         latitude = as.character(latitude)) %>% 
-  group_by(site_name) %>%
-  summarize(across(where(is.numeric), sum))
-  
-signbase_sf <- 
-  st_as_sf(signbase_unique_groups, 
-           coords = c("longitude", "latitude"),
+time_unique_data_full$time_period <- factor(time_unique_data_full$time_period, 
+                                            levels = c("transitional", "proto_aurignacian", 
+                                                       "early_aurignacian", "evolved_aurignacian"))
+signbase_sf <- time_unique_data_full  %>% 
+  st_as_sf(coords = c("longitude", "latitude"),
            remove = FALSE,
            crs = 4326)
 world <- ne_countries(scale = "medium", returnclass = "sf")
 Europe <- world[which(world$continent == "Europe"),]
 
-artifact_map <- ggplot(Europe) +
+ggplot(Europe) +
   geom_sf() +
   geom_sf(data = signbase_sf) +
   coord_sf(xlim = c(-10,30), 
@@ -236,25 +326,9 @@ artifact_map <- ggplot(Europe) +
                   max.overlaps = 30,
                   size = 2) +
   theme_minimal() +
-  labs(size = "Sign Count")
+  facet_wrap(~time_period)
 
-date_graph <- ggplot(signbase_years_cal) +
-  aes(x = MedianBP) +
-  geom_bar(width = 150) +
-  labs(x = "Median calibrated BP")
 
-abundance_graph <- ggplot(abundance_data) +
-  aes(x = sign_total, y = reorder(site_name, sign_total)) +
-  geom_col() +
-  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
-  labs(x = "Site name",
-       y = "Sign count") +
-  theme(axis.text.y = element_text(size = 4.25))
-
-library(cowplot)
-plot_grid(date_graph, abundance_graph, artifact_map,
-          labels = "AUTO", align = "v",
-          nrow = 3, scale = c(0.75, 0.75, 1.25))
 
 ```
 
@@ -262,9 +336,8 @@ Our data for this paper comes from SignBase, an open-access database collection 
 
 The data set consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We excluded signs if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). After those sites were excluded, all signs under the "rectangle" category were also removed as a side effect of that exclusion. Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.
 
-These exclusions resulted in `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types, as seen in @fig-site-map. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results, and found that it was not statistically significant [@Lycett_2019] (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`)
+These exclusions resulted in `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types, as seen in @fig-site-map. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results, and found that it was not statistically significant [@Lycett_2019] (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`). The calibrated radiocarbon dates of the artifacts range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We divided the data up into four periods: 
 
-The artifacts in question are determined to have been made in the Paleolithic era, specifically in the Aurignacien technocomplex. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. As seen in @fig-site-map, the dates have a few outliers, but tend to cluster between 35000 - 42500 BP.
 
 ## Testing for Cultural Groupings
 
