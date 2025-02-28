@@ -262,7 +262,7 @@ trans_network <- function(artifact_data){
 ## mantel function tells us whether changes in sign makeup is correlated with chosen variable change. 
 ## Permanova tells us how similar in chosen variable members of group are
 
-perm_function <- function(period = "none", variable = PCA, method = "permanova"){
+perm_function <- function(period = "none", variable = PCA, method = "permanova", signbase_sf = signbase_sf){
   set.seed(500)
   
   if(period == "none"){perm_df <- signbase_sf}

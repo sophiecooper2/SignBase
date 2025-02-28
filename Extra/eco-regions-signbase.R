@@ -15,9 +15,9 @@ month_avg_min_tmp_files <- list.files(path = "large-files/cclgmtn_2-5m/", full.n
 month_avg_min_tmp <- rast(month_avg_min_tmp_files) %>% 
   crop(rast_ext)
 
-month_avy_max_tmp_files <- list.files(path = "large-files/cclgmtx_2-5m/", full.names = TRUE)
+month_avg_max_tmp_files <- list.files(path = "large-files/cclgmtx_2-5m/", full.names = TRUE)
 
-month_avg_max_tmp <- rast(month_avy_max_tmp_files) %>% 
+month_avg_max_tmp <- rast(month_avg_max_tmp_files) %>% 
   crop(rast_ext)
 
 month_precip_files <- list.files(path = "large-files/cclgmpr_2-5m/", full.names = TRUE)
@@ -136,6 +136,8 @@ signbase_sf$precip_avg <- precip_df$avg
 
 
 
+proto_mantel <- perm_function(period = "proto_aurignacian", variable = min_temp_jan:northing, method = "mantel")
+
 
 
 
@@ -155,13 +157,9 @@ signbase_sf <- signbase_sf %>%
 ggplot(signbase_sf) +
   aes(x = PCA, y = PC2,  color = group) +
   geom_point() +
-  stat_ellipse(mapping = aes(color = time_period))
+  geom_text_repel(aes(label = site_name)) +
+  facet_wrap(~time_period)
 
 
-
-proto_mantel <- perm_function(period = "proto_aurignacian", variable = min_temp_jan:northing, method = "mantel")
-
-
-proto_perm <- perm_function(period = c("early_aurignacian" | "transitional"), variable = PCA, method = "permanova")
 
                             
