@@ -9,73 +9,33 @@ bibliography: references.bib
 zotero: "Signbase-study"
 link-citations: true
 ---
-# Introduction
-<!-- swap around sentences-->
-One distinctive quality of the Upper Paleolithic is the large rise in artwork, both parietal and mobile. During this period, we also see a rise in more complex social organizations across Europe [@Boyd_Silk_2020] coupled with biological evolution. Archaeologists have frequently relied upon that artwork as a proxy for cultural difference in order to understand these shifting patterns of social organization and diversity 
+# Introduction and Background
+The Upper Paleolithic period experienced a rise in more complex social organizations across Europe [@Boyd_Silk_2020] coupled with biological evolution. Another distinctive quality of the Upper Paleolithic is the large rise in artwork, both parietal and mobile. Archaeologists have frequently relied upon that artwork as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@baker2024evidence, @Sauvet_2018, @Kuhn_Stiner_2007, @Vanhaeren_d]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian period (ca. 43,000 - 30,000 years BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by certain lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], many of which are decorated with geometric signs [@dutkiewicz2020]. In this paper, we analyze the distribution and variation of geometric sign types found on mobile artefacts from the Upper Paleolithic in Europe across the phases of the Aurignacian period.
 
- <!-- change citations maybe -->
-[@McDonald_Harper_2016; @Pereira_Manen_2023; @Fuentes_Lucas_Robert_2019].
+Social organization dynamics have previously been explored using cluster analysis methods upon variations in artefacts to represent and understand patterns of cultural groups. For example, multivariate analyses of variations in Gravettian beads suggests an east to west cline of nine cultural groups [@baker2024evidence]. Seriation analysis, PCoA, and network analysis were used to identify the groups from the bead data, which consisted of 134 discrete bead variations from both burial and occupation sites, as distinguished by shape and material. The geographically discrete groups identified encompass the regions of eastern, northwestern and central Europe, the northern and southern Iberian peninsula, southern and northern Italy, and the eastern and Western Mediterranean regions. The isolation-by-distance hypothesis, which proposes that cultural difference can be primarily explained by geographic distance, was tested using a Mantel test, finding that geographic distance cannot solely account for the bead distribution, proving the influence of cultural and social dynamics on the groups found. 
 
-<!-- mention upper paleolithic in last sentence of above paragraph -->
- 
-Considered to be the starting point of the Upper Paleolithic, the Aurignacian period (ca. 43,000 - 30,000 years BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by certain lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], many of which are decorated with geometric signs [@dutkiewicz2020].
+In another study to find cultural groups, similar analyses were performed upon personal ornament types from the Aurignacian period, with the variation in types serving as a proxy for linguistic diversity [@Vanhaeren_d]. Seriation, correspondence, and GIS analyses were performed upon a personal ornament data set, which consisted of 157 distinct ornament types from Eastern Aurignacian sites. The analyses identified fourteen geographically cohesive groups sharing similar ornament type associations, which sweep counter-clockwise throughout western France, northern Spain, the Pyrenees, and the Mediterranean region. The possibility that the observed groups were influenced by availability of raw materials was considered, and ultimately discarded as an explanation for the patterns. 
 
-In this paper, we analyze the distribution and variation of geometric sign types found on mobile artefacts from the Upper Paleolithic in Europe across the subperiods of the Aurignacian period. 
+Additionally, @Sauvet_2018 used quadrilateral geometric parietal signs to identify Upper Paleolithic cultural groups in the Cantabrian region of Spain. The authors identified and classified the signs based on variations in form, then performed a factorial correspondence analysis and ascending hierarchical clustering upon the data. Two clusters were identified from those methods, representing two distinct cultural groups. @Sauvet_2018 makes a case for the relevance of geometric signs as identity markers in identifying cultural groups, pointing to the relevant qualities of signs, as well as historical and ethnographic case studies of signs serving as markers of group membership case studies.
 
-<!-- The basis of this analysis is the idea that variations in signs can serve as an indicator of group membership and cultural similarity.--> 
+Following the work done by @baker2024evidence, @Vanhaeren_d, and @Sauvet_2018, in using variation in ornamentation and signs to identify cultural groups, we look to see how geometric sign design changes across the sub-periods of the Aurignacian period. The Aurignacian period occurred roughly 43,000 - 30,000 years BP, and is largely characterized by material culture indicators, as well as an ongoing biological shift from Neanderthals to early modern humans. Chronology of the Aurignacian is primarly determined by correspondance with those material culture markers, which include carinated scrapers, small-flake tool production, and split-based bone and ivory tools [@Chu_Richter_2020]. The Aurignacian can be divided into phases, again mainly distinguished by shifts in material culture; Proto, Early, Evolved, and Late Aurignacian [@Tartar_2015]. @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 divided the Aurignacian into two main periods, Aur-P1 (Proto/Early), whose typological observations corresponded with the time period of 43–37 kyr BP, and Aur-P2 (Evolved/Late), which corresponds with the time periods kyr BP and 37-32 kyr BP. @Banks_dErrico_Zilhao_2013 used Bayesian modeling methods to further divide Aur-P1 into the Proto and Early Aurignacian, placing the Proto-Aurignacian at 41.5 - 39.9 k cal BP, and the early Aurignacian at 39.8 - 37.8 k cal BP. They found that the Proto-Aurignacian occurs during the Greenland Interstadials 9 and 10, periods of climatic amelioration, while the Early Aurignacian began with the Henrich Stadial, which is characterized by dry and arid conditions, and ended with Greenland Interstadial 8. 
 
-This approach is supported by ethnographic and historical evidence [@texier2010howiesons; @Hodder1979; @Hodder1977; @Vanhaeren_2005] as well as similar archaeological studies of ornamental and parietal art [@Pereira_Manen_2023; @Sauvet_2018; @Rigaud_dErrico_Vanhaeren_2015; @baker2024evidence; @Lycett_2019; @Vanhaeren_d; @McDonald_Harper_2016].
-
-<!-- read above literature to confirm relevance--> 
-
-# Background
-
-Social organization dynamics have previously been explored using cluster analysis methods upon variations in artefacts to represent and understand patterns of groups and cultural diversity, and have primarily relied upon personal ornamentation and parietal art.
-
-For example, multivariate analyses of Gravettian beads suggests an east to west cline of nine cultural groups [@baker2024evidence]. 
-
-The data set consisted of 134 discrete beads types from both burial and occupation sites, as distinguished by shape and material. Seriation analysis, PCoA, and network analysis were used to identify the groups from the bead data. 
-
-The geographically discrete groups identified encompassed the regions of eastern, northwestern and central Europe, the northern and southern Iberian peninsula, southern and northern Italy, and the eastern and Western Mediterranean regions. 
-
-<!-- reread paper, make sure that last sentence accurately describes results  -->
-The isolation-by-distance hypothesis, which proposes that cultural difference can be primarily explained by geographic distance, is tested using a Mantel test, determining that geographic distance cannot solely account for the bead distribution.
-
-<!-- Add connector between baker and vanharen paragraphs, add more detail about Vanharen methods-->
-
-Similar analyses (seriation, correspondence and GIS) were also performed upon personal ornament types from the Aurignacian period as a proxy for linguistic diversity. The data set consisted of 157 distinct ornament types, and the analyses identified fourteen geographically cohesive clusters sharing similar ornament type associations [@Vanhaeren_d]. The clusters identified are geographically discrete and sweep counter-clockwise throughout western France, northern Spain, the Pyrenees, and the Mediterranean region. The possibility that observed patterns were influenced by availability of raw materials was considered, and ultimately discarded as an explanation for the patterns.
-
-
-<!-- Rephrase opening sentence to be less obvious -->
-The use of geometric signs to identify cultural groups is supported by @Sauvet_2018, in which quadrilateral geometric parietal signs are used to identify Upper Paleolithic cultural groups in the Cantabrian region of Spain. The authors identified and classified the signs based on variations in form, then performed a factorial correspondence analysis and ascending hierarchical clustering upon the data in order to identify two clusters, which they argued represents distinct and separate groups of humans. In their study, @Sauvet_2018 made a case for the relevance of signs as identity markers, pointing to both the relevant qualities of signs, which are similar to those explained above, and the case studies throughout history where they served a similar purpose.
-
-<!-- remove section on mobility -->
-
-Following the <!-- Baker et al. and Vanharen et al work - reference them more directly --> of using ornamentation and signs to identify cultural groups, we look to see if designs on mobile objects can be applicable here, and what it can add to the research being done. The additional dimension of mobility and comparison of in this study allows us to potentially identify more geographically dispersed cultural groups, which might help visualize the migration patterns of early modern humans. Previous studies have primarily excluded mobile objects, and tend to find more geographically compact cultural groups as a result.
-
-
-
-The Aurignacian period occurred roughly 43,000 - 30,000 years BP, and is largely characterized by material culture indicators, as well as an ongoing biological shift from Neanderthals to early modern humans. 
 <!-- add specific details about cultural markers, both for aurignacian and for each time period (create table in excel with name, date range, artifact indicators, environmental context, sources in the caption)-->
 
-The Aurignacian can be further divided into subphases, again mainly distinguished by shifts in material culture [@Tartar_2015], Proto, Early, Evolved, and Late Aurignacian.
+```{r}
+library(knitr)
 
-@Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 divided the Aurignacian into two main periods, Aur-P1 (Proto/Early), whose typological observations corresponded with the time period of 43–37 kyr BP, and Aur-P2 (Evolved/Late), which corresponds with the time periods kyr BP and 37-32 kyr BP. @Banks_dErrico_Zilhao_2013 used Bayesian modeling methods to further divide Aur-P1 into the Proto and Early Aurignacian, placing the Proto-Aurignacian at 41.5 - 39.9 k cal BP, and the early Aurignacian at 39.8 - 37.8 k cal BP. They found that the Proto-Aurignacian occurs during the Greenland Interstadials 9 and 10, periods of climatic amelioration, while the Early Aurignacian began with the Henrich Stadial, which is characterized by dry and arid conditions, and ended with Greenland Interstadial 8.
+[@Jöris_Street_2008, @Banks_dErrico_Zilhao_2013, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021, @Sanz-Royo_Terlato_Marín-Arroyo_2024, @Chu_Richter_2020], 
+```
 
-<!-- change hypothesis -->
 
-In this study, we aim to address the following questions: How does sign distribution change across periods of the Aurignacian? How do the groupings in sign distibution vary in diversity, size, connectivity, and boundaries? What do the patterns tell us about dynamics of social organization throughout the Aurignacian? 
+In this study, we aim to address the following questions: How does sign distribution change across phases of the Aurignacian? How do the groupings in sign distribution vary in diversity, size, connectivity, and boundaries? What do the patterns tell us about dynamics of social organization throughout the Aurignacian? 
 Firstly, we identify clusters within each time period using seriation and network analysis. We then test the strength of the clusters using modularity, perMANOVA, and PERMDISP2 tests. Lastly, we use mantel tests to evaluate the null hypothesis of isolation-by-distance.
 
 # Methods and Materials
 
 ```{r}
 ## clean the data
-library(tidyverse)
-library(magrittr)
-library(rcarbon)
-library(readxl)
-
 library(tidyverse)
 library(magrittr)
 library(rcarbon)
@@ -105,7 +65,7 @@ signbase_full_clean <- signbase_full %>%  # 511 rows
   mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>% 
   mutate(latitude = ifelse(site_name == "Riparo Bombrini", 43.77083, latitude))
 
-signbase_years <- signbase_full_clean %>%  # 446
+signbase_years <- signbase_full_clean %>%
   drop_na(date_bp_max_min) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
   mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>% 
@@ -152,10 +112,12 @@ signbase_full_clean <- signbase_full_clean %>%
                                  (MedianBP > 36999) ~ "early_aurignacian",
                                  (MedianBP > 31999) ~ "evolved_aurignacian"))
 
+signbase_full_clean <- signbase_full_clean %>% 
+  mutate(sign_total = rowSums((signbase_full_clean [,25:53]))) %>% 
+  filter(sign_total > 0)
 
 
-
-nsites_clean <- signbase_full_clean%>% 
+nsites_clean <- signbase_full_clean %>% 
   pull(site_name ) %>% 
   unique() %>% 
   length()
@@ -285,25 +247,38 @@ evolved_unique_data <- evolved_unique_data %>%
                               site_name == "Hohle Fels"|
                               site_name == "Trou Magrite") ~ "2"))
 
+
+
+time_unique_data_full <-rbind(trans_unique_data, proto_unique_data, 
+                              early_unique_data, evolved_unique_data)
+
+time_unique_data_full$time_period <- factor(time_unique_data_full$time_period, 
+                                            levels = c("transitional", "proto_aurignacian", 
+                                                       "early_aurignacian", "evolved_aurignacian"))
+
+
 ```
 
 
 ```{r}
 # mantel abundance
 library(vegan)
-library(ade4)
 
 set.seed(200)
+
+artifact_data <- time_unique_data_full %>% 
+  column_to_rownames("id") %>% 
+  select(line:star)
+
 euc_data <- artifact_data %>% 
-  rownames_to_column("site_name") %>% 
-  group_by(site_name) %>% 
-  mutate(sign_count = sum(line:star)) %>% 
-  column_to_rownames("site_name") %>% 
+  mutate(sign_count = rowSums(.)) %>% 
   dplyr::select(sign_count)
+
   
 euc_dist <- dist(x = euc_data, method = "euclidean")
-jac <- vegan::vegdist(artifact_data, method = "jaccard", binary = TRUE)
-euc_mantel <- vegan::mantel(jac, euc_dist, permutations = 1000)
+jac_full <- vegan::vegdist(artifact_data, method = "jaccard", binary = TRUE)
+
+euc_mantel <- vegan::mantel(euc_dist, jac_full, permutations = 1000)
 p_value_abundance_correlation <- round(euc_mantel$signif, 3)
 r_value_abundance_correlation <- round(euc_mantel$statistic, 3)
 ```
@@ -324,10 +299,6 @@ library(ggpubr)
 ggplot(signbase_full_clean) +
   aes(x = MedianBP, fill = time_period) +
   geom_bar(width = 150)
-
-
-time_unique_data_full <-rbind(trans_unique_data, proto_unique_data, 
-                              early_unique_data, evolved_unique_data)
 
 time_unique_data_full$time_period <- factor(time_unique_data_full$time_period, 
                                             levels = c("transitional", "proto_aurignacian", 
@@ -353,9 +324,6 @@ ggplot(Europe) +
                   size = 2) +
   theme_minimal() +
   facet_wrap(~time_period)
-
-
-
 ```
 
 Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [@dutkiewicz2020]. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in @dutkiewicz2020, and we adhered to those categories and placements.
@@ -396,7 +364,6 @@ library(statnet)
 library(ecodist)
 library(ape)
 library(ggrepel)
-library(vegan)
 library(cowplot)
 library(igraph)
 
@@ -485,7 +452,6 @@ concentrate <- function(x, country = NULL, max_iter = 100) {
   list(matrix = new, country = country)
 }
 
-
 produce_clusters <- function(artifact_data, artifact_data_unique, method = "seriation"){
   artifact_data <- artifact_data %>% 
     select_if(~ !is.numeric(.) || sum(.) != 0)
@@ -546,9 +512,6 @@ produce_clusters <- function(artifact_data, artifact_data_unique, method = "seri
 }
 
 
-
-
-
 strength_function <- function(artifact_data, group_data, type = "table"){
   artifact_data <- artifact_data %>% 
     select_if(~ !is.numeric(.) || sum(.) != 0)
@@ -573,7 +536,7 @@ strength_function <- function(artifact_data, group_data, type = "table"){
   perman_p <- perman$`Pr(>F)`
   
   site_distances <- dist(cbind(group_data$longitude, group_data$latitude))
-  mantel_distance <- vegan::mantel(jac, site_distances, permutations = 1000)
+  mantel_distance <- vegan::mantel(site_distances, jac, permutations = 1000)
   p_value_distance_correlation <- round(mantel_distance$signif, 3)
   r_value_distance_correlation <- round(mantel_distance$statistic, 3)
   
@@ -591,8 +554,6 @@ strength_function <- function(artifact_data, group_data, type = "table"){
     disp_plot<- plot(dispersion, hull = FALSE, ellipse=TRUE)
     return(disp_plot)}
 }
-
-
 
 
 trans_network <- function(artifact_data){
@@ -710,19 +671,7 @@ Combining the results of the above tests allowed us to find 11 groups of sites, 
 ```{r}
 #| label: fig-group-table
 #| fig-cap: "Table of the sites by group"
-library(knitr)
-group_1 <- c("Abri Pataud, El Rascaño, Fumane, La Viña, Lhotka, Pod Hradem, Riparo Bombrini, Sirgenstein Cave, Šandalja II")
-group_2 <- c("Kvasice, Labeko Koba, Les Rois, Slatinice, Göpfelsteinhöhle")
-group_3 <- c("Aurignac, d'Engihoul, Istállóskő Cave, Hohlenstein-Stadel, Gargas, Grotte de la Verpillière I, Mladeč, Brassempouy, Gatzarria")
-group_4 <- c("Wildscheuer, Breitenbach, Peskő Cave, Vindija Cave, El Castillo")
-group_5 <- c("Tuto de Camalhot, Abri Lartet/Gorge d'Enfer, Castanet, Le Trou Du Renard, Grottes de Fonds-de-Forêt")
-group_6 <- c("Nová Dědina, Menton/Grottes du Grimaldi, Grotte du Renne, Solutré, Žlutava, Spy")
-group_7 <- c("Trou Magrite, Grotte De La Princesse Pauline, Grotte de Goyet, Bockstein-Törle")
-group_8 <- c("Trou al'Wesse, Maisières-Canal, Les Cottés, Le Terme Pialat")
-group_9 <- c("Vogelherd, Hohle Fels, Geissenklösterle")
-group_10 <- c("Cellier, Blanchard, La Ferrassie, Hornos de la Pena, Otaslavice")
-group_11 <- c("La Souquette, Shelter Birów IV, Abri de Laussel, Abri du Poisson")
-group_table <- data_frame("Group" = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"), "Site Names" = c(group_1, group_2, group_3, group_4, group_5, group_6, group_7, group_8, group_9, group_10, group_11))
+group_table <- read_excel("data/site-groups.xlsx")
 
 kable(group_table)
 
@@ -732,59 +681,37 @@ kable(group_table)
 #| label: fig-group-map
 #| fig-cap: "Map of sites faceted and colored by group number"
   
-signbase_sf_group <- 
-  st_as_sf(signbase_unique_groups, 
-           coords = c("longitude", "latitude"),
-           remove = FALSE,
-           crs = 4326)
 ggplot(Europe) +
   geom_sf() +
-  geom_sf(data = signbase_sf_group,
-          aes(colour = as.factor(group))) +
+  geom_sf(data = signbase_sf, aes(color = group)) +
   coord_sf(xlim = c(-10,30), 
            ylim = c(35,53), 
            expand = FALSE) +
-  geom_text_repel(data = signbase_sf_group,
+  geom_text_repel(data = signbase_sf,
                   aes(x = longitude ,
                       y = latitude,
                       label = site_name),
-                  max.overlaps = 100,
+                  max.overlaps = 30,
                   size = 2) +
   theme_minimal() +
-  facet_wrap(~group) +
-  labs(color = "Group Number")
+  facet_wrap(~time_period)
 
 ```
 
 ```{r fig.height= 10, fig.width=10}
 #| label: fig-group-sign
 #| fig-cap: "Bar plot of signs by group"
-graph_data <- artifact_data %>% 
-  mutate(across(everything(), ~replace(., . > 1, 1))) %>% 
- # concentrate() %>% 
-  rownames_to_column("site_name") %>% 
-  left_join(group_df)
 
-sign_type_data <- graph_data %>% 
-  pivot_longer(cols= notch:hashtag,
-               names_to = "sign_type",
-               values_to = "count") %>% 
-  dplyr::filter(count != 0) %>% 
-  mutate(group = parse_number(group))
 
-x_order <- graph_data %>% 
-  dplyr::select(-site_name,
-         -group) %>% 
-  colnames() 
+full_data_long <- time_unique_data_full %>% 
+  pivot_longer(cols = line:star) %>% 
+  filter(value != 0)
 
-ggplot(sign_type_data) +
-  aes(x = sign_type) +
+ggplot(full_data_long) +
+  aes(x = name, fill = group) +
   geom_bar() +
-  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) +
-  labs(x = x_order) +
-  scale_x_discrete(limits = c(x_order)) +
-  scale_y_continuous(labels = NULL) +
-  facet_wrap(~group, nrow = 11)
+  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL) + 
+  facet_wrap(~time_period, nrow = 4)
 
 ```
 
@@ -792,24 +719,26 @@ ggplot(sign_type_data) +
 
 ```{r}
 ##Modularity test
-library(igraph)
-set.seed(500)
-modul_matrix <-
-  graph_from_adjacency_matrix(1 - dm, mode = "undirected")
-mem <- as_membership(parse_number(signbase_unique_groups$group))
-as_group <- modularity(modul_matrix, membership = mem)
+trans_strength <- strength_function(trans_artifact_data, trans_unique_data, type = "table")
+proto_strength <- strength_function(proto_artifact_data, proto_unique_data, type = "table")
+early_strength <- strength_function(early_artifact_data, early_unique_data, type = "table")
+evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data, type = "table")
+
+full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
+  mutate(time_period = c("transitional", "proto", "early", "evolved"), .before = 1)
+
+modularity_table <- full_table %>% 
+  dplyr::select(time_period, modularity)
+
+kable(modularity_table)
 ```
 
 ```{r}
 ##permanova test
-perman <- adonis2(jac~as.factor(signbase_unique_groups$group), 
-                  method = "jaccard",
-                  sqrt.dist = TRUE)
-perman <- perman %>% 
-  data_frame() %>% 
-  slice_head()
-perman_r <- perman$R2
-perman_p <- perman$`Pr(>F)`
+permanova_table <- full_table %>% 
+  select(time_period, permanova_r, permanova_p)
+
+kable(permanova_table)
 
 ```
 
@@ -819,29 +748,29 @@ The modularity test, when run on the above groupings, resulted in a score of `r 
 #| label: fig-perm-disp
 #| fig-cap: "Multivariate homogeneity of group dispersions"
 
-set.seed(500)
-dispersion <- betadisper(jac, group = signbase_unique_groups$group)
-plot(dispersion, hull = FALSE, ellipse=TRUE)
+trans_strength_plot <- strength_function(trans_artifact_data, trans_unique_data, type = "dispersion")
+proto_strength_plot <- strength_function(proto_artifact_data, proto_unique_data, type = "dispersion")
+early_strength_plot <- strength_function(early_artifact_data, early_unique_data, type = "dispersion")
+evolved_strength_plot <- strength_function(evolved_artifact_data, evolved_unique_data, type = "dispersion")
 
+
+plot_grid(trans_strength_plot$, proto_strength_plot, early_strength_plot , evolved_strength_plot, 
+          ncol = 2, align = "hv", labels = c("Transitional", "Proto", "Early", "Evolved"), 
+          label_size = 7, label_colour = "black", label_y = 1.02, label_x = -0.03)
 ```
 
 ## Testing Isolation-by-Distance Hypothesis
 
 ```{r}
 ## Mantel test for geography vs signs
-set.seed(200)
-site_distances <- dist(cbind(signbase_unique_groups$longitude, signbase_unique_groups$latitude))
-mantel_distance <- vegan::mantel(jac, site_distances, permutations = 1000)
-p_value_distance_correlation <- round(mantel_distance$signif, 3)
-r_value_distance_correlation <- round(mantel_distance$statistic, 3)
+mantel_table <- full_table %>% 
+  dplyr::select(time_period, distance_mantel_r, distance_mantel_p)
+
+kable(mantel_table)
+
 ```
 
-```{r}
-#| label: fig-distance-mantel
-#| fig-cap: "Mantel correlogram showing the results of a mantel test run between a geographic distance matrix and a dissimilarity matrix for site sign types"
-distance_corr <- mantel.correlog(jac, site_distances, n.class=50, break.pts=NULL, cutoff=FALSE, r.type="pearson", nperm=999, mult="holm", progressive=TRUE)
-plot(distance_corr)
-```
+
 
 In terms of geographic correlation, there is no significant statistical correlation between the geographic distance matrix and the sign type dissimilarity matrix (P = `r p_value_distance_correlation`, Mantel R = `r r_value_distance_correlation`). Again, the results are displayed in a mantel correlogram (@fig-distance-mantel), which demonstrates that similarity and geographic distance do not experience a clearly correlated relationship.
 
