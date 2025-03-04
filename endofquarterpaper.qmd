@@ -22,7 +22,7 @@ Following the work done by @baker2024evidence, @Vanhaeren_d, and @Sauvet_2018, i
 
 ```{r}
 #| label: fig-aur-table
-#| fig-cap: "Table of data on Aurignacian periods [@Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Sanz-Royo_Terlato_Marín-Arroyo_2024, @Chu_Richter_2020; @Fletcher_Sánchez],"
+#| fig-cap: "Table of data on Aurignacian periods (Sources: @Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Chu_Richter_2020; @Fletcher_Sánchez),"
 library(knitr)
 library(tidyverse)
 library(readxl)
@@ -300,14 +300,16 @@ library(rnaturalearthdata)
 library(ggrepel)
 library(sf)
 library(ggpubr)
+library(cowplot)
 
-ggplot(signbase_full_clean) +
+date_plot <- ggplot(signbase_full_clean) +
   aes(x = MedianBP, fill = time_period) +
-  geom_bar(width = 150)
+  geom_bar(width = 150) +
+  scale_x_reverse() +
+  scale_fill_discrete(labels = c("early", "evolved", "proto", "transitional"))
+  theme(legend.key.size = rel(0.1), axis.title = element_text(size = 0.25))
+  
 
-time_unique_data_full$time_period <- factor(time_unique_data_full$time_period, 
-                                            levels = c("transitional", "proto_aurignacian", 
-                                                       "early_aurignacian", "evolved_aurignacian"))
 signbase_sf <- time_unique_data_full  %>% 
   st_as_sf(coords = c("longitude", "latitude"),
            remove = FALSE,
@@ -315,7 +317,7 @@ signbase_sf <- time_unique_data_full  %>%
 world <- ne_countries(scale = "medium", returnclass = "sf")
 Europe <- world[which(world$continent == "Europe"),]
 
-ggplot(Europe) +
+site_map <- ggplot(Europe) +
   geom_sf() +
   geom_sf(data = signbase_sf) +
   coord_sf(xlim = c(-10,30), 
@@ -329,6 +331,8 @@ ggplot(Europe) +
                   size = 2) +
   theme_minimal() +
   facet_wrap(~time_period)
+
+plot_grid(date_plot, site_map, nrow = 2, scale = c(0.5, 1.5) )
 ```
 
 Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [@dutkiewicz2020]. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in @dutkiewicz2020, and we adhered to those categories and placements.
