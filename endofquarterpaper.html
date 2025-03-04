@@ -144,7 +144,7 @@ div.csl-indent {
 </table>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-aur-table-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: Table of data on Aurignacian periods (Sources: <span class="citation" data-cites="Banks_dErrico_Zilhao_2013">Banks, d’Errico, and Zilhão (<a href="#ref-Banks_dErrico_Zilhao_2013" role="doc-biblioref">2013</a>)</span>; <span class="citation" data-cites="Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021">Shao et al. (<a href="#ref-Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021" role="doc-biblioref">2021</a>)</span>; <span class="citation" data-cites="Chu_Richter_2020">Chu and Richter (<a href="#ref-Chu_Richter_2020" role="doc-biblioref">2020</a>)</span>; <span class="citation" data-cites="Fletcher_Sánchez">Fletcher et al. (<a href="#ref-Fletcher_Sánchez" role="doc-biblioref">2010</a>)</span>),
+Figure&nbsp;1: Table of data on Aurignacian periods <span class="citation" data-cites="Banks_dErrico_Zilhao_2013 Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 Chu_Richter_2020 Fletcher_Sánchez">(<a href="#ref-Banks_dErrico_Zilhao_2013" role="doc-biblioref">Banks, d’Errico, and Zilhão 2013</a>; <a href="#ref-Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021" role="doc-biblioref">Shao et al. 2021</a>; <a href="#ref-Chu_Richter_2020" role="doc-biblioref">Chu and Richter 2020</a>; <a href="#ref-Fletcher_Sánchez" role="doc-biblioref">Fletcher et al. 2010</a>)</span>
 </figcaption>
 </figure>
 </div>
@@ -156,26 +156,6 @@ Figure&nbsp;1: Table of data on Aurignacian periods (Sources: <span class="citat
 <section id="data" class="level2">
 <h2 class="anchored" data-anchor-id="data">Data</h2>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>List of 2
- $ axis.title     :List of 11
-  ..$ family       : NULL
-  ..$ face         : NULL
-  ..$ colour       : NULL
-  ..$ size         : num 0.25
-  ..$ hjust        : NULL
-  ..$ vjust        : NULL
-  ..$ angle        : NULL
-  ..$ lineheight   : NULL
-  ..$ margin       : NULL
-  ..$ debug        : NULL
-  ..$ inherit.blank: logi FALSE
-  ..- attr(*, "class")= chr [1:2] "element_text" "element"
- $ legend.key.size: 'rel' num 0.1
- - attr(*, "class")= chr [1:2] "theme" "gg"
- - attr(*, "complete")= logi FALSE
- - attr(*, "validate")= logi TRUE</code></pre>
-</div>
 <div class="cell-output-display">
 <div id="fig-site-map" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -183,7 +163,7 @@ Figure&nbsp;1: Table of data on Aurignacian periods (Sources: <span class="citat
 <img src="endofquarterpaper_files/figure-html/fig-site-map-1.png" class="img-fluid figure-img" width="960">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-site-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Map of data collection sites, divided by time period, and graph of )
+Figure&nbsp;2: Graph of artifact count by time period and map of sites, divided by time period
 </figcaption>
 </figure>
 </div>
@@ -191,8 +171,8 @@ Figure&nbsp;2: Map of data collection sites, divided by time period, and graph o
 </div>
 <p>Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation <span class="citation" data-cites="dutkiewicz2020">(<a href="#ref-dutkiewicz2020" role="doc-biblioref">Dutkiewicz et al. 2020</a>)</span>. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in <span class="citation" data-cites="dutkiewicz2020">Dutkiewicz et al. (<a href="#ref-dutkiewicz2020" role="doc-biblioref">2020</a>)</span>, and we adhered to those categories and placements.</p>
 <p>The data set consists of 531 artifacts found at 65 sites in 13 countries. The database records 55 geometric sign type found on these artifacts. We excluded signs if they fell under the “other” category, as the wide range of possibilities that could qualify as “other” means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). After those sites were excluded, all signs under the “rectangle” category were also removed as a side effect of that exclusion. Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.</p>
-<p>These exclusions resulted in 438 artifacts found at 30 sites in 7 countries, encapsulating 54 sign types, as seen in <a href="#fig-site-map" class="quarto-xref">Figure&nbsp;2</a>. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results, and found that it was not statistically significant <span class="citation" data-cites="Lycett_2019">(<a href="#ref-Lycett_2019" role="doc-biblioref">Lycett 2019</a>)</span> (P = 0.072, Mantel R = 0.109). The calibrated radiocarbon dates of the artifacts range from approximately 32,893 BP to 44,778 BP, spanning an overall time range of 11,885 years. We divided the data up into four periods:</p>
-<p>Dates provided by Signbase.</p>
+<p>These exclusions resulted in 438 artifacts found at 30 sites in 7 countries, encapsulating 54 sign types. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results, and found that it was not quite statistically significant <span class="citation" data-cites="Lycett_2019">(<a href="#ref-Lycett_2019" role="doc-biblioref">Lycett 2019</a>)</span> (P = 0.072, Mantel R = 0.109).</p>
+<p>Maximum and minimum BP dates were provided by Signbase, and calibration was done through the rcarbon package in RStudio. The calibrated radiocarbon dates of the artifacts range from approximately 32,893 BP to 44,778 BP, spanning an overall time range of 11,885 years. We divided the data up into four periods in accordance with the date ranges provided in <a href="#fig-aur-table" class="quarto-xref">Figure&nbsp;1</a>.</p>
 </section>
 <section id="testing-for-cultural-groupings" class="level2">
 <h2 class="anchored" data-anchor-id="testing-for-cultural-groupings">Testing for Cultural Groupings</h2>
@@ -206,8 +186,7 @@ Figure&nbsp;2: Map of data collection sites, divided by time period, and graph o
 </section>
 <section id="testing-isolation-by-distance-hypothesis" class="level2">
 <h2 class="anchored" data-anchor-id="testing-isolation-by-distance-hypothesis">Testing Isolation-by-Distance Hypothesis</h2>
-<p>The isolation-by-distance framework proposes that cultural difference can be primarily explained by geographic distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic early modern humans that are dispersed according to geography. Conversely, if geographic distance cannot account for the distribution of the sign types, we would have to assume that other factors are at play, namely, movement of groups or the creation of social networks.</p>
-<p>Mantel tests are used here to determine whether there is a correlation between sign distribution and geography. The Mantel test is run between a geographic distance matrix and a Jaccard dissimilarity matrix. The test seeks to determine the level of correspondence between the matrices through permuational evaluation of the null distribution <span class="citation" data-cites="Mantel_Smouse">(<a href="#ref-Mantel_Smouse" role="doc-biblioref">Smouse and Long 1992</a>)</span>, producing a p-score as a result.</p>
+<p>The isolation-by-distance framework proposes that cultural difference can be primarily explained by geographic distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic early modern humans that are dispersed according to geography. Mantel tests are used here for each time period to determine the correlation between sign distribution and geography. The Mantel test is run between a geographic distance matrix and a Jaccard dissimilarity matrix. The test seeks to determine the level of correspondence between the matrices through permuational evaluation of the null distribution <span class="citation" data-cites="Mantel_Smouse">(<a href="#ref-Mantel_Smouse" role="doc-biblioref">Smouse and Long 1992</a>)</span>, producing a p-score as a result.</p>
 </section>
 </section>
 <section id="results" class="level1">
@@ -221,7 +200,7 @@ Figure&nbsp;2: Map of data collection sites, divided by time period, and graph o
 <div id="fig-seriation" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-seriation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="endofquarterpaper_files/figure-html/fig-seriation-1.png" class="img-fluid figure-img" width="672">
+<img src="endofquarterpaper_files/figure-html/fig-seriation-1.png" class="img-fluid figure-img" width="1248">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-seriation-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: Seriation analysis of the data
@@ -238,16 +217,16 @@ Figure&nbsp;3: Seriation analysis of the data
 <div id="fig-neighbor-net" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-neighbor-net-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="endofquarterpaper_files/figure-html/fig-neighbor-net-1.png" class="img-fluid figure-img" width="672">
+<img src="endofquarterpaper_files/figure-html/fig-neighbor-net-1.png" class="img-fluid figure-img" width="768">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-neighbor-net-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Neighbor-Net analysis of the data
+Figure&nbsp;4: Network analysis of the data
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Combining the results of the above tests allowed us to find 11 groups of sites, as shown in <a href="#fig-group-table" class="quarto-xref">Figure&nbsp;5</a>. The geographic distributions of the groups are shown in <a href="#fig-group-map" class="quarto-xref">Figure&nbsp;6</a>, and the sign makeup of each group is shown in <a href="#fig-group-sign" class="quarto-xref">Figure&nbsp;7</a>.</p>
+<p>Combining the results of the above tests allowed us to find two groups of sites within each time period, as shown in <a href="#fig-group-table" class="quarto-xref">Figure&nbsp;5</a>. The geographic distributions of the groups are shown in <a href="#fig-group-map" class="quarto-xref">Figure&nbsp;6</a>, and the sign makeup of each group is shown in <a href="#fig-group-sign" class="quarto-xref">Figure&nbsp;7</a>.</p>
 </section>
 </section>
 <section id="groups" class="level2">
@@ -271,42 +250,42 @@ Figure&nbsp;4: Neighbor-Net analysis of the data
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">transitional</td>
+<td style="text-align: left;">Transitional</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Pod Hradem, Fumane, Labeko Koba</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">transitional</td>
+<td style="text-align: left;">Transitional</td>
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">El Castillo, Hohle Fels, Geissenklösterle</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">proto_aurignacian</td>
+<td style="text-align: left;">Proto-aurignacian</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Gatzarria, Hohlenstein-Stadel, Mladeč, Abri Pataud,</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">proto_aurignacian</td>
+<td style="text-align: left;">Proto-aurignacian</td>
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Geissenklösterle, Grotte du Renne, Vogelherd, Spy, La Ferrassie, Les Cottés</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">early_aurignacian</td>
+<td style="text-align: left;">Early aurignacian</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Grottes de Fonds-de-Forêt, Riparo Bombrini, Grotte de la Verpillière I, Vindija Cave, Trou al’Wesse</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">early_aurignacian</td>
+<td style="text-align: left;">Early aurignacian</td>
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Hohle Fels, Solutré, Castanet, Cellier, Blanchard</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">evolved_aurignacian</td>
+<td style="text-align: left;">Evolved aurignacian</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Les Rois, Gargas, La Viña, Sirgenstein Cave</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">evolved_aurignacian</td>
+<td style="text-align: left;">Evolved aurignacian</td>
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Bockstein-Törle, Vogelherd, Hohle Fels, Trou Magrite</td>
 </tr>
@@ -327,7 +306,7 @@ Figure&nbsp;5: Table of the sites by group
 <img src="endofquarterpaper_files/figure-html/fig-group-map-1.png" class="img-fluid figure-img" width="960">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-group-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;6: Map of sites faceted and colored by group number
+Figure&nbsp;6: Map of sites faceted by time period and colored by group number
 </figcaption>
 </figure>
 </div>
@@ -341,7 +320,7 @@ Figure&nbsp;6: Map of sites faceted and colored by group number
 <img src="endofquarterpaper_files/figure-html/fig-group-sign-1.png" class="img-fluid figure-img" width="960">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-group-sign-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;7: Bar plot of signs by group
+Figure&nbsp;7: Bar plot of signs by time period, colored by group
 </figcaption>
 </figure>
 </div>
@@ -355,7 +334,7 @@ Figure&nbsp;7: Bar plot of signs by group
 <table class="caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
-<th style="text-align: left;">time_period</th>
+<th style="text-align: left;">time period</th>
 <th style="text-align: right;">modularity</th>
 </tr>
 </thead>
@@ -385,9 +364,9 @@ Figure&nbsp;7: Bar plot of signs by group
 <table class="caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
-<th style="text-align: left;">time_period</th>
-<th style="text-align: right;">permanova_r</th>
-<th style="text-align: right;">permanova_p</th>
+<th style="text-align: left;">time period</th>
+<th style="text-align: right;">permanova r</th>
+<th style="text-align: right;">permanova p</th>
 </tr>
 </thead>
 <tbody>
@@ -415,7 +394,7 @@ Figure&nbsp;7: Bar plot of signs by group
 </table>
 </div>
 </div>
-<p>The modularity test, when run on the above groupings, resulted in a score of . The perMANOVA test produced an R-squared value of and a P value of , which tells us that the groupings are statistically significant, and that 52% of the variability in the sign distribution can be attributed to group membership. The multivariate homogeneity test of group dispersions produced <strong>?@fig-perm-disp</strong>, showing that the overlap between groups is fairly minimal.</p>
+<p>The r value from the perMANOVA tests tell us that for each of the time periods, around 20% of the variation in sign content can be explained by group membership, with the proto-aurignacian having the highest score of 27%, and the early aurignacian having the lowest score of 21%. The perMANOVA p value quantifies the randomness of the groupings, with 0.05 as the threshold for definitive non-randomness. The only time period to not meet that threshold is the transitional period, with a p-score of 0.3.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-perm-disp-1" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -474,9 +453,9 @@ Figure&nbsp;11: Multivariate homogeneity of group dispersions
 <table class="caption-top table table-sm table-striped small">
 <thead>
 <tr class="header">
-<th style="text-align: left;">time_period</th>
-<th style="text-align: right;">distance_mantel_r</th>
-<th style="text-align: right;">distance_mantel_p</th>
+<th style="text-align: left;">time period</th>
+<th style="text-align: right;">mantel r</th>
+<th style="text-align: right;">mantel p</th>
 </tr>
 </thead>
 <tbody>
