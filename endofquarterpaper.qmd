@@ -22,7 +22,7 @@ Following the work done by @baker2024evidence, @Vanhaeren_d, and @Sauvet_2018, i
 
 ```{r}
 #| label: fig-aur-table
-#| fig-cap: "Table of data on Aurignacian periods (Sources: @Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Chu_Richter_2020; @Fletcher_Sánchez),"
+#| fig-cap: "Table of data on Aurignacian periods [@Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Chu_Richter_2020; @Fletcher_Sánchez]"
 library(knitr)
 library(tidyverse)
 library(readxl)
@@ -259,7 +259,10 @@ time_unique_data_full <-rbind(trans_unique_data, proto_unique_data,
 
 time_unique_data_full$time_period <- factor(time_unique_data_full$time_period, 
                                             levels = c("transitional", "proto_aurignacian", 
-                                                       "early_aurignacian", "evolved_aurignacian"))
+                                                       "early_aurignacian", "evolved_aurignacian"), 
+                                            labels = c("transitional", "proto-aurignacian",
+                                                       "early aurignacian", "evolved aurignacian"))
+
 
 
 ```
@@ -293,7 +296,7 @@ r_value_abundance_correlation <- round(euc_mantel$statistic, 3)
 
 ```{r fig.height= 10, fig.width=10}
 #| label: fig-site-map
-#| fig-cap: "Map of data collection sites, divided by time period, and graph of )"
+#| fig-cap: "Graph of artifact count by time period and map of sites, divided by time period"
 
 library(rnaturalearth)
 library(rnaturalearthdata)
@@ -306,15 +309,20 @@ date_plot <- ggplot(signbase_full_clean) +
   aes(x = MedianBP, fill = time_period) +
   geom_bar(width = 150) +
   scale_x_reverse() +
-  scale_fill_discrete(labels = c("early", "evolved", "proto", "transitional"))
-  theme(legend.key.size = rel(0.1), axis.title = element_text(size = 0.25))
+  scale_fill_discrete(labels = c("early", "evolved", "proto", "transitional")) +
+  labs(fill = "Time period") +
+  theme(legend.key.size = unit(0.5, "cm"))
   
+
+
 
 signbase_sf <- time_unique_data_full  %>% 
   st_as_sf(coords = c("longitude", "latitude"),
            remove = FALSE,
            crs = 4326)
+
 world <- ne_countries(scale = "medium", returnclass = "sf")
+
 Europe <- world[which(world$continent == "Europe"),]
 
 site_map <- ggplot(Europe) +
@@ -330,19 +338,21 @@ site_map <- ggplot(Europe) +
                   max.overlaps = 30,
                   size = 2) +
   theme_minimal() +
-  facet_wrap(~time_period)
-
-plot_grid(date_plot, site_map, nrow = 2, scale = c(0.5, 1.5) )
+  facet_wrap(~time_period) +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank())
+  
+plot_grid(date_plot, site_map, nrow = 2, align = "hv", rel_heights = c(1, 2))
 ```
 
 Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [@dutkiewicz2020]. The creators of the database identified around 30 distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in @dutkiewicz2020, and we adhered to those categories and placements.
 
 The data set consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries. The database records `r nsigntypes` geometric sign type found on these artifacts. We excluded signs if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). After those sites were excluded, all signs under the "rectangle" category were also removed as a side effect of that exclusion. Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.
 
-These exclusions resulted in `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types, as seen in @fig-site-map. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results, and found that it was not statistically significant [@Lycett_2019] (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`). The calibrated radiocarbon dates of the artifacts range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We divided the data up into four periods: 
+These exclusions resulted in `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results, and found that it was not quite statistically significant [@Lycett_2019] (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`). 
 
-
-Dates provided by Signbase.
+Maximum and minimum BP dates were provided by Signbase, and calibration was done through the rcarbon package in RStudio.
+The calibrated radiocarbon dates of the artifacts range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We divided the data up into four periods in accordance with the date ranges provided in @fig-aur-table. 
 
 ## Testing for Cultural Groupings
 
@@ -358,9 +368,7 @@ PERMDISP is a multivariate extension of Levene's test [@Anderson_2006, @Anderson
 
 ## Testing Isolation-by-Distance Hypothesis
 
-The isolation-by-distance framework proposes that cultural difference can be primarily explained by geographic distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic early modern humans that are dispersed according to geography. Conversely, if geographic distance cannot account for the distribution of the sign types, we would have to assume that other factors are at play, namely, movement of groups or the creation of social networks.
-
-Mantel tests are used here to determine whether there is a correlation between sign distribution and geography. The Mantel test is run between a geographic distance matrix and a Jaccard dissimilarity matrix. The test seeks to determine the level of correspondence between the matrices through permuational evaluation of the null distribution [@Mantel_Smouse], producing a p-score as a result.
+The isolation-by-distance framework proposes that cultural difference can be primarily explained by geographic distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic early modern humans that are dispersed according to geography. Mantel tests are used here for each time period to determine the correlation between sign distribution and geography. The Mantel test is run between a geographic distance matrix and a Jaccard dissimilarity matrix. The test seeks to determine the level of correspondence between the matrices through permuational evaluation of the null distribution [@Mantel_Smouse], producing a p-score as a result.
 
 # Results
 
@@ -404,10 +412,10 @@ mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL
       labels = row_labels
     ) +
     theme(
-      axis.text = element_text(size = rel(0.5)),
+      axis.text = element_text(size = rel(1)),
       axis.ticks = element_blank(),
       legend.position = "none",
-      plot.title = element_text(hjust = 0.25)
+      plot.title = element_text(hjust = 1)
     ) +
     labs(x = "", y = "") +
     rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)
@@ -475,7 +483,7 @@ produce_clusters <- function(artifact_data, artifact_data_unique, method = "seri
   x_df <- artifact_data_unique %>% 
     left_join(signbase_full_clean,
               by = "site_name")
-  countries <- x_df$country
+  countries <- x_df$group
   unique_countries <- unique(countries)
   color_palette <-  RColorBrewer::brewer.pal(length(unique_countries), "Set3")
   row_colors <- setNames(color_palette, unique_countries)
@@ -550,10 +558,10 @@ strength_function <- function(artifact_data, group_data, type = "table"){
   r_value_distance_correlation <- round(mantel_distance$statistic, 3)
   
   final_table <- data_frame("modularity" = as_group, 
-                            "permanova_r" = perman_r,
-                            "permanova_p" = perman_p,
-                            "distance_mantel_r" = r_value_distance_correlation, 
-                            "distance_mantel_p" = p_value_distance_correlation)
+                            "permanova r" = perman_r,
+                            "permanova p" = perman_p,
+                            "mantel r" = r_value_distance_correlation, 
+                            "mantel p" = p_value_distance_correlation)
 
   return(final_table)}
   
@@ -642,10 +650,9 @@ perm_function <- function(period = "none", variable = PCA, method = "permanova",
 ```
 
 ### Seriation
-```{r}
+```{r fig.height= 9, fig.width= 13}
 #| label: fig-seriation
 #| fig-cap: "Seriation analysis of the data"
-library(cowplot)
 
 seriation_trans <- produce_clusters(trans_artifact_data, trans_unique_data, method = "seriation")
 seriation_proto <- produce_clusters(proto_artifact_data, proto_unique_data, method = "seriation")
@@ -654,15 +661,16 @@ seriation_evolved <- produce_clusters(evolved_artifact_data, evolved_unique_data
 
 plot_grid(seriation_trans,seriation_proto, seriation_early , seriation_evolved, 
           ncol = 2, align = "hv", 
-          labels = c("Transitional", "Proto", "Early", "Evolved"), label_size = 10)
+          labels = c("Transitional", "Proto", "Early", "Evolved"), label_size = 15, 
+          scale = c(0.85, 1, 1, 1))
 
 
 ```
 
 ### Network Analysis
-```{r}
+```{r fig.height= 5.5, fig.width= 8}
 #| label: fig-neighbor-net
-#| fig-cap: "Neighbor-Net analysis of the data"
+#| fig-cap: "Network analysis of the data"
 network_trans <- trans_network(trans_artifact_data)
 network_proto <- produce_clusters(proto_artifact_data, proto_unique_data, method = "network")
 network_early <- produce_clusters(early_artifact_data, early_unique_data, method = "network")
@@ -670,10 +678,10 @@ network_evolved <- produce_clusters(evolved_artifact_data, evolved_unique_data, 
 
 plot_grid(network_trans, network_proto, network_early, network_evolved, 
           ncol = 2, align = "hv", labels = c("Transitional", "Proto", "Early", "Evolved"), 
-          label_size = 7, label_colour = "black", label_y = 1.02, label_x = -0.03)
+          label_size = 7, label_colour = "black", label_y = 1.02, label_x = -0.01)
 ```
 
-Combining the results of the above tests allowed us to find 11 groups of sites, as shown in @fig-group-table. The geographic distributions of the groups are shown in @fig-group-map, and the sign makeup of each group is shown in @fig-group-sign.
+Combining the results of the above tests allowed us to find two groups of sites within each time period, as shown in @fig-group-table. The geographic distributions of the groups are shown in @fig-group-map, and the sign makeup of each group is shown in @fig-group-sign.
 
 ## Groups
 
@@ -686,9 +694,9 @@ kable(group_table)
 
 ```
 
-```{r fig.height= 5, fig.width=10}
+```{r fig.height= 7, fig.width=10}
 #| label: fig-group-map
-#| fig-cap: "Map of sites faceted and colored by group number"
+#| fig-cap: "Map of sites faceted by time period and colored by group number"
   
 ggplot(Europe) +
   geom_sf() +
@@ -703,16 +711,17 @@ ggplot(Europe) +
                   max.overlaps = 30,
                   size = 2) +
   theme_minimal() +
-  facet_wrap(~time_period)
+  facet_wrap(~time_period) +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank()) 
 
 ```
 
 ```{r fig.height= 10, fig.width=10}
 #| label: fig-group-sign
-#| fig-cap: "Bar plot of signs by group"
+#| fig-cap: "Bar plot of signs by time period, colored by group"
 
-
-full_data_long <- time_unique_data_full %>% 
+full_data_long <- signbase_sf %>% 
   pivot_longer(cols = line:star) %>% 
   filter(value != 0)
 
@@ -734,10 +743,11 @@ early_strength <- strength_function(early_artifact_data, early_unique_data, type
 evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data, type = "table")
 
 full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
-  mutate(time_period = c("transitional", "proto", "early", "evolved"), .before = 1)
+  mutate(`time period` = c("transitional", "proto", "early", "evolved"), .before = 1)
+
 
 modularity_table <- full_table %>% 
-  dplyr::select(time_period, modularity)
+  dplyr::select(`time period`, modularity)
 
 kable(modularity_table)
 ```
@@ -745,13 +755,12 @@ kable(modularity_table)
 ```{r}
 ##permanova test
 permanova_table <- full_table %>% 
-  select(time_period, permanova_r, permanova_p)
+  dplyr::select(`time period`, `permanova r`, `permanova p`)
 
 kable(permanova_table)
-
 ```
 
-The modularity test, when run on the above groupings, resulted in a score of . The perMANOVA test produced an R-squared value of  and a P value of , which tells us that the groupings are statistically significant, and that 52% of the variability in the sign distribution can be attributed to group membership. The multivariate homogeneity test of group dispersions produced @fig-perm-disp, showing that the overlap between groups is fairly minimal.
+The r value from the perMANOVA tests tell us that for each of the time periods, around 20% of the variation in sign content can be explained by group membership, with the proto-aurignacian having the highest score of 27%, and the early aurignacian having the lowest score of 21%. The perMANOVA p value quantifies the randomness of the groupings, with 0.05 as the threshold for definitive non-randomness. The only time period to not meet that threshold is the transitional period, with a p-score of 0.3.
 
 ```{r fig.height= 8, fig.width=5}
 #| label: fig-perm-disp
@@ -771,7 +780,7 @@ evolved_strength_plot <- strength_function(evolved_artifact_data, evolved_unique
 ```{r}
 ## Mantel test for geography vs signs
 mantel_table <- full_table %>% 
-  dplyr::select(time_period, distance_mantel_r, distance_mantel_p)
+  dplyr::select(`time period`, `mantel r`, `mantel p`)
 
 kable(mantel_table)
 
