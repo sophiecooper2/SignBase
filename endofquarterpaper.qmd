@@ -745,12 +745,13 @@ evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data
 full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
   mutate(`time period` = c("transitional", "proto", "early", "evolved"), .before = 1)
 
-
 modularity_table <- full_table %>% 
   dplyr::select(`time period`, modularity)
 
 kable(modularity_table)
 ```
+
+
 
 ```{r}
 ##permanova test
@@ -786,10 +787,7 @@ kable(mantel_table)
 
 ```
 
-
-
-In terms of geographic correlation, there is no significant statistical correlation between the geographic distance matrix and the sign type dissimilarity matrix (P = , Mantel R = ). 
-
+The relevance of the isolation-by-distance hypothesis also varies from period to period. 
 # Discussion
 
 In this paper, we set out to ask if identifiable and relevant patterns existed in the data, and if so, what could they tell us about the patterns of diversity and movement among Upper Paleolithic humans?
@@ -805,5 +803,10 @@ Further research will need to be done on this topic in order to understand these
 However, this preliminary research has been able to produce some conclusions to be reasonably confident in. Firstly, given that we know definitively that distribution and variation of sign types is not the result of geographic distance, we can conclude that the data is likely relevant to understanding patterns of cultural diversity. Secondly, we have found clusters of sites that correspond in sign type, possibly indicating mobility of specific cultural groups. These conclusions contribute to, and broaden our current understanding of cultural and biological diversity among Upper Paleolithic Homo sapiens in Europe.
 
 # Conclusion
+
+
+
+
+# References
 
 
