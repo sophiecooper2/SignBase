@@ -8,7 +8,7 @@
 
 <meta name="author" content="Sophie Cooper">
 
-<title>Changes in Groupings of Geometric Signs on Paleolithic Mobile Objects as a Model of Social Dynamics Across Aurignacian Time Periods</title>
+<title>Changes in Groupings of Geometric Signs as a Model of Social Dynamics Across Aurignacian Periods</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -66,7 +66,7 @@ div.csl-indent {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Changes in Groupings of Geometric Signs on Paleolithic Mobile Objects as a Model of Social Dynamics Across Aurignacian Time Periods</h1>
+<h1 class="title">Changes in Groupings of Geometric Signs as a Model of Social Dynamics Across Aurignacian Periods</h1>
 </div>
 
 
@@ -170,9 +170,9 @@ Figure&nbsp;2: Graph of artifact count by time period and map of sites, divided 
 </div>
 </div>
 <p>Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation <span class="citation" data-cites="dutkiewicz2020">(<a href="#ref-dutkiewicz2020" role="doc-biblioref">Dutkiewicz et al. 2020</a>)</span>. The creators of the database identified distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in <span class="citation" data-cites="dutkiewicz2020">Dutkiewicz et al. (<a href="#ref-dutkiewicz2020" role="doc-biblioref">2020</a>)</span>, and we adhered to those categories and placements.</p>
-<p>The data set consists of 531 artifacts found at 65 sites in 13 countries, and records 55 geometric sign type found on these artifacts. We excluded signs if they fell under the “other” category, as the wide range of possibilities that could qualify as “other” means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.</p>
-<p>These exclusions resulted in 438 artifacts found at 30 sites in 7 countries, encapsulating 54 sign types. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results <span class="citation" data-cites="Lycett_2019">(<a href="#ref-Lycett_2019" role="doc-biblioref">Lycett 2019</a>)</span>, and found that it was not quite statistically significant (P = 0.072, Mantel R = 0.109).</p>
+<p>The data set consists of 531 artifacts found at 65 sites in 13 countries, and records 55 geometric sign type found on these artifacts. We excluded signs if they fell under the “other” category, as the wide range of possibilities that could qualify as “other” means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.These exclusions resulted in 438 artifacts found at 30 sites in 7 countries, encapsulating 54 sign types.</p>
 <p>Maximum and minimum BP dates were provided by Signbase, and calibration was done through the rcarbon package in RStudio <span class="citation" data-cites="Crema_Bevan_2021">(<a href="#ref-Crema_Bevan_2021" role="doc-biblioref">Crema and Bevan 2021</a>)</span>. The calibrated radiocarbon dates of the artifacts range from approximately 32,893 BP to 44,778 BP, spanning an overall time range of 11,885 years. We divided the data up into four periods in accordance with the date ranges provided in <a href="#fig-aur-table" class="quarto-xref">Figure&nbsp;1</a>.</p>
+<p>All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an Euclidean abundance distance matrix and a jaccard distance matrix of the sign types in order to make sure that the exclusion of abundance would not significantly impact our results <span class="citation" data-cites="Lycett_2019">(<a href="#ref-Lycett_2019" role="doc-biblioref">Lycett 2019</a>)</span>, and found that it was not quite statistically significant (P = 0.072, Mantel R = 0.109). Another Mantel test was run between a euclidean distance matrix for MedianBP and the jaccard sign type matrix in order to determine whether there was a definitive correlation between distance in time and sign types. The Mantel test found that there was a statistically significant correlation (p = 0.008, Mantel-R = 0.06).</p>
 </section>
 <section id="testing-for-cultural-groupings" class="level2">
 <h2 class="anchored" data-anchor-id="testing-for-cultural-groupings">Testing for Cultural Groupings</h2>
@@ -332,119 +332,62 @@ Figure&nbsp;7: Bar plot of signs by time period, colored by group
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 16%">
+<col style="width: 18%">
+<col style="width: 18%">
+<col style="width: 13%">
+<col style="width: 13%">
+</colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">time period</th>
 <th style="text-align: right;">modularity</th>
+<th style="text-align: right;">permanova r</th>
+<th style="text-align: right;">permanova p</th>
+<th style="text-align: right;">mantel r</th>
+<th style="text-align: right;">mantel p</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">transitional</td>
 <td style="text-align: right;">0.4897959</td>
+<td style="text-align: right;">0.2330009</td>
+<td style="text-align: right;">0.300</td>
+<td style="text-align: right;">0.421</td>
+<td style="text-align: right;">0.081</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">proto</td>
 <td style="text-align: right;">0.4958678</td>
+<td style="text-align: right;">0.2741417</td>
+<td style="text-align: right;">0.012</td>
+<td style="text-align: right;">-0.188</td>
+<td style="text-align: right;">0.872</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">early</td>
 <td style="text-align: right;">0.4938272</td>
+<td style="text-align: right;">0.2100885</td>
+<td style="text-align: right;">0.012</td>
+<td style="text-align: right;">0.259</td>
+<td style="text-align: right;">0.075</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">evolved</td>
 <td style="text-align: right;">0.5000000</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div class="cell">
-<div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<thead>
-<tr class="header">
-<th style="text-align: left;">time period</th>
-<th style="text-align: right;">permanova r</th>
-<th style="text-align: right;">permanova p</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">transitional</td>
-<td style="text-align: right;">0.2330009</td>
-<td style="text-align: right;">0.300</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">proto</td>
-<td style="text-align: right;">0.2741417</td>
-<td style="text-align: right;">0.012</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">early</td>
-<td style="text-align: right;">0.2100885</td>
-<td style="text-align: right;">0.012</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">evolved</td>
 <td style="text-align: right;">0.2312869</td>
 <td style="text-align: right;">0.015</td>
+<td style="text-align: right;">-0.055</td>
+<td style="text-align: right;">0.589</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
 <p>The R value from the perMANOVA tests tell us that for each of the time periods, around 20% of the variation in sign content can be explained by group membership, with the proto-aurignacian having the highest score of 27%, and the early Aurignacian having the lowest score of 21%. The perMANOVA p value quantifies the randomness of the groupings, with 0.05 as the threshold for definitive non-randomness. The only time period to not meet that threshold is the transitional period, with a p-score of 0.3.</p>
-<div class="cell">
-<div class="cell-output-display">
-<div id="fig-perm-disp-1" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-perm-disp-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="endofquarterpaper_files/figure-html/fig-perm-disp-1.png" class="img-fluid figure-img" width="480">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-perm-disp-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;8: Multivariate homogeneity of group dispersions
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-perm-disp-2" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-perm-disp-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="endofquarterpaper_files/figure-html/fig-perm-disp-2.png" class="img-fluid figure-img" width="480">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-perm-disp-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;9: Multivariate homogeneity of group dispersions
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-perm-disp-3" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-perm-disp-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="endofquarterpaper_files/figure-html/fig-perm-disp-3.png" class="img-fluid figure-img" width="480">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-perm-disp-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;10: Multivariate homogeneity of group dispersions
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-perm-disp-4" class="quarto-float quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-perm-disp-4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="endofquarterpaper_files/figure-html/fig-perm-disp-4.png" class="img-fluid figure-img" width="480">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-perm-disp-4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;11: Multivariate homogeneity of group dispersions
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
 </section>
 <section id="testing-isolation-by-distance-hypothesis-1" class="level2">
 <h2 class="anchored" data-anchor-id="testing-isolation-by-distance-hypothesis-1">Testing Isolation-by-Distance Hypothesis</h2>
