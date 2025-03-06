@@ -1,5 +1,5 @@
 ---
-title: "Changes in Groupings of Geometric Signs on Paleolithic Mobile Objects as a Model of Social Dynamics Across Aurignacian Time Periods"
+title: "Changes in Groupings of Geometric Signs as a Model of Social Dynamics Across Aurignacian Periods"
 author: Sophie Cooper
 format: html
 echo: false
@@ -290,6 +290,25 @@ jac_full <- vegan::vegdist(artifact_data, method = "jaccard", binary = TRUE)
 euc_mantel <- vegan::mantel(euc_dist, jac_full, permutations = 1000)
 p_value_abundance_correlation <- round(euc_mantel$signif, 3)
 r_value_abundance_correlation <- round(euc_mantel$statistic, 3)
+
+
+##mantel chronological
+chron_df <- signbase_full_clean %>% 
+  column_to_rownames("id") %>% 
+  dplyr::select(MedianBP) %>% 
+  dist( method = "euclidean")
+
+chron_sign_df <- signbase_full_clean %>% 
+  column_to_rownames("id") %>% 
+  dplyr::select(line:star) %>% 
+  vegdist("jaccard")
+
+chron_mantel <- vegan::mantel(chron_df, chron_sign_df, permutations = 1000)
+
+chron_p <- round(chron_mantel$signif, 3)
+chron_r <- round(chron_mantel$statistic, 3)
+
+
 ```
 
 ## Data
@@ -351,11 +370,12 @@ plot_grid(date_plot, site_map, nrow = 2, align = "hv", rel_heights = c(1, 2))
 
 Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation [@dutkiewicz2020]. The creators of the database identified distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in @dutkiewicz2020, and we adhered to those categories and placements.
 
-The data set consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries, and records `r nsigntypes` geometric sign type found on these artifacts. We excluded signs if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.
+The data set consists of `r nartifacts` artifacts found at `r nsites` sites in `r ncountries` countries, and records `r nsigntypes` geometric sign type found on these artifacts. We excluded signs if they fell under the "other" category, as the wide range of possibilities that could qualify as "other" means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.These exclusions resulted in `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. 
 
-These exclusions resulted in `r nartifacts_clean` artifacts found at `r nsites_clean` sites in `r ncountries_clean` countries, encapsulating `r nsigntypes_clean` sign types. All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an abundance distance matrix and and a Euclidean distance matrix in order to make sure that the exclusion of abundance would not significantly impact our results [@Lycett_2019], and found that it was not quite statistically significant (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`).
+Maximum and minimum BP dates were provided by Signbase, and calibration was done through the rcarbon package in RStudio [@Crema_Bevan_2021]. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We divided the data up into four periods in accordance with the date ranges provided in @fig-aur-table. 
 
-Maximum and minimum BP dates were provided by Signbase, and calibration was done through the rcarbon package in RStudio [@Crema_Bevan_2021]. The calibrated radiocarbon dates of the artifacts range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We divided the data up into four periods in accordance with the date ranges provided in @fig-aur-table.
+All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an Euclidean abundance distance matrix and a jaccard distance matrix of the sign types in order to make sure that the exclusion of abundance would not significantly impact our results [@Lycett_2019], and found that it was not quite statistically significant (P = `r p_value_abundance_correlation`, Mantel R = `r r_value_abundance_correlation`). 
+Another Mantel test was run between a euclidean distance matrix for MedianBP and the jaccard sign type matrix in order to determine whether there was a definitive correlation between distance in time and sign types. The Mantel test found that there was a statistically significant correlation (p = `r chron_p`, Mantel-R = `r chron_r`).
 
 ## Testing for Cultural Groupings
 
@@ -483,11 +503,8 @@ produce_clusters <- function(artifact_data, artifact_data_unique, method = "seri
   artifact_matrix <- as.matrix(artifact_data %>% 
                                  mutate(across(everything(), ~replace(., . > 1, 1))))
   rownames(artifact_matrix) <- rownames(artifact_data)
-  
-  x_df <- artifact_data_unique %>% 
-    left_join(signbase_full_clean,
-              by = "site_name")
-  countries <- x_df$group
+
+  countries <- artifact_data_unique$group
   unique_countries <- unique(countries)
   color_palette <-  RColorBrewer::brewer.pal(length(unique_countries), "Set3")
   row_colors <- setNames(color_palette, unique_countries)
@@ -533,15 +550,13 @@ produce_clusters <- function(artifact_data, artifact_data_unique, method = "seri
 }
 
 
-strength_function <- function(artifact_data, group_data, type = "table"){
+strength_function <- function(artifact_data, group_data){
   artifact_data <- artifact_data %>% 
     select_if(~ !is.numeric(.) || sum(.) != 0)
   
   set.seed(500)
   jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
   dm <- as.matrix(jac)
-  
-  if(type == "table"){
   modul_matrix <-
     graph_from_adjacency_matrix(1 - dm, mode = "undirected")
   mem <- as_membership(parse_number(group_data$group))
@@ -567,13 +582,7 @@ strength_function <- function(artifact_data, group_data, type = "table"){
                             "mantel r" = r_value_distance_correlation, 
                             "mantel p" = p_value_distance_correlation)
 
-  return(final_table)}
-  
-  if(type == "dispersion"){
-    set.seed(500)
-    dispersion <- betadisper(jac, group = group_data$group)
-    disp_plot<- plot(dispersion, hull = FALSE, ellipse=TRUE)
-    return(disp_plot)}
+  return(final_table)
 }
 
 
@@ -741,42 +750,21 @@ ggplot(full_data_long) +
 
 ```{r}
 ##Modularity test
-trans_strength <- strength_function(trans_artifact_data, trans_unique_data, type = "table")
-proto_strength <- strength_function(proto_artifact_data, proto_unique_data, type = "table")
-early_strength <- strength_function(early_artifact_data, early_unique_data, type = "table")
-evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data, type = "table")
+trans_strength <- strength_function(trans_artifact_data, trans_unique_data)
+proto_strength <- strength_function(proto_artifact_data, proto_unique_data)
+early_strength <- strength_function(early_artifact_data, early_unique_data)
+evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data)
 
 full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
   mutate(`time period` = c("transitional", "proto", "early", "evolved"), .before = 1)
 
-modularity_table <- full_table %>% 
-  dplyr::select(`time period`, modularity)
+strength_table <- full_table %>% 
+  dplyr::select(`time period`, modularity, `permanova r`, `permanova p`)
 
-kable(modularity_table)
-```
-
-```{r}
-##permanova test
-permanova_table <- full_table %>% 
-  dplyr::select(`time period`, `permanova r`, `permanova p`)
-
-kable(permanova_table)
+kable(full_table)
 ```
 
 The R value from the perMANOVA tests tell us that for each of the time periods, around 20% of the variation in sign content can be explained by group membership, with the proto-aurignacian having the highest score of 27%, and the early Aurignacian having the lowest score of 21%. The perMANOVA p value quantifies the randomness of the groupings, with 0.05 as the threshold for definitive non-randomness. The only time period to not meet that threshold is the transitional period, with a p-score of 0.3.
-
-```{r fig.height= 8, fig.width=5}
-#| label: fig-perm-disp
-#| fig-cap: "Multivariate homogeneity of group dispersions"
-
-trans_strength_plot <- strength_function(trans_artifact_data, trans_unique_data, type = "dispersion")
-proto_strength_plot <- strength_function(proto_artifact_data, proto_unique_data, type = "dispersion")
-early_strength_plot <- strength_function(early_artifact_data, early_unique_data, type = "dispersion")
-evolved_strength_plot <- strength_function(evolved_artifact_data, evolved_unique_data, type = "dispersion")
-
-
-
-```
 
 ## Testing Isolation-by-Distance Hypothesis
 
