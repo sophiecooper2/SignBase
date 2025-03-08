@@ -149,12 +149,14 @@ Figure&nbsp;1: Table of data on Aurignacian periods <span class="citation" data-
 </figure>
 </div>
 </div>
-<p>We hypothesize that these periods, and the environmental changes across the Aurignacian, may correspond to changes in social dynamics of cultural groups, as represented by patterns in the distribution of geometric signs. We aim to address the following questions: How do grouping dynamics of geometric signs change across the four phases of the Aurignacian? How do the groupings vary in diversity, size, connectivity, and boundaries? Lastly, what do the patterns tell us about dynamics of social organization throughout the Aurignacian? We answer these questions by first identifying clusters within each time period using seriation and network analyses. We then test the strength of the clusters using modularity, perMANOVA, and PERMDISP2 tests. Lastly, we use Mantel tests to evaluate the null hypothesis of isolation-by-distance for each time period.</p>
+<p>We hypothesize that these periods, and the environmental changes across the Aurignacian, may correspond to changes in social dynamics of cultural groups, as represented by patterns in the distribution of geometric signs. We aim to address the following questions: How do grouping dynamics of geometric signs change across the four phases of the Aurignacian? How do the groupings vary in diversity, size, connectivity, and boundaries? Lastly, what do the patterns tell us about dynamics of social organization throughout the Aurignacian? We answer these questions by first identifying clusters within each time period using seriation and network analyses. We then test the strength of the clusters using modularity and perMANOVA tests. Lastly, we use Mantel tests to evaluate the null hypothesis of isolation-by-distance for each time period.</p>
 </section>
 <section id="methods-and-materials" class="level1">
 <h1>Methods and Materials</h1>
 <section id="data" class="level2">
 <h2 class="anchored" data-anchor-id="data">Data</h2>
+<p>Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation <span class="citation" data-cites="dutkiewicz2020">(<a href="#ref-dutkiewicz2020" role="doc-biblioref">Dutkiewicz et al. 2020</a>)</span>. The creators of the database identified distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in <span class="citation" data-cites="dutkiewicz2020">Dutkiewicz et al. (<a href="#ref-dutkiewicz2020" role="doc-biblioref">2020</a>)</span>, and we adhered to those categories and placements. Maximum and minimum BP dates were also provided by Signbase, and calibration was done through the rcarbon package in RStudio <span class="citation" data-cites="Crema_Bevan_2021">(<a href="#ref-Crema_Bevan_2021" role="doc-biblioref">Crema and Bevan 2021</a>)</span>.</p>
+<p>The data set consists of 531 artifacts found at 65 sites in 13 countries, and records 55 geometric sign type found on these artifacts. We excluded signs if they fell under the “other” category, as the wide range of potential possibilities means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.These exclusions resulted in 438 artifacts found at 30 sites in 7 countries, encapsulating 54 sign types. The calibrated radiocarbon dates of the cleaned data range from approximately 32,893 BP to 44,778 BP, spanning an overall time range of 11,885 years. We divided the data up into four periods in accordance with the date ranges provided in <a href="#fig-aur-table" class="quarto-xref">Figure&nbsp;1</a>.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-site-map" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -169,24 +171,19 @@ Figure&nbsp;2: Graph of artifact count by time period and map of sites, divided 
 </div>
 </div>
 </div>
-<p>Our data for this paper comes from SignBase, an open-access database collection of geometric signs on mobile objects from Paleolithic-era Europe, which was launched in 2020, with the explicit goal being to enable quantitative analyses of abstract geographical representation <span class="citation" data-cites="dutkiewicz2020">(<a href="#ref-dutkiewicz2020" role="doc-biblioref">Dutkiewicz et al. 2020</a>)</span>. The creators of the database identified distinct geometric sign types, and recorded their occurrences on mobile artefacts from the Paleolithic. Identification and categorization of the sign types had already been performed by the creators of the SignBase database, the methods for which are described in <span class="citation" data-cites="dutkiewicz2020">Dutkiewicz et al. (<a href="#ref-dutkiewicz2020" role="doc-biblioref">2020</a>)</span>, and we adhered to those categories and placements.</p>
-<p>The data set consists of 531 artifacts found at 65 sites in 13 countries, and records 55 geometric sign type found on these artifacts. We excluded signs if they fell under the “other” category, as the wide range of possibilities that could qualify as “other” means that it would be difficult to establish a definitive connection. We also excluded all data from Willendorf (only one sign present), and Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (due to their extreme geographic distance from the other sites). Lastly, data from Grotte De La Princesse Pauline and Šandalja II was excluded, due to being dated much earlier than the rest of the artifacts.These exclusions resulted in 438 artifacts found at 30 sites in 7 countries, encapsulating 54 sign types.</p>
-<p>Maximum and minimum BP dates were provided by Signbase, and calibration was done through the rcarbon package in RStudio <span class="citation" data-cites="Crema_Bevan_2021">(<a href="#ref-Crema_Bevan_2021" role="doc-biblioref">Crema and Bevan 2021</a>)</span>. The calibrated radiocarbon dates of the artifacts range from approximately 32,893 BP to 44,778 BP, spanning an overall time range of 11,885 years. We divided the data up into four periods in accordance with the date ranges provided in <a href="#fig-aur-table" class="quarto-xref">Figure&nbsp;1</a>.</p>
-<p>All our tests were run with presence/absence data, in order to keep the data from being affected by outliers like Vogelherd. We ran a Mantel test between an Euclidean abundance distance matrix and a jaccard distance matrix of the sign types in order to make sure that the exclusion of abundance would not significantly impact our results <span class="citation" data-cites="Lycett_2019">(<a href="#ref-Lycett_2019" role="doc-biblioref">Lycett 2019</a>)</span>, and found that it was not quite statistically significant (P = 0.072, Mantel R = 0.109). Another Mantel test was run between a euclidean distance matrix for MedianBP and the jaccard sign type matrix in order to determine whether there was a definitive correlation between distance in time and sign types. The Mantel test found that there was a statistically significant correlation (p = 0.008, Mantel-R = 0.06).</p>
+<p>All our tests were run with presence/absence data. We ran a Mantel test between an Euclidean abundance distance matrix and a Jaccard distance matrix of the sign types in order to make sure that the exclusion of abundance would not significantly impact our results <span class="citation" data-cites="Lycett_2019">(<a href="#ref-Lycett_2019" role="doc-biblioref">Lycett 2019</a>)</span>, and found that it was not quite statistically significant (p-value = 0.072, Mantel statistic R = 0.109). Another Mantel test was run between a euclidean distance matrix for MedianBP and the Jaccard sign type matrix in order to determine whether there was a definitive correlation between distance in time and sign types. The Mantel test found that there was a statistically significant correlation (p-value = 0.008, Mantel statistic R = 0.06).</p>
 </section>
 <section id="testing-for-cultural-groupings" class="level2">
 <h2 class="anchored" data-anchor-id="testing-for-cultural-groupings">Testing for Cultural Groupings</h2>
-<p>Seriation analysis is the arrangement of data into a linear order to reveal patterns, and is a common technique in analyzing sets of archaeological data <span class="citation" data-cites="Hahsler_Hornik_Buchta">(<a href="#ref-Hahsler_Hornik_Buchta" role="doc-biblioref">Hahsler, Hornik, and Buchta 2008</a>)</span>. Seriation in this paper was performed using code designed to mimic the Browner-Kile seriation algorithm <span class="citation" data-cites="Brower_Kile_1988">(<a href="#ref-Brower_Kile_1988" role="doc-biblioref">Brower and Kile 1988</a>)</span>, in which the data is presented in a matrix diagram, and a unidimensional sequence is generated by reordering the rows and columns to group the presences along the diagonal. This is done so by calculating the mean row and column positions of presences, and arranging the rows and columns by respectively.</p>
-<p>Network analysis represents the relationship between nodes <span class="citation" data-cites="Mills_2017">(<a href="#ref-Mills_2017" role="doc-biblioref">Mills 2017</a>)</span>. In this network analysis, each node is a site, and each edge is a measure of sign similarity, with the direct value represented by edge weight. The results were plotted with the Fruchterman-Reingold layout <span class="citation" data-cites="Fruchterman_Reingold_1991">(<a href="#ref-Fruchterman_Reingold_1991" role="doc-biblioref">Fruchterman and Reingold 1991</a>)</span>, a force-directed graph layout for uniform edge lengths.</p>
+<p>Seriation analysis is the arrangement of data into a linear order to reveal patterns, and is a common technique in analyzing sets of archaeological data <span class="citation" data-cites="Hahsler_Hornik_Buchta">(<a href="#ref-Hahsler_Hornik_Buchta" role="doc-biblioref">Hahsler, Hornik, and Buchta 2008</a>)</span>. Seriation in this paper was performed using code designed to mimic the Browner-Kile seriation algorithm <span class="citation" data-cites="Brower_Kile_1988">(<a href="#ref-Brower_Kile_1988" role="doc-biblioref">Brower and Kile 1988</a>)</span>, in which the data is presented in a matrix diagram, and a unidimensional sequence is generated by reordering the rows and columns to group the presences along the diagonal. This is done so by calculating the mean row and column positions of presences, and arranging the rows and columns respectively. Network analysis represents the relationship between nodes <span class="citation" data-cites="Mills_2017">(<a href="#ref-Mills_2017" role="doc-biblioref">Mills 2017</a>)</span>. In this network analysis, each node is a site, and each edge is a measure of sign similarity, with the direct value represented by edge weight. The results were plotted with the Fruchterman-Reingold layout <span class="citation" data-cites="Fruchterman_Reingold_1991">(<a href="#ref-Fruchterman_Reingold_1991" role="doc-biblioref">Fruchterman and Reingold 1991</a>)</span>, a force-directed graph layout for uniform edge lengths.</p>
 </section>
 <section id="testing-strength-of-cultural-groupings" class="level2">
 <h2 class="anchored" data-anchor-id="testing-strength-of-cultural-groupings">Testing Strength of Cultural Groupings</h2>
-<p>The modularity test quantifies the randomness of the groupings by measuring the fraction of the edges in the network that fall within groups, minus the expected value if the edges were placed at random <span class="citation" data-cites="Newman_2006">Newman and Girvan (<a href="#ref-Newman_Girvan_2004" role="doc-biblioref">2004</a>)</span>. The results are expressed in a score of 0 to 1, with 0 meaning no significant subgroups, and 1 meaning perfect groupings. The PerMANOVA test quantifies the level of variation between groups versus the level of variation within groups <span class="citation" data-cites="Anderson_2017">(<a href="#ref-Anderson_2017" role="doc-biblioref">Anderson 2017</a>)</span>, with the results expressed by an R-statistic, and a P-score.</p>
-<p>PERMDISP is a multivariate extension of Levene’s test <span class="citation" data-cites="Anderson_2006">Anderson, Ellingsen, and McArdle (<a href="#ref-Anderson_Ellingsen_McArdle_2006" role="doc-biblioref">2006</a>)</span>, for the analysis of multivariate homogeneity of group dispersion. In this study, we perform the PERMDISP test upon the Jaccard matrix as a measure of compositional dissimilarity. We did so using the “betadisper” function from the RStudio package ‘vegan’, which mimics the PERMDISP2 procedure <span class="citation" data-cites="Vegan2001">(<a href="#ref-Vegan2001" role="doc-biblioref">Oksanen et al. 2001</a>)</span>. In this code, the non-euclidean distance matrix is reduced to principal coordinates to embed them within a Euclidean space. The results are used to produce a visual of the level of overlap between the groups in terms of sign content.</p>
+<p>The modularity test is community structure network detection method, and quantifies the randomness of the groupings by measuring the fraction of the edges in the network that fall within groups, minus the expected value if the edges were placed at random <span class="citation" data-cites="Newman_2006">Newman and Girvan (<a href="#ref-Newman_Girvan_2004" role="doc-biblioref">2004</a>)</span>. The results are expressed in a score of 0 to 1, with 0 meaning no significant subgroups, and 1 meaning perfect groupings. The perMANOVA test quantifies the level of variation between groups versus the level of variation within groups <span class="citation" data-cites="Anderson_2017">(<a href="#ref-Anderson_2017" role="doc-biblioref">Anderson 2017</a>)</span>, with the results expressed by an R-statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, and a statistical significance score (p &lt; 0.05), which quantifies whether the groups are significantly different.</p>
 </section>
 <section id="testing-isolation-by-distance-hypothesis" class="level2">
 <h2 class="anchored" data-anchor-id="testing-isolation-by-distance-hypothesis">Testing Isolation-by-Distance Hypothesis</h2>
-<p>The isolation-by-distance framework proposes that cultural difference can be primarily explained by geographic distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic early modern humans that are dispersed according to geography. Mantel tests are used here for each time period to determine the correlation between sign distribution and geography. The Mantel test is run between a geographic distance matrix and a Jaccard dissimilarity matrix. The test seeks to determine the level of correspondence between the matrices through permuational evaluation of the null distribution <span class="citation" data-cites="Mantel_Smouse">(<a href="#ref-Mantel_Smouse" role="doc-biblioref">Smouse and Long 1992</a>)</span>, producing a Mantel-R score and a p-score as a result.</p>
+<p>The isolation-by-distance framework proposes that cultural difference can be primarily explained by geographic distance. Assuming that this framework is true, we would hypothetically see patterns of cultural features of Upper Paleolithic early modern humans that are dispersed according to geography. Mantel tests are used for each time period to determine the correlation between sign distribution and geography, accomplished with use of the vegan package in RStudio <span class="citation" data-cites="Vegan2001">(<a href="#ref-Vegan2001" role="doc-biblioref">Oksanen et al. 2001</a>)</span>. The Mantel test is run between a geographic distance matrix and a Jaccard dissimilarity matrix. The test seeks to determine the level of correspondence between the matrices through permuational evaluation of the null distribution <span class="citation" data-cites="Mantel_Smouse">(<a href="#ref-Mantel_Smouse" role="doc-biblioref">Smouse and Long 1992</a>)</span>, (here 1000 permutations) producing a Mantel R statistic and a p-value as a result. The r statistic falls between -1 and 1, with a value of -1 meaning a strong negative correlation and a value of 1 meaning a strong positive correlation, while a value of 0 means no correlation. The p-value quantifies statistical signifiance of correlation between the two matrices, with p &lt; 0.05 serving as the threshold for statistical significance.</p>
 </section>
 </section>
 <section id="results" class="level1">
@@ -209,6 +206,7 @@ Figure&nbsp;3: Seriation analysis of the data
 </div>
 </div>
 </div>
+<p>For each of the time periods, seriation identifies at least two groups, one with a minimal range of signs, and one with a broader range.</p>
 </section>
 <section id="network-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="network-analysis">Network Analysis</h3>
@@ -226,11 +224,12 @@ Figure&nbsp;4: Network analysis of the data
 </div>
 </div>
 </div>
-<p>Combining the results of the above tests allowed us to find two main groups of sites within each time period, as shown in <a href="#fig-group-table" class="quarto-xref">Figure&nbsp;5</a>. The geographic distributions of the groups are shown in <a href="#fig-group-map" class="quarto-xref">Figure&nbsp;6</a>, and the sign makeup of each group is shown in <a href="#fig-group-sign" class="quarto-xref">Figure&nbsp;7</a>.</p>
+<p>Network analysis shows similar groups to the ones identified in <a href="#fig-seriation" class="quarto-xref">Figure&nbsp;3</a>, but it also shows evolving interconnectivity between groups. In the Transitional period, the network analysis shows two clearly defined groups, one consisting of Geissenklösterle, Fumane, and Pod Hradem, and the other consisting of Hohle Fels, El Castillo, and Labeko Koba, with no connections between the groups. The Proto-Aurignacian also shows two clearly defined groups, one consisting of Geissenklösterle, Spy, Vogelherd, and Grotte du Renne, and the other consisting of Mladeč, Hohlenstein-Stadel, Gatzarria, and Abri Pataud. However, it also displays some sites that are less clearly connected, with La Ferrassie being squarely in between both groups with equal connections to both, and Les Cottés lacking a connection to any of the groups. The Early Aurignacian shows more strongly interconnected groups - although the shape still suggests two main groups - with Grotte de la Verpillière I in particular having multiple strong connections to both of the groups. Lastly, the Evolved Aurignacian again shows two main groups, although group innerconnectivity has decreased, one consisting of Hohle Fels, Trou Magrite, Vogelherd, and Bockstein-Törle, and the other consisting of Gargas, La Viña, Sirgenstein Cave, Vindija Cave, and Les Rois. While interconnectivity between groups is still present, with connections between Trou Magrite, Gargas, and Vindija Cave, and Bockstein-Törle and Gargas, the strength of interconnectivity is weaker than in the Early Aurignacian.</p>
 </section>
 </section>
 <section id="groups" class="level2">
 <h2 class="anchored" data-anchor-id="groups">Groups</h2>
+<p>The results of the above tests allowed us to find two main groups of sites within each time period, as shown in <a href="#fig-group-table" class="quarto-xref">Figure&nbsp;5</a>. The geographic distributions of the groups are shown in <a href="#fig-group-map" class="quarto-xref">Figure&nbsp;6</a>, and the sign makeup of each group is shown in <a href="#fig-group-sign" class="quarto-xref">Figure&nbsp;7</a>.</p>
 <div class="cell">
 <div id="fig-group-table" class="cell-output-display quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -260,32 +259,32 @@ Figure&nbsp;4: Network analysis of the data
 <td style="text-align: left;">El Castillo, Hohle Fels, Geissenklösterle</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Proto-aurignacian</td>
+<td style="text-align: left;">Proto-Aurignacian</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Gatzarria, Hohlenstein-Stadel, Mladeč, Abri Pataud,</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Proto-aurignacian</td>
+<td style="text-align: left;">Proto-Aurignacian</td>
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Geissenklösterle, Grotte du Renne, Vogelherd, Spy, La Ferrassie, Les Cottés</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Early aurignacian</td>
+<td style="text-align: left;">Early Aurignacian</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Grottes de Fonds-de-Forêt, Riparo Bombrini, Grotte de la Verpillière I, Vindija Cave, Trou al’Wesse</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Early aurignacian</td>
+<td style="text-align: left;">Early Aurignacian</td>
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Hohle Fels, Solutré, Castanet, Cellier, Blanchard</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Evolved aurignacian</td>
+<td style="text-align: left;">Evolved Aurignacian</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: left;">Les Rois, Gargas, La Viña, Sirgenstein Cave</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Evolved aurignacian</td>
+<td style="text-align: left;">Evolved Aurignacian</td>
 <td style="text-align: right;">2</td>
 <td style="text-align: left;">Bockstein-Törle, Vogelherd, Hohle Fels, Trou Magrite</td>
 </tr>
@@ -332,62 +331,45 @@ Figure&nbsp;7: Bar plot of signs by time period, colored by group
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 19%">
-<col style="width: 16%">
-<col style="width: 18%">
-<col style="width: 18%">
-<col style="width: 13%">
-<col style="width: 13%">
-</colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">time period</th>
 <th style="text-align: right;">modularity</th>
 <th style="text-align: right;">permanova r</th>
 <th style="text-align: right;">permanova p</th>
-<th style="text-align: right;">mantel r</th>
-<th style="text-align: right;">mantel p</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">transitional</td>
+<td style="text-align: left;">Transitional</td>
 <td style="text-align: right;">0.4897959</td>
-<td style="text-align: right;">0.2330009</td>
-<td style="text-align: right;">0.300</td>
-<td style="text-align: right;">0.421</td>
-<td style="text-align: right;">0.081</td>
+<td style="text-align: right;">0.4524025</td>
+<td style="text-align: right;">0.100</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">proto</td>
+<td style="text-align: left;">Proto-Aurignacian</td>
 <td style="text-align: right;">0.4958678</td>
 <td style="text-align: right;">0.2741417</td>
 <td style="text-align: right;">0.012</td>
-<td style="text-align: right;">-0.188</td>
-<td style="text-align: right;">0.872</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">early</td>
+<td style="text-align: left;">Early Aurignacian</td>
 <td style="text-align: right;">0.4938272</td>
 <td style="text-align: right;">0.2100885</td>
 <td style="text-align: right;">0.012</td>
-<td style="text-align: right;">0.259</td>
-<td style="text-align: right;">0.075</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">evolved</td>
-<td style="text-align: right;">0.5000000</td>
-<td style="text-align: right;">0.2312869</td>
-<td style="text-align: right;">0.015</td>
-<td style="text-align: right;">-0.055</td>
-<td style="text-align: right;">0.589</td>
+<td style="text-align: left;">Evolved Aurignacian</td>
+<td style="text-align: right;">0.4800000</td>
+<td style="text-align: right;">0.2239490</td>
+<td style="text-align: right;">0.022</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>The R value from the perMANOVA tests tell us that for each of the time periods, around 20% of the variation in sign content can be explained by group membership, with the proto-aurignacian having the highest score of 27%, and the early Aurignacian having the lowest score of 21%. The perMANOVA p value quantifies the randomness of the groupings, with 0.05 as the threshold for definitive non-randomness. The only time period to not meet that threshold is the transitional period, with a p-score of 0.3.</p>
+<p>The modularity score quantifies the strength of the groupings, showing that the variations between time periods are minimal. The results tell us that the Proto-Aurignacian exhibits the strongest groupings, with a score of 0.4958678, and that the Evolved Aurignacian exhibits the weakest groupings, with a score of 0.48. There is a slight increase in modularity between the Transitional period and the Proto-Aurignacian, before an even slighter decrease into the Early Aurignacian, followed by a larger decrease with the Evolved Aurignacian.</p>
+<p>The r statistic from the perMANOVA tests tell us the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of 0.4524025 while the Early Aurignacian has the lowest score of 0.2100885. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The perMANOVA p score quantifies the statistical significance of the difference, with 0.05 as the threshold. The only time period to not meet that threshold is the Transitional period, with a p-score of 0.1. the Proto and Early Aurignacian periods remain the same, with a slight increase in the Evolved Aurignacian period, although it still meets the threshold for statistical significance.</p>
 </section>
 <section id="testing-isolation-by-distance-hypothesis-1" class="level2">
 <h2 class="anchored" data-anchor-id="testing-isolation-by-distance-hypothesis-1">Testing Isolation-by-Distance Hypothesis</h2>
@@ -403,22 +385,22 @@ Figure&nbsp;7: Bar plot of signs by time period, colored by group
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">transitional</td>
+<td style="text-align: left;">Transitional</td>
 <td style="text-align: right;">0.421</td>
 <td style="text-align: right;">0.081</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">proto</td>
+<td style="text-align: left;">Proto-Aurignacian</td>
 <td style="text-align: right;">-0.188</td>
 <td style="text-align: right;">0.872</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">early</td>
+<td style="text-align: left;">Early Aurignacian</td>
 <td style="text-align: right;">0.259</td>
 <td style="text-align: right;">0.075</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">evolved</td>
+<td style="text-align: left;">Evolved Aurignacian</td>
 <td style="text-align: right;">-0.055</td>
 <td style="text-align: right;">0.589</td>
 </tr>
@@ -426,7 +408,7 @@ Figure&nbsp;7: Bar plot of signs by time period, colored by group
 </table>
 </div>
 </div>
-<p>The relevance of the isolation-by-distance hypothesis also varies from period to period.</p>
+<p>The relevance of the isolation-by-distance hypothesis also varies from period to period. The p score quantifies the correlation, with a score of 0.05 or lower meaning that there is a statistically significant relationship between sign type distribution and geographical distance. None of the periods meet that threshold, meaning that the isolation-by-distance hypothesis is not applicable to any of them. However, we still see changes in the p score between periods, suggesting a higher level of correlation with geographic distance in some, and a lower correlation in others. The Proto-Aurignacian period demonstrates the least amount of correlation (Mantel R = -0.188, p = 0.012), while the Early Aurignacian exhibits the highest amount of correlation (Mantel R = -0.188, p = 0.012).</p>
 </section>
 </section>
 <section id="discussion" class="level1">
@@ -445,14 +427,8 @@ Figure&nbsp;7: Bar plot of signs by time period, colored by group
 </section>
 
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-Anderson_2006" class="csl-entry" role="listitem">
-Anderson, Marti J. 2006. <span>“Distance-Based Tests for Homogeneity of Multivariate Dispersions.”</span> <em>Biometrics</em> 62 (1): 245–53. <a href="https://doi.org/10.1111/j.1541-0420.2005.00440.x">https://doi.org/10.1111/j.1541-0420.2005.00440.x</a>.
-</div>
 <div id="ref-Anderson_2017" class="csl-entry" role="listitem">
-———. 2017. <span>“Permutational Multivariate Analysis of Variance (PERMANOVA).”</span> In <em>Wiley StatsRef: Statistics Reference Online</em>, 1–15. John Wiley &amp; Sons, Ltd. <a href="https://doi.org/10.1002/9781118445112.stat07841">https://doi.org/10.1002/9781118445112.stat07841</a>.
-</div>
-<div id="ref-Anderson_Ellingsen_McArdle_2006" class="csl-entry" role="listitem">
-Anderson, Marti J., Kari E. Ellingsen, and Brian H. McArdle. 2006. <span>“Multivariate Dispersion as a Measure of Beta Diversity.”</span> <em>Ecology Letters</em> 9 (6): 683–93. <a href="https://doi.org/10.1111/j.1461-0248.2006.00926.x">https://doi.org/10.1111/j.1461-0248.2006.00926.x</a>.
+Anderson, Marti J. 2017. <span>“Permutational Multivariate Analysis of Variance (PERMANOVA).”</span> In <em>Wiley StatsRef: Statistics Reference Online</em>, 1–15. John Wiley &amp; Sons, Ltd. <a href="https://doi.org/10.1002/9781118445112.stat07841">https://doi.org/10.1002/9781118445112.stat07841</a>.
 </div>
 <div id="ref-baker2024evidence" class="csl-entry" role="listitem">
 Baker, Jack, Solange Rigaud, Daniel Pereira, Lloyd A Courtenay, and Francesco d’Errico. 2024. <span>“Evidence from Personal Ornaments Suggest Nine Distinct Cultural Groups Between 34,000 and 24,000 Years Ago in Europe.”</span> <em>Nature Human Behaviour</em> 8 (3): 431–44.
