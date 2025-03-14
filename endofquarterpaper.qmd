@@ -23,7 +23,7 @@ In this study, we extend the use of geometric signs as identity markers to inves
 
 ```{r}
 #| label: tbl-aur-table
-#| tbl-cap: "Table of data on Aurignacian periods [@Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Chu_Richter_2020; @Fletcher_Sánchez]"
+#| tbl-cap: "Summary of chronological, cultural and environmental characteristics of Aurignacian periods [@Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Chu_Richter_2020; @Fletcher_Sánchez]"
 #| tbl-cap-location: bottom
 
 library(knitr)
