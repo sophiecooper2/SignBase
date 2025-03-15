@@ -774,45 +774,7 @@ plot_grid(network_trans, network_proto, network_early, network_evolved,
           label_size = 7, label_colour = "black", label_y = 1.02, label_x = -0.01)
 ```
 
-Network analysis shows similar groups to the ones identified in @fig-seriation, but it also shows evolving inter-connectivity between groups. In the Transitional phase, the network analysis shows two clearly defined groups, one consisting of Geissenklösterle, Fumane, and Pod Hradem, and the other consisting of Hohle Fels, El Castillo, and Labeko Koba, with no connections between the groups. The Proto-Aurignacian phase also shows two clearly defined groups, one consisting of Geissenklösterle, Spy, Vogelherd, and Grotte du Renne, and the other consisting of Mladeč, Hohlenstein-Stadel, Gatzarria, and Abri Pataud. However, it also displays some sites that are less clearly connected, with La Ferrassie being squarely in between both groups with equal connections to both, and Les Cottés lacking a connection to any of the groups. The Early Aurignacian shows more strongly inter-connected groups - although the shape still suggests two main groups - with Grotte de la Verpillière I in particular having multiple strong connections to both of the groups. Lastly, the Evolved Aurignacian again shows two main groups, although group inner-connectivity has decreased, one consisting of Hohle Fels, Trou Magrite, Vogelherd, and Bockstein-Törle, and the other consisting of Gargas, La Viña, Sirgenstein Cave, Vindija Cave, and Les Rois. While inter-connectivity between groups is still present, with connections between Trou Magrite, Gargas, and Vindija Cave, and Bockstein-Törle and Gargas, the strength of inter-connectivity is weaker than in the Early Aurignacian.
-
-In identifying the groups, we referenced both the seriation and network analyses. The results of the above tests allowed us to find two main groups of sites within each phase, as shown in @tbl-group-table. The geographic distributions of the groups are shown in @fig-group-map, and the sign makeup of each group is shown in @fig-group-sign.
-
-```{r}
-#| label: tbl-group-table
-#| tbl-cap: "Table of the sites by group per phase"
-#| tbl-cap-location: bottom
-group_table <- read_excel("data/site-groups.xlsx")
-
-kable(group_table)
-
-```
-
-```{r fig.height= 7, fig.width=10}
-#| label: fig-group-map
-#| fig-cap: "Map of sites faceted by time period and colored by group number"
-  
-ggplot(Europe) +
-  geom_sf() +
-  geom_sf(data = signbase_sf, aes(color = group)) +
-  coord_sf(xlim = c(-10,30), 
-           ylim = c(35,53), 
-           expand = FALSE) +
-  geom_text_repel(data = signbase_sf,
-                  aes(x = longitude ,
-                      y = latitude,
-                      label = site_name),
-                  max.overlaps = 30,
-                  size = 2,
-                  bg.color = "white",
-                  bg.r = 0.25) +
-  theme_minimal() +
-  facet_wrap(~time_period) +
-  theme(axis.text = element_blank(),
-        axis.title = element_blank()) 
-
-```
-
+The results of the network analysis supports the restricted-broad groupings identified in @fig-seriation, and provides additional insights into the evolution of connectivity between groups. In the Transitional phase, the network analysis reveals two distinct and disconnected groups. The restricted group consists of Geissenklösterle, Fumane, and Pod Hradem, and the broad group consisting of Hohle Fels, El Castillo, and Labeko Koba, with no connections between the groups. The Proto-Aurignacian phase also shows two clearly defined groups, the broad group consisting of Geissenklösterle, Spy, Vogelherd, and Grotte du Renne, and the restricted group consisting of Mladeč, Hohlenstein-Stadel, Gatzarria, and Abri Pataud. However, it also displays some connectivity between the two groups of sites, with La Ferrassie connected to both groups. Les Cottés stands out with no connections to either group. The Early Aurignacian shows more strongly inter-connected groups -- although the shape still suggests two main groups -- with Grotte de la Verpillière I in particular having multiple strong connections to both groups. Lastly, the Evolved Aurignacian again shows two main groups, although intra-group connectivity has decreased, with the broad group consisting of Hohle Fels, Trou Magrite, Vogelherd, and Bockstein-Törle, and the restricted group consisting of Gargas, La Viña, Sirgenstein Cave, Vindija Cave, and Les Rois. As for the Early Aurignacian,inter-connectivity between groups continues to be evident in the Evolved Aurignacian, with connections between Trou Magrite, Gargas, and Vindija Cave, and Bockstein-Törle and Gargas, however the strength of inter-connectivity is weaker than in the Early Aurignacian.
 
 ## Cultural Group Strength
 
@@ -886,9 +848,40 @@ early_mantel_p <- early_strength %>%
 
 The relevance of the isolation-by-distance hypothesis also varies from period to period. The p score quantifies the correlation, with a score of 0.05 or lower meaning that there is a statistically significant relationship between sign type distribution and geographical distance. None of the periods meet that threshold, meaning that the isolation-by-distance hypothesis is not applicable to any of them. However, we still see changes in the p score between periods, suggesting a higher level of correlation with geographic distance in some, and a lower correlation in others. The Proto-Aurignacian period demonstrates the least amount of correlation (Mantel R = `r proto_mantel_r`, p = `r proto_mantel_p`), while the Early Aurignacian exhibits the highest amount of correlation (Mantel R = `r early_mantel_r`, p = `r early_mantel_p`).
 
+<!-- BM: I reckon here might be the place to make some comments about geographic distribution of the groups and boundaries, and reference the map below --> 
+
+
+```{r fig.height= 7, fig.width=10}
+#| label: fig-group-map
+#| fig-cap: "Map of sites faceted by time period and colored by group number"
+  
+ggplot(Europe) +
+  geom_sf() +
+  geom_sf(data = signbase_sf, aes(color = group)) +
+  coord_sf(xlim = c(-10,30), 
+           ylim = c(35,53), 
+           expand = FALSE) +
+  geom_text_repel(data = signbase_sf,
+                  aes(x = longitude ,
+                      y = latitude,
+                      label = site_name),
+                  max.overlaps = 30,
+                  size = 2,
+                  bg.color = "white",
+                  bg.r = 0.25) +
+  theme_minimal() +
+  facet_wrap(~time_period) +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank()) 
+
+```
+
+
 # Discussion
 
 The first aim of our study was to determine how the grouping dynamics of geometric signs changed across the four phases of the Aurignacian, specifically in terms of diversity, size, connectivity, and boundaries. The results as displayed in @fig-seriation show that each phase can be divided into two main cultural groups, with diversity serving as a major dividing factor, and that group size varied from phase to phase, with a large increase in between the Transitional phase and the Proto-Aurignacian. @fig-neighbor-net shows that group inter-connectivity and inner-connectivity varies from phase to phase, with weak inner group connections and no between-group connections in the Transitional phase, to stronger inner connections and interconnections starting to form in the Proto-Aurignacian, to extremely strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The modularity tests, as shown in @tbl-strength-table, tell us that the groupings are strongest in the Transitional period and weakest in the Early Aurignacian, and the perMANOVA tests tell us that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian experiences the least. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian experiences the highest correlation.
+
+
 
 The second aim of our study was to determine what these patterns tell us about dynamics of social organization throughout the Aurignacian. The results suggest that the Transitional phase was sparsely populated, with minimal interaction between loosely connected groups. For the Proto-Aurignacian, the results suggest a large expansion in social activity, as well as strongly inner-connected groups with some inter-connectivity present, with geographic distance having the least influence on sign distribution. The Early Aurignacian experiences a large surge in inter-connectivity, as well as inner-connectivity strength, with a great deal of connection between groups and an increase in the correlation with geographic distance. The Evolved Aurignacian experiences a decline in connection strength, although it maintains degrees of inter-connectivity.
 
