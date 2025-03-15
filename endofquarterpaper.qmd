@@ -10,7 +10,6 @@ link-citations: true
 ---
 
 # Introduction
-
 The Upper Paleolithic period experienced a rise in more complex social organizations across Europe [@Boyd_Silk_2020] coupled with biological evolution. Another distinctive quality of the Upper Paleolithic is the large rise in artwork, both parietal and mobile. Archaeologists have frequently relied upon that artwork as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@baker2024evidence, @Sauvet_2018, @Kuhn_Stiner_2007, @Vanhaeren_d]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian technocomplex (ca. 43 - 30 k BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. In this paper, we investigate the social organization dynamics by analyzing the distribution and variation of geometric sign types found on mobile objects from the Upper Paleolithic in Europe across four phases of the Aurignacian period.
 
 Social organization dynamics of the Upper Paleolithic have previously been explored using statistical analyses of objects to understand patterns of cultural groups. Multivariate analyses of beads from the Gravettian technocomplex suggests an east to west cline of nine cultural groups [@baker2024evidence]. Seriation analysis, PCoA, and network analysis were used to identify the groups from 134 discrete bead types recovered from both burial and occupation sites. To validate their claims of cultural groups, @baker2024evidence used a Mantel test to evaluate an isolation-by-distance hypothesis, which proposes that cultural difference can be primarily explained by geographic distance, finding that geographic distance alone did not solely account for the bead distribution. The nine geographically discrete groups encompass the regions of eastern, northwestern and central Europe, the northern and southern Iberian peninsula, southern and northern Italy, and the eastern and western Mediterranean regions.
@@ -149,7 +148,6 @@ date_range_pretty <- pretty_print_dates(date_range)
 ```
 
 ```{r}
-
 lat_long_df <- signbase_full_clean %>% 
   dplyr::select(site_name, longitude, latitude) %>% 
   distinct(site_name, .keep_all = TRUE)
@@ -241,46 +239,24 @@ evolved_artifact_data <- evolved_unique_data %>%
   dplyr::select(line:star) %>% 
   select_if(~ !is.numeric(.) || sum(.) != 0)
 
-# BM: a little simpler and less typings using %in% 
 trans_unique_data <- trans_unique_data %>% 
   mutate(group = case_when(site_name %in% c("Pod Hradem", "Fumane", "Geissenklösterle") ~ "1",
                            site_name %in% c("El Castillo", "Hohle Fels", "Labeko Koba") ~ "2"))
 
 proto_unique_data <- proto_unique_data %>% 
-  mutate(group = case_when((site_name == "Gatzarria" | 
-                              site_name == "Hohlenstein-Stadel" | 
-                              site_name == "Mladeč" | 
-                              site_name == "Abri Pataud") ~ "1",
-                           (site_name == "Geissenklösterle" |
-                              site_name == "Grotte du Renne" |
-                              site_name == "Vogelherd" |
-                              site_name == "Spy" |
-                              site_name == "La Ferrassie"|
-                               site_name == "Les Cottés") ~ "2"))
+  mutate(group = case_when(site_name %in% c("Gatzarria" , "Hohlenstein-Stadel", "Mladeč", "Abri Pataud") ~ "1",
+                           site_name %in%  c("Geissenklösterle", "Grotte du Renne", 
+                                             "Vogelherd", "Spy" ,"La Ferrassie", "Les Cottés") ~ "2"))
 
 early_unique_data <- early_unique_data %>% 
-  mutate(group = case_when((site_name == "Grottes de Fonds-de-Forêt" |
-                              site_name == "Riparo Bombrini"|
-                              site_name == "Grotte de la Verpillière I"|
-                              site_name == "Vindija Cave") ~ "1",
-                           (site_name == "Hohle Fels" | 
-                              site_name == "Solutré" |
-                              site_name == "Castanet"|
-                              site_name == "Cellier" | 
-                              site_name == "Blanchard"|
-                              site_name == "Trou al'Wesse") ~ "2"))
+  mutate(group = case_when(site_name %in%  c("Grottes de Fonds-de-Forêt", "Riparo Bombrini", 
+                                             "Grotte de la Verpillière I", "Vindija Cave") ~ "1",
+                           site_name %in% c("Hohle Fels", "Solutré", "Castanet", "Cellier", "Blanchard", "Trou al'Wesse") ~ "2"))
 
 
 evolved_unique_data <- evolved_unique_data %>% 
-  mutate(group = case_when((site_name == "Les Rois" |
-                              site_name == "Gargas" |
-                              site_name == "La Viña"|
-                              site_name ==  "Sirgenstein Cave"|
-                              site_name == "Vindija Cave") ~ "1",
-                           (site_name == "Bockstein-Törle"|
-                              site_name == "Vogelherd" |
-                              site_name == "Hohle Fels"|
-                              site_name == "Trou Magrite") ~ "2"))
+  mutate(group = case_when(site_name %in%  c("Les Rois", "Gargas", "La Viña", "Sirgenstein Cave", "Vindija Cave") ~ "1",
+                           site_name %in% c("Bockstein-Törle", "Vogelherd", "Hohle Fels", "Trou Magrite") ~ "2"))
 
 
 
@@ -380,7 +356,7 @@ perman_chron <- perman_chron %>%
 
 ## Data
 
-Our data come from SignBase 1.0, an open-access collection of geometric signs on mobile objects from Upper Paleolithic Europe. SignBase 1.0 is a record of objects noting only the presence or absence of each sign on the object, without details of the quantity or sequence of individual signs on a given object. We used the identification of sign types provided by SignBase's curators [@dutkiewicz2020]. The data set consists of `r nartifacts` objects found at `r nsites` sites in `r ncountries` countries, and records `r nsigntypes` geometric sign types. We excluded signs if they fell under the "other" category, due to the wide range of potential possibilities. We also excluded seven sites from the sample (only one sign present: Willendorf; extreme geographic distance from the other sites: Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave; dated much later than the rest of the assemblages: Grotte De La Princesse Pauline and Šandalja II). These exclusions resulted in a sample of `r nartifacts_clean` objects found at `r nsites_clean` sites in `r ncountries_clean` countries, and `r nsigntypes_clean` sign types used in this study (@fig-site-map).
+Our data comes from SignBase 1.0, an open-access collection of geometric signs on mobile objects from Upper Paleolithic Europe. SignBase 1.0 is a record of objects noting only the presence or absence of each sign on the object, without details of the quantity or sequence of individual signs on a given object. We used the identification of sign types provided by SignBase's curators [@dutkiewicz2020]. The data set consists of `r nartifacts` objects found at `r nsites` sites in `r ncountries` countries, and records `r nsigntypes` geometric sign types. We excluded signs if they fell under the "other" category, due to the wide range of potential possibilities. We also excluded seven sites from the sample (only one sign present: Willendorf; extreme geographic distance from the other sites: Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave; dated much later than the rest of the assemblages: Grotte De La Princesse Pauline and Šandalja II). These exclusions resulted in a sample of `r nartifacts_clean` objects found at `r nsites_clean` sites in `r ncountries_clean` countries, and `r nsigntypes_clean` sign types used in this study (@fig-site-map).
 
 ```{r fig.height= 9, fig.width=10}
 #| label: fig-site-map
@@ -954,7 +930,6 @@ The relevance of the isolation-by-distance hypothesis also varies from period to
 
 The first aim of our study was to determine how the grouping dynamics of geometric signs changed across the four phases of the Aurignacian, specifically in terms of diversity, size, connectivity, and boundaries. The results as displayed in @fig-seriation show that each phase can be divided into two main cultural groups, with diversity serving as a major dividing factor, and that group size varied from phase to phase, with a large increase in between the Transitional phase and the Proto-Aurignacian.
 
-
 @fig-neighbor-net shows that group inter-connectivity and intra-connectivity varies from phase to phase, with weak inner group connections and no between-group connections in the Transitional phase, to stronger intraconnections and interconnections starting to form in the Proto-Aurignacian, to extremely strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The modularity tests, as shown in @tbl-strength-table, show that the groupings are strongest in the Transitional period and weakest in the Early Aurignacian, and the perMANOVA tests tell us that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian experiences the least. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian experiences the highest correlation.
 
 Map shows that geographic boundaries do not readily correspond to the group distributions and Mantel test results
@@ -965,11 +940,7 @@ Map shows that geographic boundaries do not readily correspond to the group dist
 
 The second aim of our study was to determine what these patterns tell us about dynamics of social organization throughout the Aurignacian. The results suggest that the Transitional phase was sparsely populated, with minimal interaction between loosely connected groups. For the Proto-Aurignacian, the results suggest a large expansion in social activity, as well as strongly inner-connected groups with some inter-connectivity present, with geographic distance having the least influence on sign distribution. The Early Aurignacian experiences a large surge in inter-connectivity, as well as inner-connectivity strength, with a great deal of connection between groups and an increase in the correlation with geographic distance. The Evolved Aurignacian experiences a decline in connection strength, although it maintains degrees of inter-connectivity.
 
-These results are supported by the existing data on the environmental and biological change established during these phases. @Shao_Wegener_Klein_Schmidt_Weniger_2024 tells us that from 45 - 43.25 k BP, the population density in Europe was extremely low, due to the unfavorable environmental conditions of Greenland Stadial 12 (44 k BP) and the slow westward expansion of early modern humans, before being followed by rapid expansion from 43.25 - 41 k BP, with the maximum extent of Proto/Early Aurignacian (Aur-P1) settlement being reached around 41 k BP. This rapid expansion could be what stimulated the emergence of sign sue as a marker of group membership.
-
-
-
-Additionally @Banks_dErrico_Zilhao_2013 use eco-cultural niche modeling to show that the Heinrich Stadial 4 at the very beginning of the Early Aurignacian resulted in an expansion into new environmental niches, which they hypothesize was associated with expansion of social networks both within and between populations. This likely explains why we see a large increase in both inter-connectivity and inner-connectivity strength in the Early Aurignacian, as well as the increased correlation with geographic distance. Lastly, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 developed a human-existence probability model for the Aurignacian, finding an expanded, more dispersed settlement area for Evolved/Late Aurignacian (Aur-P2) theorizing that the environmental changes of HS4 lead to humans better adapted to survive in a broader range of climate conditions. @Shao_Wegener_Klein_Schmidt_Weniger_2024 also find an increase in expansion marking the beginning of the Evolved Aurignacian. Geographic expansion resulting in less group interconnection could explain why we see weaker connections in the Evolved Aurignacian.
+These results are supported by the existing data on the environmental and biological change established during these phases. @Shao_Wegener_Klein_Schmidt_Weniger_2024 tells us that from 45 - 43.25 k BP, the population density in Europe was extremely low, due to the unfavorable environmental conditions of Greenland Stadial 12 (44 k BP) and the slow westward expansion of early modern humans, before being followed by rapid expansion from 43.25 - 41 k BP, with the maximum extent of Proto/Early Aurignacian (Aur-P1) settlement being reached around 41 k BP. This rapid expansion could be what stimulated the emergence of signs as a marker of group membership. Additionally @Banks_dErrico_Zilhao_2013 use eco-cultural niche modeling to show that the Heinrich Stadial 4 at the very beginning of the Early Aurignacian resulted in an expansion into new environmental niches, which they hypothesize was associated with expansion of social networks both within and between populations. This likely explains why we see a large increase in both inter-connectivity and inner-connectivity strength in the Early Aurignacian, as well as the increased correlation with geographic distance. Lastly, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 developed a human-existence probability model for the Aurignacian, finding an expanded, more dispersed settlement area for Evolved/Late Aurignacian (Aur-P2) theorizing that the environmental changes of HS4 lead to humans better adapted to survive in a broader range of climate conditions. @Shao_Wegener_Klein_Schmidt_Weniger_2024 also find an increase in expansion marking the beginning of the Evolved Aurignacian. Geographic expansion resulting in less group interconnection could explain why we see weaker connections in the Evolved Aurignacian.
 
 # Conclusion
 
