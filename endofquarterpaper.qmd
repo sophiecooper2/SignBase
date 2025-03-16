@@ -10,6 +10,7 @@ link-citations: true
 ---
 
 # Introduction
+
 The Upper Paleolithic period experienced a rise in more complex social organizations across Europe [@Boyd_Silk_2020] coupled with biological evolution. Another distinctive quality of the Upper Paleolithic is the large rise in artwork, both parietal and mobile. Archaeologists have frequently relied upon that artwork as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@baker2024evidence, @Sauvet_2018, @Kuhn_Stiner_2007, @Vanhaeren_d]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian technocomplex (ca. 43 - 30 k BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. In this paper, we investigate the social organization dynamics by analyzing the distribution and variation of geometric sign types found on mobile objects from the Upper Paleolithic in Europe across four phases of the Aurignacian period.
 
 Social organization dynamics of the Upper Paleolithic have previously been explored using statistical analyses of objects to understand patterns of cultural groups. Multivariate analyses of beads from the Gravettian technocomplex suggests an east to west cline of nine cultural groups [@baker2024evidence]. Seriation analysis, PCoA, and network analysis were used to identify the groups from 134 discrete bead types recovered from both burial and occupation sites. To validate their claims of cultural groups, @baker2024evidence used a Mantel test to evaluate an isolation-by-distance hypothesis, which proposes that cultural difference can be primarily explained by geographic distance, finding that geographic distance alone did not solely account for the bead distribution. The nine geographically discrete groups encompass the regions of eastern, northwestern and central Europe, the northern and southern Iberian peninsula, southern and northern Italy, and the eastern and western Mediterranean regions.
@@ -470,7 +471,11 @@ Seriation analysis is the arrangement of data into a linear order to reveal patt
 
 ## Modularity and PerMANOVA for Cultural Group Strength
 
-To evaluate the strength of the groupings found in the seriation and network analyses, we used modularity and perMANOVA tests. The modularity test is a community structure network detection method, and quantifies the randomness of the groupings by measuring the fraction of the edges in the network that fall within groups, minus the expected value if the edges were placed at random [@Newman_2006; @Newman_Girvan_2004]. The results are expressed in a score of 0 to 1, with 0 meaning no significant subgroups, and 1 meaning perfect groupings. PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017]. The results are expressed by an R statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, and a p-value, which quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance). The modularity test and perMANOVA were performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
+To evaluate the strength of the groupings found in the seriation and network analyses, we used modularity and perMANOVA tests. The modularity test is a community structure network detection method, and quantifies the randomness of the groupings by measuring the fraction of the edges in the network that fall within groups, minus the expected value if the edges were placed at random [@Newman_2006; @Newman_Girvan_2004]. The results are expressed in a score of 0 to 1, with 0 meaning no significant subgroups, and 1 meaning perfect groupings. PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017]. The results are expressed by an R2 statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, a pseudo-F statistic, which compares the total sum of squared dissimilarities between groups to total sum of squared dissimilarities within groups, with larger pseudo F-statistics indicating more separation between groups, and a p-value, which quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance).
+
+<!-- SC: I think we need to elaborate on what the null hypothesis is here. This blog, https://archetypalecology.wordpress.com/2018/02/21/permutational-multivariate-analysis-of-variance-permanova-in-r-preliminary/, does a pretty good job of explaining what exactly the p-value means, which is the proportion of F-statistics for the permuted tests that are greater than or equal to the actual F-statistic.-->
+
+The modularity test and perMANOVA were performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
 
 ## Effects of Geographic Distance Using Mantel Tests
 
@@ -640,6 +645,7 @@ strength_function <- function(artifact_data, group_data){
     graph_from_adjacency_matrix(1 - dm, mode = "undirected")
   mem <- as_membership(parse_number(group_data$group))
   as_group <- modularity(modul_matrix, membership = mem)
+  as_group <- round(as_group, 3)
   
   perman <- adonis2(jac~as.factor(group_data$group), 
                     method = "jaccard",
@@ -647,8 +653,10 @@ strength_function <- function(artifact_data, group_data){
   perman <- perman %>% 
     data_frame() %>% 
     slice_head()
-  perman_r <- perman$R2
-  perman_p <- perman$`Pr(>F)`
+  perman_r <- round(perman$R2, 3)
+  perman_p <- round(perman$`Pr(>F)`, 3)
+  perman_f <- round(perman$F, 3)
+  
   
   site_distances <- dist(cbind(group_data$longitude, group_data$latitude))
   mantel_distance <- vegan::mantel(site_distances, jac, permutations = 1000)
@@ -656,7 +664,8 @@ strength_function <- function(artifact_data, group_data){
   r_value_distance_correlation <- round(mantel_distance$statistic, 3)
   
   final_table <- data_frame("Modularity" = as_group, 
-                            "PerMANOVA r" = perman_r,
+                            "PerMANOVA R2" = perman_r,
+                            "PerMANOVA F" = perman_f,
                             "PerMANOVA p" = perman_p,
                             "Mantel R" = r_value_distance_correlation, 
                             "Mantel p" = p_value_distance_correlation)
@@ -735,7 +744,9 @@ plot_grid(seriation_trans,
 
 ```
 
-For each of the phases, seriation identifies at least two groups, one with a restricted range of sign types, and one with a broader range. The notch and line signs are the most prevalent sign types across all time periods. In the Transitional phase, there is a small range of sign types. The restricted group consists of Fumane, Pod Hradem, and Geissenklösterle, two of which only have a notch, and one of which has a notch and circumnotch. The broader group consists of Labeko Koba, Hohle Fels, and El Castillo. In the Proto-Aurignacian we see an expansion in both the number of sites and range of signs, with no overlap in sites from the Transitional phase, except for Geissenklösterle, which is present in both phases. The restricted group consists of Abri Pataud, Gatzarria, Hohlenstein-Stadel, and Mladeč, three of which only have notches and lines, and one also has a dashline. The broader group consists of Geissenklösterle, Spy, Vogelherd, Grotte du Renne, La Ferrassie, and Les Cottés, where we see a more consistent pattern of a more diverse range of signs, compared to the broader group of the Transitional phase. In the Early Aurignacian, we see appearance of completely new sites with no overlap with the Proto-Aurignacian sites, as well as increased diversity of patterns within the groups. The restricted group consists of Grottes de Fonds-de-Forêt (radnotch and notch), Riparo Bombrini (notch), and Grotte de la Verpillière I (notch and line), The broader group consists of Solutré, Hohle Fels, Castanet, Cellier, Blanchard, and Trou al'Wesse, which contain a wide range of signs in a variety of combinations. Lastly, in the Evolved Aurignacian, we see slightly more consistent groups, again with new sites with no overlap with the Early Aurignacian sites, except for Hohle Fels, which also appears in the Transitional phase. Vogelherd also reappears, having appeared earlier in the Proto-Aurignacian.The restricted group consists of Les Rois, Gargas, La Viña, Sirgenstein Cave, and Vindija Cave, covering the line, notch, and and obline signs. The broader group consists of Trou Magrite, Bockstein-Törle, Vogelherd, and Hohle Fels. Overall, across the four phases, the number of sites in the restricted group tends to be less than or equal to the number of sites in the broader group, with the exception of the final Evolved phase. <!-- BM: I reckon we need to say something about the signs also, not just the sites -->
+For each of the phases, seriation identifies at least two groups, one with a restricted range of sign types, and one with a broader range. The notch and line signs are the most prevalent sign types across all time periods. In the Transitional phase, there is a small range of sign types. The restricted group consists of Fumane, Pod Hradem, and Geissenklösterle, two of which only have a notch, and one of which has a notch and circumnotch. The broader group consists of Labeko Koba, Hohle Fels, and El Castillo. In the Proto-Aurignacian we see an expansion in both the number of sites and range of signs, with no overlap in sites from the Transitional phase, except for Geissenklösterle, which is present in both phases. The restricted group consists of Abri Pataud, Gatzarria, Hohlenstein-Stadel, and Mladeč, three of which only have notches and lines, and one also has a dashline. The broader group consists of Geissenklösterle, Spy, Vogelherd, Grotte du Renne, La Ferrassie, and Les Cottés, where we see a more consistent pattern of a more diverse range of signs, compared to the broader group of the Transitional phase. In the Early Aurignacian, we see appearance of completely new sites with no overlap with the Proto-Aurignacian sites, as well as increased diversity of patterns within the groups. The restricted group consists of Grottes de Fonds-de-Forêt (radnotch and notch), Riparo Bombrini (notch), and Grotte de la Verpillière I (notch and line), The broader group consists of Solutré, Hohle Fels, Castanet, Cellier, Blanchard, and Trou al'Wesse, which contain a wide range of signs in a variety of combinations. Lastly, in the Evolved Aurignacian, we see slightly more consistent groups, again with new sites with no overlap with the Early Aurignacian sites, except for Hohle Fels, which also appears in the Transitional phase. Vogelherd also reappears, having appeared earlier in the Proto-Aurignacian.The restricted group consists of Les Rois, Gargas, La Viña, Sirgenstein Cave, and Vindija Cave, covering the line, notch, and and obline signs. The broader group consists of Trou Magrite, Bockstein-Törle, Vogelherd, and Hohle Fels. Overall, across the four phases, the number of sites in the restricted group tends to be less than or equal to the number of sites in the broader group, with the exception of the final Evolved phase. We also see that simpler signs, like line and notch, tend to be more common in both groups, but tend to primarily make up the restricted groups.
+
+<!-- BM: I reckon we need to say something about the signs also, not just the sites -->
 
 ```{r fig.height= 5.5, fig.width= 8}
 #| label: fig-neighbor-net
@@ -750,7 +761,18 @@ plot_grid(network_trans, network_proto, network_early, network_evolved,
           label_size = 7, label_colour = "black", label_y = 1.02, label_x = -0.01)
 ```
 
-The results of the network analysis supports the restricted-broad groupings identified in @fig-seriation, and provides additional insights into the evolution of connectivity between groups. In the Transitional phase, the network analysis reveals two distinct and disconnected groups. The restricted group consists of Geissenklösterle, Fumane, and Pod Hradem, and the broad group consisting of Hohle Fels, El Castillo, and Labeko Koba, with no connections between the groups. The Proto-Aurignacian phase also shows two clearly defined groups, the broad group consisting of Geissenklösterle, Spy, Vogelherd, and Grotte du Renne, and the restricted group consisting of Mladeč, Hohlenstein-Stadel, Gatzarria, and Abri Pataud. However, it also displays some connectivity between the two groups of sites, with La Ferrassie connected to both groups. Les Cottés stands out with no connections to either group. The Early Aurignacian shows more strongly inter-connected groups -- although the shape still suggests two main groups -- with Grotte de la Verpillière I in particular having multiple strong connections to both groups. Lastly, the Evolved Aurignacian again shows two main groups, although intra-group connectivity has decreased, with the broad group consisting of Hohle Fels, Trou Magrite, Vogelherd, and Bockstein-Törle, and the restricted group consisting of Gargas, La Viña, Sirgenstein Cave, Vindija Cave, and Les Rois. As for the Early Aurignacian,inter-connectivity between groups continues to be evident in the Evolved Aurignacian, with connections between Trou Magrite, Gargas, and Vindija Cave, and Bockstein-Törle and Gargas, however the strength of inter-connectivity is weaker than in the Early Aurignacian.
+The results of the network analysis supports the restricted-broad groupings identified in @fig-seriation, and provides additional insights into the evolution of connectivity between groups. In the Transitional phase, the network analysis reveals two distinct and disconnected groups. The restricted group consists of Geissenklösterle, Fumane, and Pod Hradem, and the broad group consisting of Hohle Fels, El Castillo, and Labeko Koba, with no connections between the groups. The Proto-Aurignacian phase also shows two clearly defined groups, the broad group consisting of Geissenklösterle, Spy, Vogelherd, and Grotte du Renne, and the restricted group consisting of Mladeč, Hohlenstein-Stadel, Gatzarria, and Abri Pataud. However, it also displays some connectivity between the two groups of sites, with La Ferrassie connected to both groups. Les Cottés stands out with no connections to either group. The Early Aurignacian shows more strongly inter-connected groups -- although the shape still suggests two main groups -- with Grotte de la Verpillière I in particular having multiple strong connections to both groups. Lastly, the Evolved Aurignacian again shows two main groups, although intra-group connectivity has decreased, with the broad group consisting of Hohle Fels, Trou Magrite, Vogelherd, and Bockstein-Törle, and the restricted group consisting of Gargas, La Viña, Sirgenstein Cave, Vindija Cave, and Les Rois. As for the Early Aurignacian, inter-connectivity between groups continues to be evident in the Evolved Aurignacian, with connections between Trou Magrite, Gargas, and Vindija Cave, and Bockstein-Törle and Gargas, however the strength of inter-connectivity is weaker than in the Early Aurignacian.
+
+In identifying the groups, we referenced both the seriation and network analyses. The results of the above tests allowed us to find two main groups of sites within each phase, as shown in @tbl-group-table. The geographic distributions of the groups are shown in @fig-group-map, and the sign makeup of each group is shown in @fig-group-sign.
+
+```{r}
+ #| label: tbl-group-table
+ #| tbl-cap: "Table of the sites by group per phase"
+ #| tbl-cap-location: bottom
+ group_table <- read_excel("data/site-groups.xlsx")
+ 
+ kable(group_table)
+```
 
 ## Cultural Group Strength
 
@@ -773,8 +795,7 @@ full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_stre
          .before = 1)
 
 strength_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, Modularity, `PerMANOVA r`, `PerMANOVA p`) %>% 
-  mutate(across(where(is.numeric), ~ round(., 3)))
+  dplyr::select(`Aurignacian phase`, Modularity, `PerMANOVA R2`, `PerMANOVA F`, `PerMANOVA p`)
 
 kable(strength_table)
 
@@ -784,17 +805,22 @@ evolved_modularity <- evolved_strength %>%
   dplyr::select(Modularity)
 
 trans_perm_r <- trans_strength %>% 
-  dplyr::select(`PerMANOVA r`)
+  dplyr::select(`PerMANOVA R2`)
 early_perm_r <- early_strength %>% 
-  dplyr::select(`PerMANOVA r`)
+  dplyr::select(`PerMANOVA R2`)
 
 trans_perm_p <- trans_strength %>% 
   dplyr::select(`PerMANOVA p`)
+
+trans_perm_f <- trans_strength %>% 
+  dplyr::select(`PerMANOVA F`)
+early_perm_f <- early_strength %>% 
+  dplyr::select(`PerMANOVA F`)
 ```
 
 The modularity score quantifies the strength of the groupings, showing that the variations in grouping strength between phases are fairly minimal. The results tell us that the Proto-Aurignacian exhibits the strongest groupings, with a score of `r proto_modularity`, and that the Evolved Aurignacian exhibits the weakest groupings, with a score of `r evolved_modularity`. There is a slight increase in modularity between the Transitional period and the Proto-Aurignacian, before an even slighter decrease into the Early Aurignacian, followed by a larger decrease with the Evolved Aurignacian.
 
-The R statistic from the perMANOVA tests tell us the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of `r trans_perm_r` while the Early Aurignacian has the lowest score of `r early_perm_r`. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The perMANOVA p score quantifies the statistical significance of the difference, with 0.05 as the threshold. The only time period to not meet that threshold is the Transitional period (p = `r trans_perm_p`). There is a slight increase between the Proto and Early Aurignacian, and a slightly large increase in the Evolved Aurignacian period, although they all still meets the threshold for statistical significance.
+The R2 statistic from the perMANOVA tests tell us the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of `r trans_perm_r` while the Early Aurignacian has the lowest score of `r early_perm_r`. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The pseudo-F statistic quantifies the difference between groups, with the Transitional phase having the highest score of `trans_perm_f`, and the Early Aurignacian having the lowest score of `early_perm_f`. Similar to the R2 statistic, we see a decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian period. The perMANOVA p score quantifies the statistical significance of the pseudo-F statistic, with 0.05 as the threshold. The only time period to not meet that threshold is the Transitional period (p = `r trans_perm_p`). There is a slight increase between the Proto and Early Aurignacian, and a slightly large increase in the Evolved Aurignacian period, although they all still meets the threshold for statistical significance.
 
 ## Effect of Geographic Distance
 
@@ -824,9 +850,6 @@ early_mantel_p <- early_strength %>%
 
 The relevance of the isolation-by-distance hypothesis also varies from period to period. The p score quantifies the correlation, with a score of 0.05 or lower meaning that there is a statistically significant relationship between sign type distribution and geographical distance. None of the periods meet that threshold, meaning that the isolation-by-distance hypothesis is not applicable to any of them. However, we still see changes in the p score between periods, suggesting a higher level of correlation with geographic distance in some, and a lower correlation in others. The Proto-Aurignacian period demonstrates the least amount of correlation (Mantel R = `r proto_mantel_r`, p = `r proto_mantel_p`), while the Early Aurignacian exhibits the highest amount of correlation (Mantel R = `r early_mantel_r`, p = `r early_mantel_p`).
 
-<!-- BM: I reckon here might be the place to make some comments about geographic distribution of the groups and boundaries, and reference the map below --> 
-
-
 ```{r fig.height= 7, fig.width=10}
 #| label: fig-group-map
 #| fig-cap: "Map of sites faceted by time period and colored by group number"
@@ -852,95 +875,17 @@ ggplot(Europe) +
 
 ```
 
-<<<<<<< HEAD
-
-## Cultural Group Strength
-
-```{r}
-#| label: tbl-strength-table
-#| tbl-cap: "Table of the results per phase for the modularity test and perMANOVA"
-#| tbl-cap-location: bottom
-##Modularity test
-trans_strength <- strength_function(trans_artifact_data, trans_unique_data)
-proto_strength <- strength_function(proto_artifact_data, proto_unique_data)
-early_strength <- strength_function(early_artifact_data, early_unique_data)
-evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data)
-
-full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
-  mutate(`time period` = c("Transitional", "Proto-Aurignacian",
-                                                       "Early Aurignacian", "Evolved Aurignacian"), .before = 1)
-
-strength_table <- full_table %>% 
-  dplyr::select(`time period`, modularity, `permanova r`, `permanova p`)
-
-kable(strength_table)
-
-proto_modularity <- proto_strength %>% 
-  dplyr::select(modularity)
-evolved_modularity <- evolved_strength %>% 
-  dplyr::select(modularity)
-
-trans_perm_r <- trans_strength %>% 
-  dplyr::select(`permanova r`)
-early_perm_r <- early_strength %>% 
-  dplyr::select(`permanova r`)
-
-trans_perm_p <- trans_strength %>% 
-  dplyr::select(`permanova p`)
-```
-
-The modularity score quantifies the strength of the groupings, showing that the variations in grouping strength between phases are fairly minimal. The results tell us that the Proto-Aurignacian exhibits the strongest groupings, with a score of `r proto_modularity`, and that the Evolved Aurignacian exhibits the weakest groupings, with a score of `r evolved_modularity`. There is a slight increase in modularity between the Transitional period and the Proto-Aurignacian, before an even slighter decrease into the Early Aurignacian, followed by a larger decrease with the Evolved Aurignacian.
-
-The R statistic from the perMANOVA tests tell us the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of `r trans_perm_r` while the Early Aurignacian has the lowest score of `r early_perm_r`. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The perMANOVA p score quantifies the statistical significance of the difference, with 0.05 as the threshold. The only time period to not meet that threshold is the Transitional period (p = `r trans_perm_p`). There is a slight increase between the Proto and Early Aurignacian, and a slightly large increase in the Evolved Aurignacian period, although they all still meets the threshold for statistical significance.
-
-## Effect of Geographic Distance
-
-```{r}
-#| label: tbl-mantel-table
-#| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard matrix of sign type diversity and a geographic distance matrix"
-#| tbl-cap-location: bottom
-## Mantel test for geography vs signs
-mantel_table <- full_table %>% 
-  dplyr::select(`time period`, `mantel r`, `mantel p`)
-
-kable(mantel_table)
-
-proto_mantel_r <- proto_strength %>% 
-  dplyr::select(`mantel r`)
-
-proto_mantel_p <- proto_strength %>% 
-  dplyr::select(`mantel p`)
-
-
-early_mantel_r <- early_strength %>% 
-  dplyr::select(`mantel r`)
-
-
-early_mantel_p <- early_strength %>% 
-  dplyr::select(`mantel p`)
-
-
-```
-
-The relevance of the isolation-by-distance hypothesis also varies from period to period. The p score quantifies the correlation, with a score of 0.05 or lower meaning that there is a statistically significant relationship between sign type distribution and geographical distance. None of the periods meet that threshold, meaning that the isolation-by-distance hypothesis is not applicable to any of them. However, we still see changes in the p score between periods, suggesting a higher level of correlation with geographic distance in some, and a lower correlation in others. The Proto-Aurignacian period demonstrates the least amount of correlation (Mantel R = `r proto_mantel_r`, p = `r proto_mantel_p`), while the Early Aurignacian exhibits the highest amount of correlation (Mantel R = `r early_mantel_r`, p = `r early_mantel_p`).
-=======
->>>>>>> b5934f5bc3a2913f88470ea0c9a1d2211b4f23e3
+@fig-group-map shows the geographic distribution of sites as colored by group, demonstrating that geographic boundaries do not readily correspond to the group distributions. In the Transitional phase, the sites are widely spread out across Western Europe, and tend to be located fairly closely to the other sites in their groups. The exception is Hohle Fels, which, instead of being located further west with the rest of the sites in the broader group, is located further east, closer to the sites in the restricted group, and almost overlapping with Geissenklösterle. In the Proto-Aurignacian, we see a slightly more restricted distribution of sites westward but a spread northward, and more overlapping of sites between groups. For the restricted group, we interestingly see a divide across the center, with Mladeč and Hohlenstein-Stadel located close together further to the east, and Gatzarria and Abri Pataud located close together further to the west, with a large space between the two clusters. The broader sites tend to be more uniformly spread out across the geographic space, without much clustering close together. We again see some overlap between Abri Pataud and La Ferrassie, as well as between Geissenklösterle and Hohlenstein-Stadel. In the Early Aurignacian, we see a reduced distribution, with sites clustered closer together, incluing a great deal of both intra- and inter-group proximity. In the Evolved Aurignacian, we see a wider distribution and more distance between sites. In particular, the sites in the reduced group are especially spread out across the space, while the broader sites are slightly more clustered. We also see a bit of a geographic divide between groups, with the reduced sites tending to be located further to the west, while the broader sites tend to be located further to the east. The exceptions is Sirgenstein Cave, which is located closer to the broader sites, almost overlapping with Vogelherd, Bockstein-Törle, and Hohle Fels.
 
 # Discussion
 
 The first aim of our study was to determine how the grouping dynamics of geometric signs changed across the four phases of the Aurignacian, specifically in terms of diversity, size, connectivity, and boundaries. The results as displayed in @fig-seriation show that each phase can be divided into two main cultural groups, with diversity serving as a major dividing factor, and that group size varied from phase to phase, with a large increase in between the Transitional phase and the Proto-Aurignacian.
 
-@fig-neighbor-net shows that group inter-connectivity and intra-connectivity varies from phase to phase, with weak inner group connections and no between-group connections in the Transitional phase, to stronger intraconnections and interconnections starting to form in the Proto-Aurignacian, to extremely strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The modularity tests, as shown in @tbl-strength-table, show that the groupings are strongest in the Transitional period and weakest in the Early Aurignacian, and the perMANOVA tests tell us that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian experiences the least. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian experiences the highest correlation.
+@fig-neighbor-net shows that group inter-connectivity and intra-connectivity varies from phase to phase, with weak intra-group connections and no inter-group connections in the Transitional phase, to stronger intraconnections and interconnections starting to form in the Proto-Aurignacian, to extremely strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The modularity tests, as shown in @tbl-strength-table, show that the groupings are strongest in the Transitional period and weakest in the Early Aurignacian, and the perMANOVA tests tell us that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian experiences the least. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian experiences the highest correlation.
 
-Map shows that geographic boundaries do not readily correspond to the group distributions and Mantel test results
+The second aim of our study was to determine what these patterns tell us about dynamics of social organization throughout the Aurignacian. The results suggest that the Transitional phase was sparsely populated, with minimal interaction between loosely connected groups. For the Proto-Aurignacian, the results suggest a large expansion in social activity, as well as strongly intra-connected groups with some inter-connectivity present, with geographic distance having the least influence on sign distribution. The Early Aurignacian experiences a large surge in inter-connectivity, as well as intra-connectivity strength, with a great deal of connection between groups and an increase in the correlation with geographic distance. The Evolved Aurignacian experiences a decline in connection strength, although it maintains degrees of inter-connectivity.
 
-
-
-
-
-The second aim of our study was to determine what these patterns tell us about dynamics of social organization throughout the Aurignacian. The results suggest that the Transitional phase was sparsely populated, with minimal interaction between loosely connected groups. For the Proto-Aurignacian, the results suggest a large expansion in social activity, as well as strongly inner-connected groups with some inter-connectivity present, with geographic distance having the least influence on sign distribution. The Early Aurignacian experiences a large surge in inter-connectivity, as well as inner-connectivity strength, with a great deal of connection between groups and an increase in the correlation with geographic distance. The Evolved Aurignacian experiences a decline in connection strength, although it maintains degrees of inter-connectivity.
-
-These results are supported by the existing data on the environmental and biological change established during these phases. @Shao_Wegener_Klein_Schmidt_Weniger_2024 tells us that from 45 - 43.25 k BP, the population density in Europe was extremely low, due to the unfavorable environmental conditions of Greenland Stadial 12 (44 k BP) and the slow westward expansion of early modern humans, before being followed by rapid expansion from 43.25 - 41 k BP, with the maximum extent of Proto/Early Aurignacian (Aur-P1) settlement being reached around 41 k BP. This rapid expansion could be what stimulated the emergence of signs as a marker of group membership. Additionally @Banks_dErrico_Zilhao_2013 use eco-cultural niche modeling to show that the Heinrich Stadial 4 at the very beginning of the Early Aurignacian resulted in an expansion into new environmental niches, which they hypothesize was associated with expansion of social networks both within and between populations. This likely explains why we see a large increase in both inter-connectivity and inner-connectivity strength in the Early Aurignacian, as well as the increased correlation with geographic distance. Lastly, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 developed a human-existence probability model for the Aurignacian, finding an expanded, more dispersed settlement area for Evolved/Late Aurignacian (Aur-P2) theorizing that the environmental changes of HS4 lead to humans better adapted to survive in a broader range of climate conditions. @Shao_Wegener_Klein_Schmidt_Weniger_2024 also find an increase in expansion marking the beginning of the Evolved Aurignacian. Geographic expansion resulting in less group interconnection could explain why we see weaker connections in the Evolved Aurignacian.
+These results are supported by the existing data on the environmental and biological change established during these phases. @Shao_Wegener_Klein_Schmidt_Weniger_2024 tells us that from 45 - 43.25 k BP, the population density in Europe was extremely low, due to the unfavorable environmental conditions of Greenland Stadial 12 (44 k BP) and the slow westward expansion of early modern humans, before being followed by rapid expansion from 43.25 - 41 k BP, with the maximum extent of Proto/Early Aurignacian (Aur-P1) settlement being reached around 41 k BP. This rapid expansion could be what stimulated the emergence of signs as a marker of group membership. Additionally @Banks_dErrico_Zilhao_2013 use eco-cultural niche modeling to show that the Heinrich Stadial 4 at the very beginning of the Early Aurignacian resulted in an expansion into new environmental niches, which they hypothesize was associated with expansion of social networks both within and between populations. This likely explains why we see a large increase in both inter-connectivity and intra-connectivity strength in the Early Aurignacian, as well as the increased correlation with geographic distance. Lastly, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 developed a human-existence probability model for the Aurignacian, finding an expanded, more dispersed settlement area for Evolved/Late Aurignacian (Aur-P2) theorizing that the environmental changes of HS4 lead to humans better adapted to survive in a broader range of climate conditions. @Shao_Wegener_Klein_Schmidt_Weniger_2024 also find an increase in expansion marking the beginning of the Evolved Aurignacian. Geographic expansion resulting in less group interconnection could explain why we see weaker connections in the Evolved Aurignacian.
 
 # Conclusion
 
