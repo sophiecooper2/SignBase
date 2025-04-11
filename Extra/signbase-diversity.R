@@ -1,61 +1,3 @@
-library(vegan)
-
-artifact_div <- vegan::diversity(artifact_data, index = "shannon")
-
-abundance_data$diversity <- artifact_div
-
-##plot diversity against abundance
-
-ggplot(abundance_data) +
-  aes(x = sign_total,
-      y = diversity) +
-  geom_point() +
-  geom_smooth(se = FALSE)
-
-## plot diversity by site
-library(ggpubr)
-ggplot(abundance_data) +
-  aes(x = site_name, y = sign_total, fill = diversity) +
-  geom_col() +
-  rotate_x_text(angle = 90, hjust = NULL, vjust = NULL)
-
-## map diversity by site
-signbase_sf <- 
-  st_as_sf(abundance_data, 
-           coords = c("longitude", "latitude"),
-           remove = FALSE,
-           crs = 4326)
-
-
-world <- ne_countries(scale = "medium", returnclass = "sf")
-Europe <- world[which(world$continent == "Europe"),]
-
-ggplot(Europe) +
-  geom_sf() +
-  geom_sf(data = signbase_sf,
-          aes(size = diversity)) +
-  scale_size_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2)) +
-  coord_sf(xlim = c(-10,30), 
-           ylim = c(35,53), 
-           expand = FALSE) +
-  geom_text_repel(data = signbase_sf,
-                  aes(x = longitude ,
-                      y = latitude,
-                      label = site_name),
-                  max.overlaps = 100,
-                  size = 2) +
-  theme_minimal() +
-  facet_wrap(~group) +
-  labs(color = "Diversity",
-       size = "Sign Count")
-
-
-## Calculate the diversity of groups
-div_groups <- abundance_data %>% pull(group)
-artifact_div_groups <- diversity(artifact_data, index = "shannon", groups = div_groups)
-group_diversity <- data_frame(artifact_div_groups) %>% 
-  rownames_to_column("group")
-
 
 
 #---------------------------------------------
@@ -240,6 +182,52 @@ autoplot(richness_sim) +
   theme_minimal()
 
 
+# divide sites into four phases: ; Proto, Early, Evolved, and Late Aurignacian. From our Quarto manuscript we have signbase_full_clean that has a column time_period
+
+plot_diversity_fn <- function(input_df){
+
+signs <-
+  input_df %>% 
+  select(
+         site_name,
+         # c(line:star)
+         # we are looking at the more visually complex signs
+         cross, 
+         v, 
+         star, 
+         zigzag, 
+         zigzagrow, 
+         grid, 
+         hashtag, 
+         hatching, 
+         anthropomorph,
+         zoomorph, 
+         vulva) %>% 
+  group_by(site_name) %>% 
+  summarise(across(where(is.numeric), ~ sum(.))) %>% 
+  column_to_rownames("site_name") 
+
+diversity_index <- 
+  heterogeneity(signs, method = "shannon")
+
+diversity_sim <- simulate(diversity_index)
+
+autoplot.DiversityIndex(diversity_sim) +
+  geom_text_repel(aes(label = diversity_sim@labels),
+                  size = 3) +
+  guides(colour = "none") +
+  theme_minimal(base_size = 8)
+}
+
+signbase_full_clean_diversity_plot_by_period <- 
+signbase_full_clean %>% 
+  nest_by(time_period) %>% 
+  mutate(plot = list(plot_diversity_fn(data)))
+
+library(cowplot)
+plot_grid(plotlist =  signbase_full_clean_diversity_plot_by_period$plot,
+          labels = signbase_full_clean_diversity_plot_by_period$time_period,
+          label_size = 8)
 
 
 
