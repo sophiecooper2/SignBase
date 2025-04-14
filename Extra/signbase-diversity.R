@@ -182,7 +182,7 @@ autoplot(richness_sim) +
   theme_minimal()
 
 
-# divide sites into four phases: ; Proto, Early, Evolved, and Late Aurignacian. From our Quarto manuscript we have signbase_full_clean that has a column time_period
+# divide sites into four phases: Proto, Early, Evolved, and Late Aurignacian. From our Quarto manuscript we have signbase_full_clean that has a column time_period
 
 plot_diversity_fn <- function(input_df){
 
