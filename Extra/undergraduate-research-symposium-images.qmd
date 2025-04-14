@@ -1,0 +1,209 @@
+
+```{r}
+ mplot <- function(x, ..., fill_colour = "black", title = NULL, row_labels = NULL, col_labels = NULL, palette_colors = NULL) {
+   d <- data.frame(
+     x = rep(1:ncol(x), each = nrow(x)),
+     y = rep(nrow(x):1, ncol(x)),
+     z = as.integer(x)
+   )
+   
+   if (!is.null(palette_colors)) {
+     d$palette_colors <- rep(palette_colors, ncol(x))
+   }
+   
+   if (is.null(col_labels)) col_labels <- colnames(x)
+   if (is.null(row_labels)) row_labels <- rev(rownames(x))
+   
+   p <- ggplot(d, aes(x, y)) +
+     geom_tile(col = "grey50", 
+               linewidth = 0.5, 
+               aes(fill = ifelse(z == 1, palette_colors, "white"))) +
+     scale_fill_identity() +  
+     coord_equal(expand = FALSE) +
+     scale_x_continuous(
+       breaks = 1:ncol(x),
+       labels = col_labels,
+       position = "top"
+     ) +
+     scale_y_continuous(
+       breaks = 1:nrow(x),
+       labels = row_labels
+     ) +
+     theme(
+       axis.text = element_text(size = rel(0.3)),
+       axis.ticks = element_blank(),
+       legend.position = "none",
+       plot.title = element_text(hjust = 1)
+     ) +
+     labs(x = "", y = "") +
+     rotate_x_text(angle = 90, hjust = 0, vjust = 0.5)
+   
+   p
+ }
+ 
+ increase_focus <- function(x, group = NULL) {
+   mcp <- apply(
+     x, 
+     MARGIN = 1, 
+     FUN = \(z) { mean(which(z == 1)) }, 
+     simplify = FALSE
+   ) |> unlist()
+   row_order <- order(mcp, na.last = TRUE)
+   x <- x[row_order, ]
+   
+   if (!is.null(group)) {
+     group <- group[row_order]
+   }
+   
+   mrp <- apply(
+     x, 
+     MARGIN = 2, 
+     FUN = \(z) { mean(which(z == 1)) }, 
+     simplify = FALSE
+   ) |> unlist()
+   x <- x[, order(mrp, na.last = TRUE)]
+   
+   list(matrix = x, group = group)
+ }
+ 
+ concentrate <- function(x, group = NULL, max_iter = 100) {
+   old <- x
+   not_identical <- TRUE
+   iter <- 0
+   
+   while (not_identical && iter < max_iter) {
+     result <- increase_focus(old, group)
+     new <- result$matrix
+     group <- result$group
+     not_identical <- !identical(old, new)
+     old <- new
+     iter <- iter + 1
+   }
+   
+   if (iter == max_iter) {
+     warning("Reached maximum iterations without convergence.")
+   }
+   
+   list(matrix = new, group = group)
+ }
+ 
+ produce_clusters <- function(artifact_data, artifact_data_unique, method = "seriation", color_palette = c("#8DD3C7", "#FFFFB3")){
+   
+   artifact_data <- artifact_data %>% 
+     select_if(~ !is.numeric(.) || sum(.) != 0) %>% 
+     mutate_all(~ as.numeric(. > 0))
+   
+   jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
+   dm <- as.matrix(jac)
+   
+   if(method == "seriation"){
+   artifact_matrix <- as.matrix(artifact_data)
+   rownames(artifact_matrix) <- rownames(artifact_data)
+ 
+   group <- artifact_data_unique$group
+   unique_group <- unique(group)
+  # color_palette <-  RColorBrewer::brewer.pal(length(unique_group), "Set3")
+   row_colors <- setNames(color_palette, unique_group)
+   result <- concentrate(artifact_matrix, group = group)
+   concentrated_matrix <- result$matrix
+   reordered_group <- result$group
+   group_colors <- row_colors[reordered_group]
+ 
+   final_plot <- mplot(concentrated_matrix,
+     palette_colors = group_colors)
+   }
+   
+   if(method == "network"){
+   disim <- 1 - dm
+   disim[disim<0.2] <- 0
+   disim_net <- network(disim,
+                        directed=F,
+                        ignore.eval=F,
+                        names.eval='weight')
+   disim_net %v% 'vertex.names' <- row.names(artifact_data)
+   set.seed(500)
+   
+   final_plot <- ggraph(disim_net, layout="fr") +
+       geom_edge_link(aes(width = weight, 
+                          alpha=weight), 
+                      edge_colour = "black", 
+                      show.legend= F,
+                     ) +
+       scale_edge_width(range=c(0.5,1.5)) +
+       scale_edge_colour_gradient(low = "#CCCCCC",
+                                  high = "#000000") +
+       geom_node_point(alpha=1, size=5) +
+       geom_node_text(aes(label=row.names(artifact_data)), 
+                      size=3, 
+                      family= "Arial", 
+                      repel=T, max.overlaps = 100) +
+       theme(text= element_text(size = 15), 
+             panel.background = element_rect(fill = 'white')) +
+     border(color = "black", size = 0.5)
+     
+   }
+   return(final_plot)
+ }
+
+```
+
+```{r}
+seriation_trans <- 
+  produce_clusters(trans_artifact_data, 
+                   trans_unique_data, 
+                   method = "seriation")
+
+seriation_proto <- 
+  produce_clusters(proto_artifact_data, 
+                   proto_unique_data, 
+                   # BM: not sure why this one gets the 
+                   # colour differently from the others
+                   color_palette = c("#FFFFB3", "#8DD3C7"),
+                   method = "seriation")
+
+seriation_early <- 
+  produce_clusters(early_artifact_data, 
+                   early_unique_data, 
+                   method = "seriation")
+
+seriation_evolved <- 
+  produce_clusters(evolved_artifact_data, 
+                   evolved_unique_data, 
+                   method = "seriation")
+
+x <- plot_grid(seriation_trans,
+          seriation_proto, 
+          seriation_early , 
+          seriation_evolved, 
+          ncol = 2, 
+          align = "hv", 
+          labels = c("Transitional", "Proto", "Early", "Evolved"), label_size = 5, 
+          scale = c(1.07, 1.07, 1.07, 1.07))
+
+ggsave(x, 
+      filename =  "seriation.png",
+       h = 2.3, w = 3.7,
+       bg = "white")
+
+```
+
+```{r}
+network_trans <- trans_network(trans_artifact_data)
+network_proto <- produce_clusters(proto_artifact_data, proto_unique_data, method = "network")
+network_early <- produce_clusters(early_artifact_data, early_unique_data, method = "network")
+network_evolved <- produce_clusters(evolved_artifact_data, evolved_unique_data, method = "network")
+
+y <- plot_grid(network_trans, network_proto, network_early, network_evolved, 
+          ncol = 2, align = "hv", labels = c("Transitional", "Proto", "Early", "Evolved"), label_size = 5)
+
+
+
+ggsave(y, 
+      filename =  "network.png",
+       h = 8, w = 10,
+       bg = "white")
+```
+
+
+
+
