@@ -58,3 +58,12 @@ g <- graph.adjacency(
   diag=FALSE
 )
 as_group <- modularity(g, membership = mem)
+
+jac_df <- dm %>% 
+  as.data.frame() %>% 
+  rownames_to_column("edges") %>% 
+  pivot_longer(cols = `El Castillo`: `Pod Hradem`)
+
+g <- graph_from_data_frame(d = jac_df, directed = FALSE)
+
+as_group <- modularity(g, membership = mem)
