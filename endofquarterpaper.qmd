@@ -654,36 +654,6 @@ strength_function <- function(artifact_data, group_data){
   return(final_table)
 }
 
-
-trans_network <- function(artifact_data){
-    jac <- vegdist(artifact_data %>%  mutate_all(~ as.numeric(. > 0)), "jaccard", binary = TRUE)
-    dm <- as.matrix(jac)
-    disim <- 1 - dm
-    disim[disim<0.1] <- 0
-    disim_net <- network(disim,
-                         directed=F,
-                         ignore.eval=F,
-                         names.eval='weight')
-    disim_net %v% 'vertex.names' <- row.names(artifact_data)
-    set.seed(500)
-    final_plot <- ggraph(disim_net, layout="fr") +
-      geom_edge_link(aes(width = weight, 
-                         alpha=weight), 
-                       edge_colour = "black", 
-                       show.legend=F) +
-      scale_edge_width(range=c(0.5,1.5)) +
-      scale_edge_colour_gradient(low = "#CCCCCC",
-                                   high = "#000000") +
-      geom_node_point(alpha=1, size=5) +
-      geom_node_text(aes(label=row.names(artifact_data)), 
-                     size=3, 
-                     family= "Arial", 
-                     repel=T, max.overlaps = 100) +
-      theme(text= element_text(size = 15), 
-            panel.background = element_rect(fill = 'white')) +
-      border(color = "black", size = 0.5)
-    return(final_plot)
-    }
 ```
 
 If the distribution of sign types can be solely explained by geographic distance, then we would see similarity in sign type distribution decreasing as geographic distance increases. This relationship can be investigated using the isolation-by-distance framework, which proposes that cultural difference can be primarily explained by geographic distance [@Lycett_2019]. To confirm that the distribution of sign types is influenced by cultural factors rather than geographic distance, we calculated the correlation between sign type distribution and geography for each phase. We used Mantel tests with a geographic distance matrix and a Jaccard similarity matrix, with the results shown in @tbl-mantel-table. None of the phases have a statistically significant correlation between sign type distribution and geographical distance, so the isolation-by-distance hypothesis is rejected.
@@ -695,11 +665,11 @@ If the distribution of sign types can be solely explained by geographic distance
 ## Mantel test for geography vs signs
 
 trans_strength <- strength_function(trans_artifact_data, trans_unique_data)
- proto_strength <- strength_function(proto_artifact_data, proto_unique_data)
- early_strength <- strength_function(early_artifact_data, early_unique_data)
- evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data)
+proto_strength <- strength_function(proto_artifact_data, proto_unique_data)
+early_strength <- strength_function(early_artifact_data, early_unique_data)
+evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data)
  
- full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
+full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
    mutate(`Aurignacian phase` = c("Transitional", 
                             "Proto-Aurignacian",
                             "Early Aurignacian", 
@@ -794,7 +764,7 @@ Lastly, in the Evolved Aurignacian, we see slightly more consistent groups, agai
 ```{r fig.height= 5.5, fig.width= 8}
 #| label: fig-neighbor-net
 #| fig-cap: "Network analysis of the data"
-network_trans <- trans_network(trans_artifact_data)
+network_trans <- produce_clusters(trans_artifact_data, trans_unique_data, method = "network")
 network_proto <- produce_clusters(proto_artifact_data, proto_unique_data, method = "network")
 network_early <- produce_clusters(early_artifact_data, early_unique_data, method = "network")
 network_evolved <- produce_clusters(evolved_artifact_data, evolved_unique_data, method = "network")
@@ -843,7 +813,7 @@ early_perm_f <- early_strength %>%
 
 The modularity score quantifies the strength of the groupings, showing that the variations in grouping strength between phases are minimal. The Proto-Aurignacian exhibits the strongest groupings, with a score of `r proto_modularity`, and the Evolved Aurignacian has the weakest groupings, with a score of `r evolved_modularity`. There is a slight increase in modularity between the Transitional period and the Proto-Aurignacian, before an even slighter decrease into the Early Aurignacian, followed by a larger increase with the Evolved Aurignacian.
 
-The perMANOVA R^2^ statistic shows the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of `r trans_perm_r` while the Early Aurignacian has the lowest score of `r early_perm_r`. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The pseudo-F statistic quantifies the difference between groups, with the Transitional phase having the highest value of `r trans_perm_f`, and the Early Aurignacian having the lowest value of `r early_perm_f`. Similar to the R^2^ statistic, we see a decline in values between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian period. The perMANOVA p-value indicates a statistically significant difference in the distribution of signs between the restricted and broad groups for the Proto- , Early, and Evolved Aurignacian phases, but not the Transitional phase (p = `r trans_perm_p`).
+The perMANOVA R^2^ statistic shows the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of `r trans_perm_r` while the Early Aurignacian has the lowest score of `r early_perm_r`. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The pseudo-F statistic quantifies the difference between groups, with the Transitional phase having the highest value of `r trans_perm_f`, and the Early Aurignacian having the lowest value of `r early_perm_f`. Similar to the R^2^ statistic, we see a decline in values between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian period. The perMANOVA p-value indicates a statistically significant difference in the distribution of signs between the restricted and broad groups for the Proto , Early, and Evolved Aurignacian phases, but not the Transitional phase (p = `r trans_perm_p`).
 
 # Discussion
 
@@ -889,16 +859,10 @@ These results are consistent with previous work on the environmental and populat
 
 Similarly, @Banks_dErrico_Zilhao_2013 use eco-cultural niche modeling to show that the Heinrich Stadial 4 (HS4) at the very beginning of the Early Aurignacian resulted in a expansion of people into new environmental niches, which they hypothesize was associated with an expansion of social networks both within and between populations. This correlates with our results which show a large increase in both inter-connectivity and intra-connectivity strength in the Early Aurignacian, as well as the increased sign type correlation with geographic distance. Lastly, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 developed a human-existence probability model for the Aurignacian, finding an expanded, more dispersed settlement area for Evolved/Late Aurignacian theorizing that the environmental changes of HS4 lead to humans better adapted to survive in a broader range of climate conditions. @Shao_Wegener_Klein_Schmidt_Weniger_2024 also finds an increase in expansion marking the beginning of the Evolved Aurignacian. This geographic expansion may explain our results, where we find weaker, more dispersed connections in the Evolved Aurignacian.
 
-\<-- cite signbase 2.0 --\>.
-
 # Conclusion
 
 This study adds to our knowledge of social networks within the Aurignacian period, as our results document dynamic patterns of social exchange and connection. Previous works [@bahn1982inter; @Horiuchi_Takakura_2019; @Rogers_2013; @baker2024evidence; @Golovanova_Doronichev_Doronicheva_Sapega_Shackley_2021; @Gamble_1982] have used material evidence analysis to reconstruct Upper Paleolithic social networks, which research has pointed to as a potential driver of cultural and evolutionary growth [@Greenbaum_Friesem_Hovers_Feldman_Kolodny_2019; @Creanza_Kolodny_Feldman_2017; @Cullen_1996]. @Foley_Gamble_2009 places the emergence of complex inter-group connectivity at around 30 k BP, however, our results show evidence of inter-connectivity beginning at around 41 k BP, perhaps suggesting an earlier emergence of complex inter-connectivity than previously predicted. We attempted to rectify the low temporal resolution that tends to affect network analysis results when analyzing older, more time-averaged data sets [@Gravel-Miguel_Coward_2023] by dividing the data up into smaller time periods. Additionally, by focusing on change over time, we are able to see social networks as fluid and dynamic, rather than static and bounded [@Maher_Conkey_2019].
 
-One limitation is the potential ambiguity that arises with some of the sign types. While @Von_Petzinger_2009 argues in favor of Aurignacian geometric signs as symbolic expression, potential ambiguity still remains over whether function is consistent across all sign type occurrences, particularly in regards to the simpler sign types composed from fewer elements. We included the more ambiguous sign types because similar sign occurrence may still serve as evidence of cultural connectivity regardless of function, and additionally, greater quantities of included sign types serves to establish stronger connections [@Gravel-Miguel_Coward_2023]. This ambiguity may be addressed in the future through the usage of the data recently released in SignBase 2.0 covering sites in Germany, which contains more detailed information on the specific order and patterns in which signs occurred on individual objects
-
-\<--
-
-cite signbase 2.0–\>.
+One limitation is the potential ambiguity that arises with some of the sign types. While @Von_Petzinger_2009 argues in favor of Aurignacian geometric signs as symbolic expression, potential ambiguity still remains over whether function is consistent across all sign type occurrences, particularly in regards to the simpler sign types composed from fewer elements. We included the more ambiguous sign types because similar sign occurrence may still serve as evidence of cultural connectivity regardless of function, and additionally, greater quantities of included sign types serves to establish stronger connections [@Gravel-Miguel_Coward_2023]. This ambiguity may be addressed in the future through the usage of the data recently released in SignBase 2.0 covering sites in Germany, which contains more detailed information on the specific order and patterns in which signs occurred on individual objects.
 
 # References
