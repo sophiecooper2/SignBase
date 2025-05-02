@@ -1,8 +1,3 @@
-
-
-#---------------------------------------------
-# BM from Aleah and Eva
-
 library(tabula)
 library(tidyverse)
 library(rnaturalearth)
@@ -33,6 +28,7 @@ signbase_transformed %>%
       fill = name) +
   geom_col() +
   coord_flip()
+
 
 ## Measure diversity by comparing to simulated assemblages
 set.seed(12345)
@@ -228,6 +224,5 @@ library(cowplot)
 plot_grid(plotlist =  signbase_full_clean_diversity_plot_by_period$plot,
           labels = signbase_full_clean_diversity_plot_by_period$time_period,
           label_size = 8)
-
 
 

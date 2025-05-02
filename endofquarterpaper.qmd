@@ -854,6 +854,132 @@ The geographic boundaries of the groups change from phase to phase (@fig-group-m
 
 One factor that may influence the geographic structure of sites is the possibility that some sites functioned as aggregation sites. The aggregation/dispersion pattern is first defined by @conkley_agg as a type of hunter-gather settlement pattern, in which groups both break off in dispersed fragments and congregate in large groups, typically for various subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate, and some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a more diverse artifact assemblage [@conkley_agg]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994]. It is therefore possible that sites with multiple connections between groups [@fig-neighbor-net], such as La Ferrassie in the the Proto-Aurignacian, Grotte de la Verpillière I in the Early Aurignacian, and Gargas in the Evolved Aurignacian acted as aggregation sites or served a similar purpose.
 
+```{r}
+
+library(tabula)
+library(rnaturalearth)
+
+as_factor <- function(x, reverse = FALSE) {
+  lvl <- unique(x)
+  if (reverse) {
+    lvl <- rev(lvl)
+  }
+  factor(x, levels = lvl)
+}
+
+to_long <- function(from, factor = FALSE, reverse = FALSE) {
+  x <- data.frame(
+    row = as.vector(row(from, as.factor = factor)),
+    column = as.vector(col(from, as.factor = factor)),
+    value = as.vector(from),
+    stringsAsFactors = FALSE
+  )
+  if (factor) {
+    x$row <- as_factor(x$row, reverse = reverse)
+    x$column <- as_factor(x$column, reverse = reverse)
+  }
+  return(x)
+}
+
+autoplot.DiversityIndex <- function(object, ...) {
+  ## Prepare data
+  count <- cbind.data.frame(
+    label = object@labels,
+    x = object@size,
+    y = object@.Data
+  )
+  
+  ## Simulated assemblages
+  gg_sim <- NULL
+  if (length(object@simulation) != 0) {
+    # Build a long table for ggplot2
+    refined <- object@simulation
+    
+    sim_stacked <- to_long(refined[, -c(1)], factor = TRUE)
+    sim <- cbind.data.frame(
+      size = refined[, 1],
+      sim_stacked,
+      Estimate = ifelse(sim_stacked[["column"]] == "mean", "mean", "conf. int.")
+    )
+    gg_sim <- ggplot2::geom_path(
+      mapping = ggplot2::aes(
+        x = .data$size,
+        y = .data$value,
+        colour = .data$Estimate,
+        group = .data$column
+      ),
+      data = sim,
+      na.rm = TRUE,
+      inherit.aes = FALSE
+    )
+  }
+  
+  y_lab <- switch (
+    class(object),
+    HeterogeneityIndex = "Heterogeneity",
+    EvennessIndex = "Evenness",
+    RichnessIndex = "Richness",
+    "Diversity"
+  )
+  
+  ## ggplot
+  ggplot2::ggplot(data = count) +
+    ggplot2::aes(x = .data$x, y = .data$y, label = .data$label) +
+    ggplot2::geom_point() +
+    gg_sim +
+    ggplot2::scale_x_log10(name = "Sample size") +
+    ggplot2::scale_y_continuous(
+      name = sprintf("%s (%s)", y_lab, object@method)
+    )
+}
+
+plot_diversity_fn <- function(input_df){
+
+signs <-
+  input_df %>% 
+  select(
+         site_name,
+         # c(line:star)
+         # we are looking at the more visually complex signs
+         cross, 
+         v, 
+         star, 
+         zigzag, 
+         zigzagrow, 
+         grid, 
+         hashtag, 
+         hatching, 
+         anthropomorph,
+         zoomorph, 
+         vulva) %>% 
+  group_by(site_name) %>% 
+  summarise(across(where(is.numeric), ~ sum(.))) %>% 
+  column_to_rownames("site_name") 
+
+diversity_index <- 
+  heterogeneity(signs, method = "shannon")
+
+diversity_sim <- simulate(diversity_index)
+
+autoplot.DiversityIndex(diversity_sim) +
+  geom_text_repel(aes(label = diversity_sim@labels),
+                  size = 3) +
+  guides(colour = "none") +
+  theme_minimal(base_size = 8)
+}
+
+signbase_full_clean_diversity_plot_by_period <- 
+time_unique_data_full %>% 
+  nest_by(time_period) %>% 
+  mutate(plot = list(plot_diversity_fn(data)))
+
+library(cowplot)
+plot_grid(plotlist =  signbase_full_clean_diversity_plot_by_period$plot,
+          labels = signbase_full_clean_diversity_plot_by_period$time_period,
+          label_size = 8)
+```
+
+
 ## Social Organization Dynamics Throughout the Aurignacian
 
 The second aim was to determine what these patterns tell us about dynamics of social organization throughout the Aurignacian. The results suggest that the Transitional phase was sparsely populated, with minimal interaction between loosely connected groups. For the Proto-Aurignacian, the results suggest a large expansion in social interaction within groups, as well as some degree of interaction between groups, with geographic distance having the least influence on sign distribution [@tbl-mantel-table]. The Early Aurignacian experiences a large surge in interaction between groups, as well as interaction within groups, and an increase in the correlation with geographic distance. The Evolved Aurignacian experiences a decline in between-group interaction, although it maintains within-group interaction.
