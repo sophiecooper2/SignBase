@@ -821,8 +821,7 @@ The perMANOVA R^2^ statistic shows the proportion of sign variation that can be 
 
 Our first aim was to determine how the grouping dynamics of geometric signs changed across four phases of the Aurignacian, specifically in terms of diversity, size, connectivity, and boundaries. The results from @fig-seriation show that each phase can be divided into two main cultural groups, with sign type diversity serving as a major dividing factor, and that group size varied from phase to phase, with a large increase in between the Transitional phase and the Proto-Aurignacian. @fig-neighbor-net shows that group inter-connectivity and intra-connectivity varies from phase to phase, with weak intra-group connections and no inter-group connections in the Transitional phase, to stronger intraconnections and interconnections starting to form in the Proto-Aurignacian, to extremely strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The modularity tests, as shown in @tbl-strength-table, show that the groupings are most distinct in the Transitional period and least distinct in the Early Aurignacian. The perMANOVA tests show that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian has the least. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian has the highest correlation.
 
-It is possible that variation in diversity of sign types among sites may be representative of variation in social arrangement or social context. Despite the tendency to conceive of hunter-gatherers as monolithic, previous studies have established a diverse range of hunter-gatherer social arrangements [@Finlayson_Warren_2017; @Riches_1995; @Price_Brown_1985; @Lane_2017]. Ethnographic studies of hunter-gatherers were utilized by @Bloch_1977 to theorize a correlation between the amounts of social structure, instituted hierarchy, and ritual communication in a society. @Conkey_1985 built upon that theorized correlation, arguing that artwork and other forms of material culture can serve as a form of ritual communication, and that an increase in diversity may suggest more elaborate or complex social contexts, specifically in regards to the Paleolithic. It is therefore possible that changes in diversity from site to site, particularly the larger grouping structure of broader versus restricted signs, may be representative of two different types of social arrangment..
-
+Variation in diversity of sign types among sites may be representative of variation in social arrangement or social context. Despite the tendency to conceive of hunter-gatherers as monolithic, previous studies have established a potential for variation in hunter-gatherer social arrangements [@Finlayson_Warren_2017; @Riches_1995; @Price_Brown_1985; @Lane_2017]. @Bloch_1977 drew upon ethnographic studies of hunter-gatherers to theorize a correlation between the amounts of social structure, instituted hierarchy, and ritual communication within a society. @Conkey_1985 built upon that theorized correlation to argue that artwork and other forms of material culture can serve as a form of ritual communication, and that an increase in diversity within those material cultures may suggest more elaborate or complex social contexts. Changes in sign diversity from site to site, particularly the larger grouping structure of broader versus restricted signs, may be representative of two different social arrangement types, such as, for example, a more hierarchical structure versus a less hierarchical structure.
 
 ```{r fig.height= 7, fig.width=10}
 #| label: fig-group-map
@@ -963,9 +962,10 @@ diversity_sim <- simulate(diversity_index)
 
 autoplot.DiversityIndex(diversity_sim) +
   geom_text_repel(aes(label = diversity_sim@labels),
-                  size = 3) +
+                  size = 3, max.overlaps = 15) +
   guides(colour = "none") +
-  theme_minimal(base_size = 8)
+  theme_minimal(base_size = 8) +
+  border(color = "black", size = 0.5)
 }
 
 signbase_full_clean_diversity_plot_by_period <- 
@@ -978,7 +978,6 @@ plot_grid(plotlist =  signbase_full_clean_diversity_plot_by_period$plot,
           labels = signbase_full_clean_diversity_plot_by_period$time_period,
           label_size = 8)
 ```
-
 
 ## Social Organization Dynamics Throughout the Aurignacian
 

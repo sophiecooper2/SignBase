@@ -214,3 +214,26 @@ ggsave(final,
       filename =  "poster3.png", bg = "white", w = 5, h = 7)
 ```
 
+```{r}
+sign_type_df <- signbase_full_clean %>% 
+  pivot_longer(cols = line:star) %>% 
+  filter(value != 0) %>% 
+  mutate(sign_type = name) %>% 
+  group_by(sign_type) %>% 
+  summarise(value = n()) %>% 
+  arrange(desc(value))
+
+sign_type_plot <- ggplot(sign_type_df) +
+  aes(reorder(sign_type, value), x = sign_type, y = value) +
+  geom_col() +
+  xlab("Sign type") +
+  ylab("Count")+
+  coord_flip()
+  
+  
+ggsave(sign_type_plot, 
+      filename =  "signtype.png",
+       bg = "white", w = 3.5)
+
+```
+
