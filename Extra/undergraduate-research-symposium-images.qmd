@@ -227,13 +227,126 @@ sign_type_plot <- ggplot(sign_type_df) +
   aes(reorder(sign_type, value), x = sign_type, y = value) +
   geom_col() +
   xlab("Sign type") +
-  ylab("Count")+
-  coord_flip()
+  ylab("Count") +
+  theme(axis.title = element_text(size = 10)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, ))
   
   
 ggsave(sign_type_plot, 
       filename =  "signtype.png",
-       bg = "white", w = 3.5)
+       bg = "white", w = 5, h = 3)
 
+```
+
+```{r}
+library(rnaturalearth)
+
+as_factor <- function(x, reverse = FALSE) {
+  lvl <- unique(x)
+  if (reverse) {
+    lvl <- rev(lvl)
+  }
+  factor(x, levels = lvl)
+}
+
+to_long <- function(from, factor = FALSE, reverse = FALSE) {
+  x <- data.frame(
+    row = as.vector(row(from, as.factor = factor)),
+    column = as.vector(col(from, as.factor = factor)),
+    value = as.vector(from),
+    stringsAsFactors = FALSE
+  )
+  if (factor) {
+    x$row <- as_factor(x$row, reverse = reverse)
+    x$column <- as_factor(x$column, reverse = reverse)
+  }
+  return(x)
+}
+
+autoplot.DiversityIndex <- function(object, ...) {
+  ## Prepare data
+  count <- cbind.data.frame(
+    label = object@labels,
+    x = object@size,
+    y = object@.Data
+  )
+  
+  ## Simulated assemblages
+  gg_sim <- NULL
+  if (length(object@simulation) != 0) {
+    # Build a long table for ggplot2
+    refined <- object@simulation
+    
+    sim_stacked <- to_long(refined[, -c(1)], factor = TRUE)
+    sim <- cbind.data.frame(
+      size = refined[, 1],
+      sim_stacked,
+      Estimate = ifelse(sim_stacked[["column"]] == "mean", "mean", "conf. int.")
+    )
+    gg_sim <- ggplot2::geom_path(
+      mapping = ggplot2::aes(
+        x = .data$size,
+        y = .data$value,
+        colour = .data$Estimate,
+        group = .data$column
+      ),
+      data = sim,
+      na.rm = TRUE,
+      inherit.aes = FALSE
+    )
+  }
+  
+  y_lab <- switch (
+    class(object),
+    HeterogeneityIndex = "Heterogeneity",
+    EvennessIndex = "Evenness",
+    RichnessIndex = "Richness",
+    "Diversity"
+  )
+  
+  ## ggplot
+  ggplot2::ggplot(data = count) +
+    ggplot2::aes(x = .data$x, y = .data$y, label = .data$label) +
+    ggplot2::geom_point() +
+    gg_sim +
+    ggplot2::scale_x_log10(name = "Sample size") +
+    ggplot2::scale_y_continuous(
+      name = "Heterogeneity"
+    )
+}
+
+plot_diversity_fn <- function(input_df){
+
+signs <-
+  input_df %>% 
+  select(
+         site_name,
+         c(line:star)) %>% 
+  group_by(site_name) %>% 
+  summarise(across(where(is.numeric), ~ sum(.))) %>% 
+  column_to_rownames("site_name") 
+
+diversity_index <- 
+  heterogeneity(signs, method = "shannon")
+
+diversity_sim <- simulate(diversity_index)
+
+autoplot.DiversityIndex(diversity_sim) +
+  geom_text_repel(aes(label = diversity_sim@labels),
+                  size = 3, max.overlaps = 15) +
+  guides(colour = "none") +
+  theme_minimal(base_size = 8) +
+  border(color = "black", size = 0.5)
+}
+
+signbase_full_clean_diversity_plot_by_period <- 
+time_unique_data_full %>% 
+  nest_by(time_period) %>% 
+  mutate(plot = list(plot_diversity_fn(data)))
+
+library(cowplot)
+plot_grid(plotlist =  signbase_full_clean_diversity_plot_by_period$plot,
+          labels = signbase_full_clean_diversity_plot_by_period$time_period,
+          label_size = 8, vjust = 2, hjust = -0.6)
 ```
 

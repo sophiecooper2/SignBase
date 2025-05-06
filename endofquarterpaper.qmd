@@ -821,7 +821,7 @@ The perMANOVA R^2^ statistic shows the proportion of sign variation that can be 
 
 Our first aim was to determine how the grouping dynamics of geometric signs changed across four phases of the Aurignacian, specifically in terms of diversity, size, connectivity, and boundaries. The results from @fig-seriation show that each phase can be divided into two main cultural groups, with sign type diversity serving as a major dividing factor, and that group size varied from phase to phase, with a large increase in between the Transitional phase and the Proto-Aurignacian. @fig-neighbor-net shows that group inter-connectivity and intra-connectivity varies from phase to phase, with weak intra-group connections and no inter-group connections in the Transitional phase, to stronger intraconnections and interconnections starting to form in the Proto-Aurignacian, to extremely strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The modularity tests, as shown in @tbl-strength-table, show that the groupings are most distinct in the Transitional period and least distinct in the Early Aurignacian. The perMANOVA tests show that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian has the least. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian has the highest correlation.
 
-Variation in diversity of sign types among sites may be representative of variation in social arrangement or social context. Despite the tendency to conceive of hunter-gatherers as monolithic, previous studies have established a potential for variation in hunter-gatherer social arrangements [@Finlayson_Warren_2017; @Riches_1995; @Price_Brown_1985; @Lane_2017]. @Bloch_1977 drew upon ethnographic studies of hunter-gatherers to theorize a correlation between the amounts of social structure, instituted hierarchy, and ritual communication within a society. @Conkey_1985 built upon that theorized correlation to argue that artwork and other forms of material culture can serve as a form of ritual communication, and that an increase in diversity within those material cultures may suggest more elaborate or complex social contexts. Changes in sign diversity from site to site, particularly the larger grouping structure of broader versus restricted signs, may be representative of two different social arrangement types, such as, for example, a more hierarchical structure versus a less hierarchical structure.
+Variation in diversity of sign types among sites may be representative of variation in social arrangement or social context. Despite the tendency to conceive of hunter-gatherers as monolithic, previous studies have established a potential for variation in hunter-gatherer social arrangements [@Finlayson_Warren_2017; @Riches_1995; @Price_Brown_1985; @Lane_2017]. @Bloch_1977 drew upon ethnographic studies of hunter-gatherers to theorize a correlation between the amounts of social structure, instituted hierarchy, and ritual communication within a society. @Conkey_1985 built upon that theorized correlation to argue that artwork and other forms of material culture can serve as a form of ritual communication, and that an increase in diversity within those material cultures may suggest more elaborate or complex social contexts. If the signs served functions of ritual communication, then changes in sign diversity from site to site, particularly the larger grouping structure of broader versus restricted signs, may be representative of two different social arrangement types, such as, for example, a more hierarchical structure versus a less hierarchical structure.
 
 ```{r fig.height= 7, fig.width=10}
 #| label: fig-group-map
@@ -851,7 +851,7 @@ ggplot(Europe) +
 
 The geographic boundaries of the groups change from phase to phase (@fig-group-map). In the Transitional phase, sites are widely spread out across Western Europe. This wider distribution may be a factor in weak connections seen in @fig-neighbor-net. In the Proto-Aurignacian, we see a slightly narrower distribution of sites westward but a spread northward, and more overlapping of sites between groups, which may be associated with the slightly stronger connectivity seen there. This phase is also associated with an increase in sites and sign types, which may be correlated with the increased proximity and population density. In the Early Aurignacian, we see a reduced distribution, with sites clustered closer together, which may be associated with the increased connectivity in that phase. In the Evolved Aurignacian, we see a wider distribution and more distance between sites, which may be associated with the reduced connectivity seen in that phase.
 
-One factor that may influence the geographic structure of sites is the possibility that some sites functioned as aggregation sites. The aggregation/dispersion pattern is first defined by @conkley_agg as a type of hunter-gather settlement pattern, in which groups both break off in dispersed fragments and congregate in large groups, typically for various subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate, and some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a more diverse artifact assemblage [@conkley_agg]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994]. It is therefore possible that sites with multiple connections between groups [@fig-neighbor-net], such as La Ferrassie in the the Proto-Aurignacian, Grotte de la Verpillière I in the Early Aurignacian, and Gargas in the Evolved Aurignacian acted as aggregation sites or served a similar purpose.
+One factor that may influence the geographic structure of sites is the possibility that some sites functioned as aggregation sites. The aggregation/dispersion pattern is first defined by @conkley_agg as a type of hunter-gather settlement pattern, in which groups both break off in dispersed fragments and congregate in large groups, typically for various subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate, and some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a more diverse artifact assemblage [@conkley_agg]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994]. It is therefore possible that sites with multiple connections between groups [@fig-neighbor-net], such as La Ferrassie in the Proto-Aurignacian, Grotte de la Verpillière I in the Early Aurignacian, and Gargas in the Evolved Aurignacian acted as aggregation sites or served a similar purpose.
 
 ```{r}
 
@@ -936,21 +936,8 @@ plot_diversity_fn <- function(input_df){
 
 signs <-
   input_df %>% 
-  select(
-         site_name,
-         # c(line:star)
-         # we are looking at the more visually complex signs
-         cross, 
-         v, 
-         star, 
-         zigzag, 
-         zigzagrow, 
-         grid, 
-         hashtag, 
-         hatching, 
-         anthropomorph,
-         zoomorph, 
-         vulva) %>% 
+  select(site_name,
+         c(line:star)) %>% 
   group_by(site_name) %>% 
   summarise(across(where(is.numeric), ~ sum(.))) %>% 
   column_to_rownames("site_name") 
