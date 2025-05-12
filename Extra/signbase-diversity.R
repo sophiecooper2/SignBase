@@ -150,8 +150,9 @@ autoplot.RarefactionIndex <- function(object, ...) {
 signs <-
   signbase %>% 
   select(site_name,
-        # c(line:star)
-         cross, v, star, zigzag, zigzagrow, grid, hashtag, hatching, anthropomorph,zoomorph, vulva) %>% 
+         c(line:star)) %>% 
+        # here are the more visually complex signs
+        # cross, v, star, zigzag, zigzagrow, grid, hashtag, hatching, anthropomorph,zoomorph, vulva) %>% 
   group_by(site_name) %>% 
   summarise(across(where(is.numeric), ~ sum(.))) %>% 
   column_to_rownames("site_name")
