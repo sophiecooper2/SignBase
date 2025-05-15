@@ -1,7 +1,7 @@
 ---
 title: "Changes in Patterns of Geometric Sign Groupings as a Model of Social Dynamics Across Aurignacian Phases"
 author: Sophie Cooper
-format: html
+format: docx
 echo: false
 execute: 
   warning: false
