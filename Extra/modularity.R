@@ -1,69 +1,54 @@
-library(robin)
 
-artifact_data <- trans_artifact_data %>% 
-  select_if(~ !is.numeric(.) || sum(.) != 0) %>% 
-  mutate_all(~ as.numeric(. > 0))
-
-jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
+jac <- vegdist(trans_artifact_data %>% mutate_all(~ as.numeric(. > 0)), "jaccard", binary = TRUE)
 dm <- as.matrix(jac)
-
-disim <- 1 - dm
-disim[disim<0.2] <- 0
-disim_net <- network(disim,
-                     directed=F,
-                     ignore.eval=F,
-                     names.eval='weight')
-
-disim_net %v% 'vertex.names' <- row.names(artifact_data)
-
 modul_matrix <-
   graph_from_adjacency_matrix(1 - dm, mode = "undirected")
-
-
 mem <- as_membership(parse_number(trans_unique_data$group))
-as_group <- modularity(modul_matrix, membership = mem)
+gt <- modularity(modul_matrix, membership = mem)
+
+modularity_function<- function(modul_matrix, mem){
+  gt <- modularity(modul_matrix, membership = mem)
+  N <- nrow(jac)
+  nsteps <- 10000
+  modul_table <- tibble("modularity" = c())
+  for (i in 1:nsteps){
+    mem_random <- as_membership(c(sample(1:2, N, replace = T)))
+    modularity_permute <- modularity(modul_matrix, membership = mem_random)
+    modul_row <- tibble("modularity" = modularity_permute)
+    modul_table <- modul_table %>% rbind(modul_row)}
+  num <- nrow(modul_table %>% 
+                filter(modularity > gt))
+  p_score <- num/10000
+  return(p_score)
+}
 
 
-library(intergraph)
-
-ig <- asIgraph(disim_net)
-
-as_group <- modularity(ig, membership = mem)
+modularity_function(modul_matrix, mem)
 
 
-g <- graph.adjacency(
-  as.matrix(as.dist(cor(base::t(artifact_data), method="pearson"))),
-  mode="undirected",
-  weighted=TRUE,
-  diag=FALSE
-)
-
-g <- make_graph(edges = row.names(artifact_data), directed = FALSE)
-
-g$weight <- jac
 
 
-g <- graph.adjacency(
-  as.matrix(vegdist(artifact_data, "jaccard", binary = TRUE)),
-  mode="undirected",
-  weighted=TRUE,
-  diag=FALSE
-)
+modularity_function<- function(modul_matrix, mem){
+  gt <- modularity(modul_matrix, membership = mem)
+  N <- nrow(jac)
+  nsteps <- 10000
+  modul_table <- tibble("modularity" = c())
+  for (i in 1:nsteps){
+    graph_permute<- early_artifact_data[sample(1:N),]
+    jac2 <- vegdist(graph_permute %>% mutate_all(~ as.numeric(. > 0)), "jaccard", binary = TRUE)
+    dm2 <- as.matrix(jac2)
+    modul_matrix2 <-
+      graph_from_adjacency_matrix(1 - dm2, mode = "undirected")
+    modularity_permute <- modularity(modul_matrix2, membership = mem)
+    modul_row <- tibble("modularity" = modularity_permute)
+    modul_table <- modul_table %>% rbind(modul_row)}
+  num <- nrow(modul_table %>% 
+                filter(modularity > gt))
+  p_score <- num/10000
+  return(p_score)
+}
 
 
-g <- graph.adjacency(
-  as.matrix(as.dist(cor(t(artifact_data), method="pearson"))),
-  mode="undirected",
-  weighted=TRUE,
-  diag=FALSE
-)
-as_group <- modularity(g, membership = mem)
 
-jac_df <- dm %>% 
-  as.data.frame() %>% 
-  rownames_to_column("edges") %>% 
-  pivot_longer(cols = `El Castillo`: `Pod Hradem`)
 
-g <- graph_from_data_frame(d = jac_df, directed = FALSE)
 
-as_group <- modularity(g, membership = mem)
