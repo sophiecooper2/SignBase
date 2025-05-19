@@ -30,7 +30,7 @@ library(knitr)
 library(tidyverse)
 library(readxl)
 
-aur_table <- read_excel("data/aurignacian-periods.xlsx")
+aur_table <- read_excel(here::here("data/aurignacian-periods.xlsx"))
 
 kable(aur_table)
 ```
@@ -43,7 +43,7 @@ We hypothesize that these phases, and the environmental changes across the Aurig
 ## clean the data
 library(magrittr)
 library(rcarbon)
-signbase_full <- read_csv("data/signBase_Version1.0.csv")
+signbase_full <- read_csv(here::here("data/signBase_Version1.0.csv"))
 nsites <- signbase_full %>% 
   pull(site_name ) %>% 
   unique() %>% 
@@ -454,11 +454,11 @@ plot_grid(sign_map,
           axis = "lr")
 
 ggsave(maps_bar_plots, 
-      filename =  "map-and_hist-plot.png",
+      filename =  here::here("figures/map-and_hist-plot.png"),
        h = 10, w = 10,
        bg = "white")
 
-knitr::include_graphics("map-and_hist-plot.png")
+knitr::include_graphics(here::here("figures/map-and_hist-plot.png"))
 
 ```
 
