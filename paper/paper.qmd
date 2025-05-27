@@ -453,20 +453,12 @@ plot_grid(sign_map,
           labels = "A",
           axis = "lr")
 
-ggsave(maps_bar_plots, 
-<<<<<<< HEAD
-      filename =  "map-and_hist-plot.png",
-       h = 10, w = 10,
-       bg = "white")
-
-knitr::include_graphics("map-and_hist-plot.png")
-=======
+ggsave(maps_bar_plots,
       filename =  here::here("figures/map-and-hist-plot.png"),
        h = 10, w = 10,
        bg = "white")
 
 knitr::include_graphics(here::here("figures/map-and-hist-plot.png"))
->>>>>>> 1da214bf66a4639a0ece123e0dfe02eec9f7bc0d
 
 ```
 
@@ -664,7 +656,7 @@ strength_function <- function(artifact_data, group_data){
 
 ```
 
-If the distribution of sign types can be solely explained by geographic distance, then we would see similarity in sign type distribution decreasing as geographic distance increases [. This relationship can be investigated using the isolation-by-distance framework, which proposes that cultural difference can be primarily explained by geographic distance [@Lycett_2019]. To confirm that the distribution of sign types is influenced by cultural factors rather than geographic distance, we calculated the correlation between sign type distribution and geography for each phase. We used Mantel tests with a geographic distance matrix and a Jaccard similarity matrix, with the results shown in @tbl-mantel-table. None of the phases have a statistically significant correlation between sign type distribution and geographical distance, so the isolation-by-distance hypothesis is rejected.
+If the distribution of sign types can be solely explained by geographic distance, then we would see similarity in sign type distribution decreasing as geographic distance increases [@Hirsk  . This relationship can be investigated using the isolation-by-distance framework, which proposes that cultural difference can be primarily explained by geographic distance [@Lycett_2019]. To confirm that the distribution of sign types is influenced by cultural factors rather than geographic distance, we calculated the correlation between sign type distribution and geography for each phase. We used Mantel tests with a geographic distance matrix and a Jaccard similarity matrix, with the results shown in @tbl-mantel-table. None of the phases have a statistically significant correlation between sign type distribution and geographical distance, so the isolation-by-distance hypothesis is rejected.
 
 ```{r}
 #| label: tbl-mantel-table
@@ -857,7 +849,7 @@ ggplot(Europe) +
 
 The geographic distribution of the groups change from phase to phase (@fig-group-map). In the Transitional phase, sites are widely spread out across Western Europe. This wider distribution may be a factor in weak connections seen in @fig-neighbor-net. In the Proto-Aurignacian, we see a slightly narrower distribution of sites westward but a spread northward, and more overlapping of sites between groups, which may be associated with the slightly stronger connectivity seen there. This phase is also associated with an increase in sites and sign types, which may be correlated with the increased proximity and population density. In the Early Aurignacian, we see a reduced distribution, with sites clustered closer together, which may be associated with the increased connectivity in that phase. In the Evolved Aurignacian, we see a wider distribution and more distance between sites, which may be associated with the reduced connectivity seen in that phase.
 
-One factor that may influence the geographic structure of sites is the possibility that some sites functioned as aggregation sites. The aggregation/dispersion pattern is defined by @conkley_agg as a type of hunter-gather settlement pattern, in which groups both break off in dispersed fragments and congregate in large groups, typically for subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate, and some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a diverse artifact assemblage [@conkley_agg]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994]. 
+One factor that may influence the geographic structure of sites is the possibility that some sites functioned as aggregation sites. The aggregation/dispersion pattern is defined by @conkley_agg as a type of hunter-gather settlement pattern, in which groups both break off in dispersed fragments and congregate in large groups, typically for subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate, and some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a more diverse artifact assemblage [@conkley_agg]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994]. 
 
 A potential identifier of aggregation sites comes from @fig-div-plot, which uses the tabula package [@Frerebeau_2025] to generate the Shannon-Weaver diversity index of sign types per site, and plot the expected diversity index for a given sample size against the actual diversity index per site [@Kintigh_1984]. The plot identifies multiple sites that diverge from the diversity index predicted by sample size, including those with a higher index than expected, such as Hohle Fels in the Transitional phase, Spy, La Ferrassie, and Les Cottés in the Proto-Aurignacian, Solutré, Hohle Fels, and Grottes de Fonds-de-Forêt in the Early Aurignacian, and Vogelherd, Bockstein-Törle, and Vindija Cave in the Evolved Aurignacian. It is possible that those sites with a greater than expected diversity index acted as aggregation sites or served a similar purpose. La Ferrassie in the Proto-Aurignacian is also shown by @fig-neighbor-net to have multiple connections to sites in both groups, in addition to the diversity index shown in @fig-div-plot, perhaps suggesting that it served as a specifically inter-group aggregation site.
 
