@@ -1,7 +1,7 @@
 ---
 title: "Changes in Patterns of Geometric Sign Groupings as a Model of Social Dynamics Across Aurignacian Phases"
 author: Sophie Cooper
-format: html
+format: docx
 echo: false
 execute: 
   warning: false
@@ -454,11 +454,11 @@ plot_grid(sign_map,
           axis = "lr")
 
 ggsave(maps_bar_plots, 
-      filename =  here::here("figures/map-and_hist-plot.png"),
+      filename =  here::here("figures/map-and-hist-plot.png"),
        h = 10, w = 10,
        bg = "white")
 
-knitr::include_graphics(here::here("figures/map-and_hist-plot.png"))
+knitr::include_graphics(here::here("figures/map-and-hist-plot.png"))
 
 ```
 
