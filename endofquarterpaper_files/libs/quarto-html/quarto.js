@@ -94,7 +94,11 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
       if (link.href.indexOf("#") !== -1) {
         const anchor = link.href.split("#")[1];
         const heading = window.document.querySelector(
+<<<<<<< HEAD
           `[data-anchor-id=${anchor}]`
+=======
+          `[data-anchor-id="${anchor}"]`
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
         );
         if (heading) {
           // Add the class
@@ -134,8 +138,15 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
       window.innerHeight + window.pageYOffset >=
       window.document.body.offsetHeight
     ) {
+<<<<<<< HEAD
       sectionIndex = 0;
     } else {
+=======
+      // This is the no-scroll case where last section should be the active one
+      sectionIndex = 0;
+    } else {
+      // This finds the last section visible on screen that should be made active
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
       sectionIndex = [...sections].reverse().findIndex((section) => {
         if (section) {
           return window.pageYOffset >= section.offsetTop - sectionMargin;
@@ -317,6 +328,10 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
           for (const child of el.children) {
             child.style.opacity = 0;
             child.style.overflow = "hidden";
+<<<<<<< HEAD
+=======
+            child.style.pointerEvents = "none";
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
           }
 
           nexttick(() => {
@@ -358,6 +373,10 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
 
               const clone = child.cloneNode(true);
               clone.style.opacity = 1;
+<<<<<<< HEAD
+=======
+              clone.style.pointerEvents = null;
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
               clone.style.display = null;
               toggleContents.append(clone);
             }
@@ -432,6 +451,10 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
           for (const child of el.children) {
             child.style.opacity = 1;
             child.style.overflow = null;
+<<<<<<< HEAD
+=======
+            child.style.pointerEvents = null;
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
           }
 
           const placeholderEl = window.document.getElementById(
@@ -739,6 +762,10 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
     // Process the collapse state if this is an UL
     if (el.tagName === "UL") {
       if (tocOpenDepth === -1 && depth > 1) {
+<<<<<<< HEAD
+=======
+        // toc-expand: false
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
         el.classList.add("collapse");
       } else if (
         depth <= tocOpenDepth ||
@@ -757,10 +784,16 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
   };
 
   // walk the TOC and expand / collapse any items that should be shown
+<<<<<<< HEAD
 
   if (tocEl) {
     walk(tocEl, 0);
     updateActiveLink();
+=======
+  if (tocEl) {
+    updateActiveLink();
+    walk(tocEl, 0);
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
   }
 
   // Throttle the scroll event and walk peridiocally
@@ -779,6 +812,13 @@ window.document.addEventListener("DOMContentLoaded", function (_event) {
   window.addEventListener(
     "resize",
     throttle(() => {
+<<<<<<< HEAD
+=======
+      if (tocEl) {
+        updateActiveLink();
+        walk(tocEl, 0);
+      }
+>>>>>>> 20a7eae4f58554a79f275d877902b22c0306bd59
       if (!isReaderMode()) {
         hideOverlappedSidebars();
       }
