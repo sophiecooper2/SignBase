@@ -8,7 +8,6 @@ execute:
 bibliography: references.bib
 link-citations: true
 ---
-
 # Introduction
 
 The Upper Paleolithic period experienced a rise in more complex social organizations across Europe [@Boyd_Silk_2020], coupled with a biological transition from Neanderthals to early modern humans. Archaeologists have frequently relied upon variations in artwork, the large rise of which is a distinctive quality of the period, as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@baker2024evidence; @Sauvet_2018; @Kuhn_Stiner_2007; @Vanhaeren_d]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian technocomplex (ca. 43 - 30 k BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. In this paper, we investigate the social organization dynamics by analyzing the distribution and variation of geometric sign types found on mobile objects from the Upper Paleolithic in Europe across four phases of the Aurignacian period.
@@ -30,7 +29,7 @@ library(knitr)
 library(tidyverse)
 library(readxl)
 
-aur_table <- read_excel("data/aurignacian-periods.xlsx")
+aur_table <- read_excel(here::here("data/aurignacian-periods.xlsx"))
 
 kable(aur_table)
 ```
@@ -43,7 +42,7 @@ We hypothesize that these phases, and the environmental changes across the Aurig
 ## clean the data
 library(magrittr)
 library(rcarbon)
-signbase_full <- read_csv("data/signBase_Version1.0.csv")
+signbase_full <- read_csv(here::here("data/signBase_Version1.0.csv"))
 nsites <- signbase_full %>% 
   pull(site_name ) %>% 
   unique() %>% 
@@ -454,19 +453,11 @@ plot_grid(sign_map,
           axis = "lr")
 
 ggsave(maps_bar_plots, 
-<<<<<<< HEAD
-      filename =  "map-and_hist-plot.png",
-       h = 10, w = 10,
-       bg = "white")
-
-knitr::include_graphics("map-and_hist-plot.png")
-=======
       filename =  here::here("figures/map-and-hist-plot.png"),
        h = 10, w = 10,
        bg = "white")
 
 knitr::include_graphics(here::here("figures/map-and-hist-plot.png"))
->>>>>>> 1da214bf66a4639a0ece123e0dfe02eec9f7bc0d
 
 ```
 
