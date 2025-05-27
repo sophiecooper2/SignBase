@@ -1,15 +1,24 @@
 
-jac <- vegdist(trans_artifact_data %>% mutate_all(~ as.numeric(. > 0)), "jaccard", binary = TRUE)
+jac <- vegdist(trans_artifact_data %>% 
+                 mutate_all(~ as.numeric(. > 0)), "jaccard", binary = TRUE)
 dm <- as.matrix(jac)
 modul_matrix <-
   graph_from_adjacency_matrix(1 - dm, mode = "undirected")
 mem <- as_membership(parse_number(trans_unique_data$group))
 gt <- modularity(modul_matrix, membership = mem)
 
+<<<<<<< HEAD
 n <- 10000
 modularity_function<- function(modul_matrix, mem){
   gt <- modularity(modul_matrix, membership = mem)
   N <- nrow(jac)
+=======
+
+n <- 10000
+modularity_function<- function(modul_matrix, mem){
+  gt <- modularity(modul_matrix, membership = mem)
+  N <-  nrow(jac)
+>>>>>>> 8a689984be1df37e962b9eabce115f77978941a6
   nsteps <- n
   modul_table <- tibble("modularity" = c())
   for (i in 1:nsteps){
@@ -23,8 +32,9 @@ modularity_function<- function(modul_matrix, mem){
   return(p_score)
 }
 
+p_value <- modularity_function(modul_matrix, mem)
 
-modularity_function(modul_matrix, mem)
+paste0("p = ", p_value)
 
 
 
