@@ -838,34 +838,6 @@ One interpretation of the connectivity seen in @fig-neighbor-net is as a represe
 
 One form of longer-term residential movement is the aggregation/dispersion pattern, which is defined by @conkley_agg as a type of hunter-gather settlement pattern, in which groups both break off in dispersed fragments and congregate in large groups, typically for subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate, and some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a more diverse artifact assemblage [@conkley_agg]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994]. The possibility that some sites functioned as aggregation sites may have influenced the geographic structure of sites (@fig-group-map), which change from phase to phase.
 
-```{r fig.height= 7, fig.width=10}
-#| label: fig-group-map
-#| fig-cap: "Map of sites faceted by time period and colored by group number"
-  
-ggplot(Europe) +
-  geom_sf() +
-  geom_sf(data = signbase_sf, aes(color = group)) +
-  coord_sf(xlim = c(-10,30), 
-           ylim = c(35,53), 
-           expand = FALSE) +
-  geom_text_repel(data = signbase_sf,
-                  aes(x = longitude ,
-                      y = latitude,
-                      label = site_name),
-                  max.overlaps = 30,
-                  size = 2,
-                  bg.color = "white",
-                  bg.r = 0.25) +
-  theme_minimal() +
-  facet_wrap(~time_period) +
-  theme(axis.text = element_blank(),
-        axis.title = element_blank(),
-        strip.text = element_text(size = 10)) 
-
-```
-
-The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian has the highest correlation. In the Transitional phase, sites are widely spread out across Western Europe. This wider distribution may be a factor in weak connections seen in @fig-neighbor-net. In the Proto-Aurignacian, we see a slightly narrower distribution of sites westward but a spread northward, and more overlapping of sites between groups, which may be associated with the slightly stronger connectivity seen there. This phase is also associated with an increase in sites and sign types, which may be correlated with the increased proximity and population density. In the Early Aurignacian, we see a reduced distribution, with sites clustered closer together, which may be associated with the increased connectivity in that phase. In the Evolved Aurignacian, we see a wider distribution and more distance between sites, which may be associated with the reduced connectivity seen in that phase.
-
 A potential identifier of aggregation sites comes from @fig-div-plot, which uses the tabula package [@Frerebeau_2025] to generate the Shannon-Weaver diversity index of sign types per site, and plot the expected diversity index for a given sample size against the actual diversity index per site [@Kintigh_1984]. The plot identifies multiple sites that diverge from the diversity index predicted by sample size, including those with a higher index than expected, such as Hohle Fels in the Transitional phase, Spy, La Ferrassie, and Les Cottés in the Proto-Aurignacian, Solutré, Hohle Fels, and Grottes de Fonds-de-Forêt in the Early Aurignacian, and Vogelherd, Bockstein-Törle, and Vindija Cave in the Evolved Aurignacian. It is possible that those sites with a greater than expected diversity index acted as aggregation sites for their groups or served a similar purpose. La Ferrassie in the Proto-Aurignacian is also shown by @fig-neighbor-net to have multiple connections to sites in both groups, in addition to the diversity index shown in @fig-div-plot, perhaps suggesting that it functioned as a specifically inter-group aggregation site.
 
 ```{r}
