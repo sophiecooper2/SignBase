@@ -1,11 +1,4 @@
 ---
-<<<<<<< HEAD
-title: "Changes in Patterns of Geometric Sign Groupings as a Model of Social Dynamics Across Aurignacian Phases"
-author: Sophie Cooper
-format: html
-echo: false
-execute: 
-=======
 title: "Geometric signs reveal changes social structures and networks during the Western Eurasian Aurignacian"
 author:
   - Sophie Cooper:
@@ -27,7 +20,6 @@ format:
     reference-doc: "../templates/template.docx" # Insert path for the DOCX file
 execute:
   echo: false
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
   warning: false
   message: false
   comment: "#>"
@@ -47,11 +39,7 @@ keywords: |
 
 # Introduction
 
-<<<<<<< HEAD
-The Upper Paleolithic period experienced a rise in more complex social organizations across Europe [@Boyd_Silk_2020], coupled with a biological transition from Neanderthals to early modern humans. Archaeologists have frequently relied upon variations in artwork, the large rise of which is a distinctive quality of the period, as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@baker2024evidence; @Sauvet_2018; @Kuhn_Stiner_2007; @Vanhaeren_d]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian technocomplex (ca. 43 - 30 k BP) is commonly linked to the dispersal of Homo sapiens across Western Eurasia, and is characterized by lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. In this paper, we investigate the social organization dynamics by analyzing the distribution and variation of geometric sign types found on mobile objects from the Upper Paleolithic in Europe across four phases of the Aurignacian period.
-=======
 Archaeological evidence from the Upper Paleolithic period indicates increasingly complex social organization across Europe [@Boyd_Silk_2020], coinciding with the ongoing biological transition from Neanderthals to early modern humans. Archaeologists have frequently used ancient art, the abundance of which is distinctive quality of the period, as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@dErrico_Baker_Rigaud_2025; @baker2024evidence; @Sauvet_2018; @Kuhn_Stiner_2007; @Vanhaeren_d; @Fuentes_Lucas_Robert_2019]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian technocomplex (ca. 43 - 30 k BP) is often linked to the dispersal of _Homo sapiens_ across Western Eurasia, and is characterized by lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. In this paper we investigate Aurignacian social organization dynamics implied by the distribution and variation of geometric sign types found on mobile objects in Europe across four phases of the Aurignacian period.
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 
 Previous work has fruitfully explored social organization dynamics of the Upper Paleolithic using statistical analyses of objects to understand patterns of cultural groups. Multivariate analyses of beads from the Gravettian technocomplex suggests an east to west cline of nine cultural groups [@baker2024evidence]. Seriation analysis, PCoA, and network analysis were used to identify groups from 134 discrete bead types recovered from both burial and occupation sites. To validate their claims of cultural groups, @baker2024evidence used a Mantel test to evaluate an isolation-by-distance hypothesis, which proposes that cultural difference can be primarily explained by geographic distance, finding that geographic distance alone did not solely account for the bead distribution. The nine geographically discrete groups encompass the regions of eastern, northwestern and central Europe, the northern and southern Iberian peninsula, southern and northern Italy, and the eastern and western Mediterranean regions.
 
@@ -75,11 +63,7 @@ aur_table <- read_excel(here::here("data/aurignacian-periods.xlsx"))
 kable(aur_table)
 ```
 
-<<<<<<< HEAD
-We hypothesize that these phases, and the environmental changes across the Aurignacian, may correspond to changes in social dynamics of cultural groups, as represented by patterns in the distribution of geometric signs. We aim to address the following questions: How do grouping dynamics of geometric signs change across the four phases of the Aurignacian? How do the groupings vary in diversity, size, connectivity, and distribution? Lastly, what do the patterns tell us about dynamics of social organization throughout the Aurignacian? We answer these questions by first identifying clusters within each phase using seriation and network analyses. We then test the strength of the clusters using modularity and perMANOVA tests. All of our programming in this study was conducted in RStudio.
-=======
 We hypothesize that these phases, and the environmental changes across the them, may correspond to changes in dynamics of cultural groups, as represented by patterns in the distribution of geometric signs. We aim to address the following questions: How do grouping dynamics of geometric signs change across the four phases of the Aurignacian? How do the groupings vary in diversity, size, connectivity, and distribution? What do these patterns tell us about dynamics of social organization throughout the Aurignacian? To answer these questions we use seriation analysis, network analysis, and PerMANOVA tests. 
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 
 # Materials and Methods
 
@@ -497,12 +481,13 @@ plot_grid(sign_map,
           labels = "A",
           axis = "lr")
 
-ggsave(maps_bar_plots, 
-      filename =  here::here("figures/map-and_hist-plot.png"),
+
+ggsave(maps_bar_plots,
+      filename =  here::here("figures/map-and-hist-plot.png"),
        h = 10, w = 10,
        bg = "white")
 
-knitr::include_graphics(here::here("figures/map-and_hist-plot.png"))
+knitr::include_graphics(here::here("figures/map-and-hist-plot.png"))
 
 ```
 
@@ -665,13 +650,6 @@ strength_function <- function(artifact_data, group_data){
   
   set.seed(500)
   jac <- vegdist(artifact_data %>% mutate_all(~ as.numeric(. > 0)), "jaccard", binary = TRUE)
-  dm <- as.matrix(jac)
-  modul_matrix <-
-    graph_from_adjacency_matrix(1 - dm, mode = "undirected")
-  mem <- as_membership(parse_number(group_data$group))
-  as_group <- modularity(modul_matrix, membership = mem)
-  as_group <- round(as_group, 3)
-  
   perman <- adonis2(jac~as.factor(group_data$group), 
                     method = "jaccard",
                     sqrt.dist = TRUE)
@@ -688,8 +666,7 @@ strength_function <- function(artifact_data, group_data){
   p_value_distance_correlation <- round(mantel_distance$signif, 3)
   r_value_distance_correlation <- round(mantel_distance$statistic, 3)
   
-  final_table <- data_frame("Modularity" = as_group, 
-                            "PerMANOVA R2" = perman_r,
+  final_table <- data_frame("PerMANOVA R2" = perman_r,
                             "PerMANOVA F" = perman_f,
                             "PerMANOVA p" = perman_p,
                             "Mantel R" = r_value_distance_correlation, 
@@ -700,11 +677,7 @@ strength_function <- function(artifact_data, group_data){
 
 ```
 
-<<<<<<< HEAD
-If the distribution of sign types can be solely explained by geographic distance, then we would see similarity in sign type distribution decreasing as geographic distance increases [. This relationship can be investigated using the isolation-by-distance framework, which proposes that cultural difference can be primarily explained by geographic distance [@Lycett_2019]. To confirm that the distribution of sign types is influenced by cultural factors rather than geographic distance, we calculated the correlation between sign type distribution and geography for each phase. We used Mantel tests with a geographic distance matrix and a Jaccard similarity matrix, with the results shown in @tbl-mantel-table. None of the phases have a statistically significant correlation between sign type distribution and geographical distance, so the isolation-by-distance hypothesis is rejected.
-=======
 If the distribution of sign types can be mostly explained by geographic distance, then we would see similarity in sign type distribution decreasing as geographic distance increases [@Herskind2023; @Rigaud_dErrico_Vanhaeren_2015]. This relationship can be investigated using the isolation-by-distance framework, which proposes that cultural difference can be primarily explained by geographic distance [@Lycett_2019]. To confirm that the distribution of sign types is influenced by cultural factors rather than geographic distance, we calculated the correlation between sign type distribution and geographic distance for each phase. We used Mantel tests with a geographic distance matrix and a Jaccard similarity matrix, with the results shown in @tbl-mantel-table. None of the phases have a statistically significant correlation between sign type distribution and geographical distance, so we reject the isolation-by-distance hypothesis as a primary explanation for variation in sign type distribution. 
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 
 ```{r}
 #| label: tbl-mantel-table
@@ -733,11 +706,11 @@ kable(mantel_table)
 
 ## Cultural Group Detection Using Seriation and Network Analysis
 
-Seriation analysis is the arrangement of data into a linear order to reveal patterns [@Hahsler_Hornik_Buchta]. We used the Brower-Kile [-@Brower_Kile_1988] seriation algorithm from the seriation package [@seriation_pckge], in which a unidimensional sequence is generated by reordering the rows and columns to group the presences along the diagonal. To investigate connectivity among clusters of sites in the seriation solution, we used network analysis to represent and quantify the relationship between sites [@Mills_2017]. Each node is a site, and each edge is a measure of sign type distribution similarity, as computed by the Jaccard similarity algorothm. To avoid cluttering the graph, all edges below the value of 0.2 were removed. Results were plotted with the Fruchterman-Reingold layout [@Fruchterman_Reingold_1991], a force-directed graph layout for uniform edge lengths, and network analysis was performed using the vegan [@Vegan2001], statnet [@statnet_package] and igraph [@igraph_package] packages.
+Seriation analysis is the arrangement of data into a linear order to reveal patterns [@Hahsler_Hornik_Buchta]. We used the Brower-Kile [-@Brower_Kile_1988] seriation algorithm from the seriation package [@seriation_pckge], in which a unidimensional sequence is generated by reordering the rows and columns to group the presences along the diagonal. To investigate connectivity among clusters of sites in the seriation solution, we used network analysis to represent and quantify the relationship between sites [@Mills_2017]. Each node is a site, and each edge is a measure of sign type distribution similarity, as computed by the Jaccard similarity algorithm. To avoid cluttering the graph, all edges below the value of 0.2 were removed. Results were plotted with the Fruchterman-Reingold layout [@Fruchterman_Reingold_1991], a force-directed graph layout for uniform edge lengths, and network analysis was performed using the vegan [@Vegan2001], statnet [@statnet_package] and igraph [@igraph_package] packages.
 
-## Modularity and PerMANOVA for Cultural Connection Strength
+##  PerMANOVA for Cultural Connection Strength
 
-To evaluate the strength of the connections of the groups found in the seriation and network analyses, we used modularity and perMANOVA tests. The modularity test is a community structure network detection method, and quantifies the randomness of the groupings by measuring the fraction of the edges in the network that fall within groups, minus the expected value if the edges were placed at random [@Newman_2006; @Newman_Girvan_2004]. The results are expressed in a score of 0 to 1, with 0 meaning no significant subgroups, and 1 meaning perfect groupings. PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017]. The results are expressed by an R^2^ statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, a pseudo-F statistic, and a p-value. The pseudo-F statistic compares the total sum of squared dissimilarities between groups to total sum of squared dissimilarities within groups. Larger pseudo-F statistics indicate more separation between groups. The p-value quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance). The modularity test and perMANOVA were performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
+PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017; @Shennan_Crema_Kerig_2015]. The results are expressed by an R^2^ statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, a pseudo-F statistic, and a p-value. The pseudo-F statistic compares the total sum of squared dissimilarities between groups to total sum of squared dissimilarities within groups. Larger pseudo-F statistics indicate more separation between groups. The p-value quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance). The perMANOVA was performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
 
 # Results
 
@@ -822,56 +795,7 @@ plot_grid(network_trans, network_proto, network_early, network_evolved,
           label_size = 7, label_colour = "black", label_y = 1.02, label_x = -0.01)
 ```
 
-<<<<<<< HEAD
-The results of the network analysis supports the restricted-broad groupings identified in @fig-seriation, and provides additional insights into the evolution of connectivity between groups. In the Transitional phase, the network analysis reveals one distinct and one disconnected group. The restricted group consists of Geissenklösterle, Fumane, and Pod Hradem, and the broad group consists of Hohle Fels, El Castillo, and Labeko Koba, with no connections between the groups. The Proto-Aurignacian phase also shows two clearly defined groups, the broad group consisting of Geissenklösterle, Spy, Vogelherd, and Grotte du Renne, and the restricted group consisting of Mladeč, Hohlenstein-Stadel, Gatzarria, and Abri Pataud. However, it also displays some connectivity between the two groups of sites, with La Ferrassie connected to both groups. Les Cottés stands out with no connections to either group. The Early Aurignacian shows more strongly inter-connected groups -- although the shape still suggests two main groups -- with Grotte de la Verpillière I in particular having multiple strong connections to both groups. Lastly, the Evolved Aurignacian again shows two main groups, although intra-group connectivity has decreased, with the broad group consisting of Hohle Fels, Trou Magrite, Vogelherd, and Bockstein-Törle, and the restricted group consisting of Gargas, La Viña, Sirgenstein Cave, Vindija Cave, and Les Rois. As for the Early Aurignacian, inter-connectivity between groups continues to be evident in the Evolved Aurignacian, with connections between Trou Magrite, Gargas, and Vindija Cave, and Bockstein-Törle and Gargas, however the strength of inter-connectivity is weaker than in the Early Aurignacian.
-
-In identifying the groups, we referenced both the seriation and network analyses. The results of the above tests allowed us to find two main groups of sites within each phase (@fig-seriation).
-
-## Cultural Connection Strength
-
-```{r}
-#| label: tbl-strength-table
-#| tbl-cap: "Table of the results per phase for the modularity test and perMANOVA"
-#| tbl-cap-location: bottom
-
-## Modularity test
-
-strength_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, Modularity, `PerMANOVA R2`, `PerMANOVA F`, `PerMANOVA p`)
-
-kable(strength_table)
-
-proto_modularity <- proto_strength %>% 
-  dplyr::select(Modularity)
-evolved_modularity <- evolved_strength %>% 
-  dplyr::select(Modularity)
-
-trans_perm_r <- trans_strength %>% 
-  dplyr::select(`PerMANOVA R2`)
-early_perm_r <- early_strength %>% 
-  dplyr::select(`PerMANOVA R2`)
-
-trans_perm_p <- trans_strength %>% 
-  dplyr::select(`PerMANOVA p`)
-
-trans_perm_f <- trans_strength %>% 
-  dplyr::select(`PerMANOVA F`)
-early_perm_f <- early_strength %>% 
-  dplyr::select(`PerMANOVA F`)
-```
-
-The modularity score quantifies the strength of the groupings, showing that the variations in grouping strength between phases are minimal. The Proto-Aurignacian exhibits the strongest groupings, with a score of `r proto_modularity`, and the Evolved Aurignacian has the weakest groupings, with a score of `r evolved_modularity`. There is a slight increase in modularity between the Transitional period and the Proto-Aurignacian, before an even slighter decrease into the Early Aurignacian, followed by a larger increase with the Evolved Aurignacian.
-
-The perMANOVA R^2^ statistic shows the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of `r trans_perm_r` while the Early Aurignacian has the lowest score of `r early_perm_r`. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The pseudo-F statistic quantifies the difference between groups, with the Transitional phase having the highest value of `r trans_perm_f`, and the Early Aurignacian having the lowest value of `r early_perm_f`. Similar to the R^2^ statistic, we see a decline in values between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian period. The perMANOVA p-value indicates a statistically significant difference in the distribution of signs between the restricted and broad groups for the Proto , Early, and Evolved Aurignacian phases, but not the Transitional phase (p = `r trans_perm_p`).
-
-# Discussion
-
-## Grouping Dynamics Across the Four Phases of the Aurignacian
-
-Our first aim was to determine how the grouping dynamics of geometric signs changed across four phases of the Aurignacian, specifically in terms of diversity, size, connectivity, and distribution. The results from @fig-seriation show that each phase can be divided into two main cultural groups, with sign type diversity serving as a major dividing factor, and that group size varied from phase to phase, with a large increase in between the Transitional phase and the Proto-Aurignacian. @fig-neighbor-net shows that group inter-connectivity and intra-connectivity varies from phase to phase, with weak intra-group connections and no inter-group connections in the Transitional phase, to stronger intraconnections and interconnections starting to form in the Proto-Aurignacian, to extremely strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The modularity tests, as shown in @tbl-strength-table, show that the groupings are most distinct in the Transitional period and least distinct in the Early Aurignacian. The perMANOVA tests show that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian has the least. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian has the highest correlation.
-=======
 The results of the network analysis supports the restricted-broad groupings identified in @fig-seriation, and provide additional insights into the evolution of connectivity between groups. In the Transitional phase, the network analysis reveals one distinct and one disconnected group. The restricted range group consists of Geissenklösterle, Fumane, and Pod Hradem, and the broad range group consists of Hohle Fels, El Castillo, and Labeko Koba, with no connections between the groups. The Proto-Aurignacian phase also shows two clearly defined groups, the broad range group consisting of Geissenklösterle, Spy, Vogelherd, and Grotte du Renne, and the restricted range group consisting of Mladeč, Hohlenstein-Stadel, Gatzarria, and Abri Pataud. However, it also displays some connectivity between the two groups of sites, with La Ferrassie connected to both groups. Les Cottés stands out with no connections to either group. The Early Aurignacian shows more strongly inter-connected groups -- although the shape still suggests two main groups -- with Grotte de la Verpillière I in particular having multiple strong connections to both groups. Lastly, the Evolved Aurignacian again shows two main groups, although intra-group connectivity has decreased, with the broad range group consisting of Hohle Fels, Trou Magrite, Vogelherd, and Bockstein-Törle, and the restricted range group consisting of Gargas, La Viña, Sirgenstein Cave, Vindija Cave, and Les Rois. As for the Early Aurignacian, inter-connectivity between groups continues to be evident in the Evolved Aurignacian, with connections between Trou Magrite, Gargas, and Vindija Cave, and Bockstein-Törle and Gargas, however the strength of inter-connectivity is weaker than in the Early Aurignacian.
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 
 ```{r fig.height= 7, fig.width=10}
 #| label: fig-group-map
@@ -920,18 +844,10 @@ ggplot(Europe) +
 
 ```
 
-<<<<<<< HEAD
-The geographic distribution of the groups change from phase to phase (@fig-group-map). In the Transitional phase, sites are widely spread out across Western Europe. This wider distribution may be a factor in weak connections seen in @fig-neighbor-net. In the Proto-Aurignacian, we see a slightly narrower distribution of sites westward but a spread northward, and more overlapping of sites between groups, which may be associated with the slightly stronger connectivity seen there. This phase is also associated with an increase in sites and sign types, which may be correlated with the increased proximity and population density. In the Early Aurignacian, we see a reduced distribution, with sites clustered closer together, which may be associated with the increased connectivity in that phase. In the Evolved Aurignacian, we see a wider distribution and more distance between sites, which may be associated with the reduced connectivity seen in that phase.
-
-One factor that may influence the geographic structure of sites is the possibility that some sites functioned as aggregation sites. The aggregation/dispersion pattern is defined by @conkley_agg as a type of hunter-gather settlement pattern, in which groups both break off in dispersed fragments and congregate in large groups, typically for subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate, and some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a diverse artifact assemblage [@conkley_agg]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994]. 
-=======
 While th results of the seriation and network analyses point to two main groups of sites within each phase, spatial clusters of sites are not highly evident in these groups, in part due to the small numbers of sites in each phase (@fig-group-map). In the Transitional phase, sites are widely spread out across Western Europe. This wider distribution may be a factor in weak connections seen in @fig-neighbor-net. In the Proto-Aurignacian, we see a slightly narrower geographic distribution of sites westward but a spread northward, and more overlapping of sites between groups, which may be associated with the slightly stronger connectivity seen there. This phase is also associated with an increase in sites and sign types, which may be correlated with the increased proximity and population density. In the Early Aurignacian, we see a reduced distribution, with sites clustered closer together, which may be associated with the increased connectivity in that phase. In the Evolved Aurignacian, we see a wider distribution and more distance between sites, which may be associated with the reduced connectivity seen in that phase. The Mantel tests, as shown in @tbl-mantel-table, tell us that the sign distribution in the Proto-Aurignacian experiences the lowest correlation with geographic distance, while the Early Aurignacian has the highest correlation.
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 
-A potential identifier of aggregation sites comes from @fig-div-plot, which uses the tabula package [@Frerebeau_2025] to generate the Shannon-Weaver diversity index of sign types per site, and plot the expected diversity index for a given sample size against the actual diversity index per site [@Kintigh_1984]. The plot identifies multiple sites that diverge from the diversity index predicted by sample size, including those with a higher index than expected, such as Hohle Fels in the Transitional phase, Spy, La Ferrassie, and Les Cottés in the Proto-Aurignacian, Solutré, Hohle Fels, and Grottes de Fonds-de-Forêt in the Early Aurignacian, and Vogelherd, Bockstein-Törle, and Vindija Cave in the Evolved Aurignacian. It is possible that those sites with a greater than expected diversity index acted as aggregation sites or served a similar purpose. La Ferrassie in the Proto-Aurignacian is also shown by @fig-neighbor-net to have multiple connections to sites in both groups, in addition to the diversity index shown in @fig-div-plot, perhaps suggesting that it served as a specifically inter-group aggregation site.
+## Cultural Connection Strength
 
-<<<<<<< HEAD
-=======
 ```{r}
 #| label: tbl-strength-table
 #| tbl-cap: "Table of the results per phase for the perMANOVA"
@@ -970,7 +886,6 @@ One consistent grouping dynamic throughout all four phases is the restricted/bro
 The connectivity between sites represented in @fig-neighbor-net may reflect non-utilitarian mobility among these larger communities. Previous studies have shown a range of variation in magnitudes and types of mobility among hunter-gatherer groups [@Binford_1990; @Kelly_1983; @Johnson_2014; @Padilla-Iglesias_Bischoff_2024; @Singh_Glowacki_2022]. Non-utilitarian mobility establishes regional social networks which facilitate the spread of information and the survival of hunter-gatherers in uncertain environments [@Whallon_2006; @Fitzhugh_Phillips_Gjesfeld_2011; @Lovis_Donahue_2011; @Hitchcock_Ebert_2011; @Romano_Lozano_Fern2002]. The exchange and production of decorative items, such as objects with geometric signs, has been associated with non-utilitarian mobility and recognized as an indicator of social contact [@Whallon_2006; @Kelly_2024; @Kinahan_2013; @Newlander_2012; @Iizuka_Ferguson_Izuho_2022]. We can divide the connections depicted in @fig-neighbor-net into shorter-term information exchange and longer-term residential movement.
 
 One form of longer-term residential movement that may be related to non-utilitarian mobility are aggregation/dispersion patterns, which are defined by @conkley_agg as a type of hunter-gather settlement pattern in which groups both break off in dispersed fragments and congregate in large groups, typically for subsistence or social reasons. Aggregation sites, associated with high degrees of connectivity, are the places where those group fragments or individuals congregate. Some archaeological indicators of aggregation sites include proximity to certain environmental resources, as well as a more diverse artifact assemblage [@conkley_agg], including, in some cases, decorative objects [@Kelly_2024]. Previous studies have also identified evidence of aggregation/dispersion patterns among the early modern humans of the Upper Paleolithic [@dErrico_Baker_Rigaud_2025; @Maher_Conkey_2019; @bahn1982inter; @Bourdier_2013; @Svoboda_2013; @bahn1982inter; @white1992rethinking; @Soffer_Adovasio_Enloe_Audouze_Zubrow_2010; @montet-white1994].
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 
 Following this previous work, we identify aggregation sites as those with a higher than expected sign diversity index. @fig-div-plot plots the expected Shannon-Weaver diversity index [@Frerebeau_2025] for a given sample size against the actual diversity index per site [@Kintigh_1984]. The plot identifies multiple sites with a higher than expected diversity of signs, such as Hohle Fels in the Transitional phase, Spy, La Ferrassie, and Les Cottés in the Proto-Aurignacian, Solutré, Hohle Fels, and Grottes de Fonds-de-Forêt in the Early Aurignacian, and Vogelherd, Bockstein-Törle, and Vindija Cave in the Evolved Aurignacian. Notably, most of these sites are not shown as having connections between groups in @fig-neighbor-net, except for La Ferrassie in the Proto-Aurignacian. This suggests a distinction between shorter-term information exchange (e.g. the highly interconnected sites in @fig-neighbor-net) and longer-term residential movement for aggregation (e.g. the sites with higher than expected diversity in @fig-div-plot).
 
@@ -1093,11 +1008,6 @@ plot_grid(plotlist =  signbase_full_clean_diversity_plot_by_period$plot,
           label_y = 0.95)
 ```
 
-<<<<<<< HEAD
-@fig-div-plot shows a great deal of general divergence from the expected diversity index for the sample size. Another potential explanation for the observed variation in diversity is that it may indicate variation in social structure. Despite the tendency to conceive of hunter-gatherers as homogenous, previous studies have established a potential for variation in hunter-gatherer social structures [@Finlayson_Warren_2017; @Riches_1995; @Price_Brown_1985; @Lane_2017; @Pate_2006]. Additional research has established how variation in ornamentation and other forms of material culture can be used to communicate information about social roles and status within groups [@Morwood_1987; @Sauvet_2018; @Mattson_2021; @Larsson_2006; @Moore_2010; @Alfonso-Durrruty_Giles_Misarti2015; @Vanhaeren_2005; @Conkey_1985; @Conkey_1978; @Tilley_1982]. It is therefore possible that greater diversity in geometric signs indicates a wider variety of formal social roles [@Conkey_1985]. This is especially relevant in regards to our larger grouping structure of broader versus restricted signs, as it may indicate two broad types of social structure, with the broader groups having a more formal social structure, and the restricted groups having a less formal social structure.
-
-=======
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 ## Social Organization Dynamics Throughout the Aurignacian
 
 The second aim was to determine what these patterns reveal about the dynamics of social organization throughout the Aurignacian. The results suggest that the Transitional phase was sparsely populated, with minimal interaction between loosely connected groups. For the Proto-Aurignacian, the results suggest a large expansion in social interaction within groups, as well as some degree of interaction between groups, with geographic distance having the least influence on sign distribution [@tbl-mantel-table]. The Early Aurignacian experiences a large surge in interaction between groups, as well as interaction within groups, and an increase in the correlation with geographic distance. The Evolved Aurignacian experiences a decline in between-group interaction, although it maintains within-group interaction.
@@ -1110,11 +1020,7 @@ Our results are consistent with @Banks_dErrico_Zilhao_2013 who used eco-cultural
 
 # Conclusion
 
-<<<<<<< HEAD
-This study adds to our knowledge of social networks within the Aurignacian period, as our results document dynamic patterns of social exchange and connection. Previous works [@bahn1982inter; @Horiuchi_Takakura_2019; @Rogers_2013; @baker2024evidence; @Golovanova_Doronichev_Doronicheva_Sapega_Shackley_2021; @Gamble_1982] have used material evidence analysis to reconstruct Upper Paleolithic social networks, which research has pointed to as a potential driver of cultural and evolutionary growth [@Greenbaum_Friesem_Hovers_Feldman_Kolodny_2019; @Creanza_Kolodny_Feldman_2017; @Cullen_1996]. @Foley_Gamble_2009 places the emergence of complex inter-group connectivity at around 30 k BP, however, our results show evidence of inter-connectivity beginning at around 41 k BP, perhaps suggesting an earlier emergence of complex inter-connectivity than previously predicted. We attempted to rectify the low temporal resolution that tends to affect network analysis results when analyzing older, more time-averaged data sets [@Gravel-Miguel_Coward_2023] by dividing the data up into smaller time periods. Additionally, by focusing on change over time, we are able to see social networks as fluid and dynamic, rather than static and bounded [@Maher_Conkey_2019].
-=======
 This study adds to our knowledge of social networks within the Aurignacian period, as our results document dynamic patterns of social exchange and connection. Previous work [@bahn1982inter; @Horiuchi_Takakura_2019; @Rogers_2013; @baker2024evidence; @Golovanova_Doronichev_Doronicheva_Sapega_Shackley_2021; @Gamble_1982] has used material culture analysis to reconstruct Upper Paleolithic social networks, which have been argued to be a driver of cultural and evolutionary change [@dErrico_Baker_Rigaud_2025; @Greenbaum_Friesem_Hovers_Feldman_Kolodny_2019; @Creanza_Kolodny_Feldman_2017; @Cullen_1996; @Hill_Wood_Baggio_Hurtado_Boyd_2014; @Derex_Boyd_2016; @Romano_Lozano_Fern2022]. @Foley_Gamble_2009 places the emergence of complex inter-group connectivity at around 30 k BP, however, our results show evidence of inter-connectivity beginning at around 41 k BP, perhaps suggesting an earlier emergence of complex inter-connectivity than previously predicted. We attempted to rectify the low temporal resolution that tends to affect network analysis results when analyzing older, more time-averaged data sets [@Gravel-Miguel_Coward_2023] by dividing the data up into smaller time periods. Additionally, by focusing on change over time, we are able to see social networks as fluid and dynamic, rather than static and bounded [@Maher_Conkey_2019].
->>>>>>> 294110e57e51af33b16588863875b2c8b14db112
 
 One limitation is the potential ambiguity that arises with some of the sign types. While @Von_Petzinger_2009 argues in favor of Aurignacian geometric signs as symbolic expression, potential ambiguity still remains over whether function is consistent across all sign type occurrences, particularly in regards to the simpler sign types composed from fewer elements. We included the more ambiguous sign types because similar sign occurrence may still serve as evidence of cultural connectivity regardless of function, even if it is random copying [@Herskind2023], and additionally, greater quantities of included sign types serves to establish stronger connections [@Gravel-Miguel_Coward_2023]. This ambiguity may be addressed in the future through the usage of the data recently released in SignBase 2.0 covering sites in Germany, which contains more detailed information on the specific order and patterns in which signs occurred on individual objects. <!-- citation to signbase 2.0 ?--> 
 
