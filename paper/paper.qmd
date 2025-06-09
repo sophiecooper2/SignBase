@@ -1,9 +1,19 @@
 ---
-title: "Geometric signs reveal changes social structures and networks during the Western Eurasian Aurignacian"
+title: "Geometric signs reveal changes in social structures and networks during the Western Eurasian Aurignacian"
 author:
   - Sophie Cooper:
       institute: uw
       orcid: xxx
+  - Aleah Rosner:
+      institute: uw
+      orcid: xxx
+  - Eva Oryn:
+      institute: uw
+      orcid: xxx
+  - Kenneth B. Vernon:
+      orcid: 0000-0003-0098-5092
+      institute:
+        - uu
   - Ben Marwick:
       correspondence: "yes"
       email: bmarwick@uw.edu
@@ -12,6 +22,7 @@ author:
         - uw
 institute:
   - uw: Department of Anthropology, University of Washington, Seattle, USA
+  - uu: Scientific Computing and Imaging Institute, University of Utah, Salt Lake City, USA
 title-block-published: "Last updated"  
 date: now
 date-format: long
@@ -30,7 +41,7 @@ filters:
   - ../templates/author-info-blocks.lua
   - ../templates/pagebreak.lua
 bibliography: references.bib
-csl: "../templates/society-for-american-archaeology.csl" # Insert path for the bib-style
+csl: "../templates/nature.csl" # Insert path for the bib-style
 abstract: |
   ...
 keywords: |
