@@ -1026,6 +1026,8 @@ These results are consistent with previous work on the environmental and populat
 
 Our results are consistent with @Banks_dErrico_Zilhao_2013 who used eco-cultural niche modeling to show that the Heinrich Stadial 4 (HS4) at the very beginning of the Early Aurignacian resulted in a expansion of people into new environmental niches, which they hypothesize was associated with an expansion of social networks both within and between populations. This correlates with our results which show a large increase in both inter-connectivity and intra-connectivity strength in the Early Aurignacian, as well as the increased sign type correlation with geographic distance. Similarly, @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 developed a human-existence probability model for the Aurignacian, finding an expanded, more dispersed settlement area for Evolved/Late Aurignacian theorizing that the environmental changes of HS4 lead to humans better adapted to survive in a broader range of climate conditions. @Shao_Wegener_Klein_Schmidt_Weniger_2024 also finds an increase in expansion marking the beginning of the Evolved Aurignacian. This geographic expansion may explain our results, where we find weaker, more dispersed connections in the Evolved Aurignacian.
 
+Unlike the personal ornaments, geometric signs do not reveal 
+
 <!-- connect back with the papers we discuss in the background section about Aurginacian cultural groups, did we find the same or different? Most of our conclusions are not similar in kind to theirs, that is fine, we just need to make a connection between their work and ours here.  -->
 
 # Conclusion
