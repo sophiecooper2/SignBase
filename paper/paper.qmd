@@ -48,13 +48,9 @@ keywords: |
    
 ---
 
-<<<<<<< HEAD
-Archaeological evidence from the Upper Paleolithic period indicates increasingly complex social organization across Europe [@Boyd_Silk_2020], coinciding with the ongoing biological transition from Neanderthals to early modern humans. Archaeologists have frequently used ancient art, the abundance of which is distinctive quality of the period, as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@baker2024evidence; @Sauvet_2018; @Kuhn_Stiner_2007; @Vanhaeren_d; @Fuentes_Lucas_Robert_2019]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian technocomplex (ca. 43 - 30 k BP) is often linked to the dispersal of _Homo sapiens_ across Western Eurasia, and is characterized by lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. In this paper we investigate Aurignacian social organization dynamics implied by the distribution and variation of geometric sign types found on mobile objects in Europe across four phases of the Aurignacian period.
-=======
 Archaeological evidence from the Upper Paleolithic period indicates increasingly complex social organization across Europe [@Boyd_Silk_2020]. Archaeologists have frequently used ancient art, the abundance of which is distinctive quality of the period, as a proxy for cultural difference in order to understand the shifting patterns of social organization and diversity of the Upper Paleolithic [@dErrico_Baker_Rigaud_2025; @baker2024evidence; @Sauvet_2018; @Kuhn_Stiner_2007; @Vanhaeren_d; @Fuentes_Lucas_Robert_2019]. Considered to be the starting point of the Upper Paleolithic, the Aurignacian technocomplex (ca. 43 - 30 k BP) is often linked to the dispersal of _Homo sapiens_ across Western Eurasia, and is characterized by lithic and osseus markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. We investigated human social organization dynamics implied by the distribution and variation of geometric sign types found on mobile objects in Europe across four phases of the Aurignacian period.
 
 ## Cultural group identification in the Upper Paleolithic
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
 
 Previous work has fruitfully explored social organization dynamics of the Upper Paleolithic using statistical analyses of objects to understand patterns of cultural groups. Multivariate analyses of beads from the Gravettian technocomplex suggests an east to west cline of nine cultural groups [@baker2024evidence]. Seriation analysis, PCoA, and network analysis were used to identify groups from 134 discrete bead types recovered from both burial and occupation sites. To validate their claims of cultural groups, @baker2024evidence used a Mantel test to evaluate an isolation-by-distance hypothesis, which proposes that cultural difference can be primarily explained by geographic distance. They found that geographic distance alone did not solely account for the bead distribution. The nine geographically discrete groups encompass the regions of eastern, northwestern and central Europe, the northern and southern Iberian peninsula, southern and northern Italy, and the eastern and western Mediterranean regions.
 
@@ -84,10 +80,6 @@ kable(aur_table)
 
 We hypothesize that these phases, and the environmental changes across them, may correspond to changes in dynamics of cultural groups, as represented by patterns in the distribution of geometric signs. We aim to address the following questions: How do grouping dynamics of geometric signs change across the four phases of the Aurignacian? How do the groupings vary in diversity, size, connectivity, and distribution? What do these patterns tell us about dynamics of social organization throughout the Aurignacian? To answer these questions we use seriation analysis, network analysis, and PerMANOVA tests. 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
 ```{r}
 ## clean the data
 library(magrittr)
@@ -405,14 +397,11 @@ perman_chron <- perman_chron %>%
 
 ```
 
-<<<<<<< HEAD
-=======
 ## Geometric signs from the Aurignacian
 
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
 Our data comes from SignBase 1.0, an open-access collection of geometric signs on mobile objects from Upper Paleolithic Europe. SignBase 1.0 is a record of objects noting only the presence or absence of each sign on the object, without details of the quantity or sequence of individual signs on a given object. We used the identification of sign types provided by SignBase's curators [@dutkiewicz2020]. The data set consists of `r nartifacts` objects found at `r nsites` sites in `r ncountries` countries, and records `r nsigntypes` geometric sign types. We excluded signs classified by @dutkiewicz2020 as "other". To improve the quality of our data we excluded seven sites from the sample: only Willendorf (one sign present); Riparo di Fontana Nuova, Muralovka, Shanidar Cave, and Hayonim Cave (extreme geographic distance from the other sites); Grotte De La Princesse Pauline and Šandalja II (dated much later than the rest of the assemblages). This resulted in a sample of `r nartifacts_clean` objects found at `r nsites_clean` sites in `r ncountries_clean` countries, and `r nsigntypes_clean` sign types used in this study (@fig-site-map).
 
-```{r fig.height= 9, fig.width=10}
+```{r fig.height= 10, fig.width=10}
 #| label: fig-site-map
 #| fig-cap: "A: Map of sites in each Aurignacian phase that contain geometric signs on mobile objects. B: Abundance of signs over time, phases indicated by colours. C. Distribution of object count by site"
 #| fig-height: 10
@@ -515,12 +504,6 @@ knitr::include_graphics(here::here("figures/map-and-hist-plot.png"))
 
 ```
 
-<<<<<<< HEAD
-=======
-The distribution of objects across sites is highly skewed, as seen in @fig-site-map C. To minimize the influence of this skewed distribution, we followed @Lycett_2019 in using presence/absence data for each sign at each site, reducing the effect of variation in object count between sites. To test for interactions between object abundance and sign type distribution, we used Mantel tests with a Euclidean object abundance distance matrix and a Jaccard distance matrix of sign types. The test indicated that there was no significant correlation between object abundance and sign type distribution (R = `r r_value_object_abundance_correlation`, p = `r p_value_object_abundance_correlation`), supporting our decision to use presence/absence data and remove frequency as a potentially confounding variable.
-
-Ages of the objects were determined by calibrating the uncalibrated ages provided by SignBase using the rcarbon package [@Crema_Bevan_2021]. The calibrated radiocarbon dates of the sampled data range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We assigned each object to a chronological phase following the date ranges recorded in @tbl-aur-table. The Transitional phase has `r trans_site_count` sites and `r trans_sign_count` sign types, the Proto-Aurignacian has `r proto_site_count` sites and `r proto_sign_count` sign types, the Early Aurignacian has `r early_site_count` sites and `r early_sign_count` sign types, and the Evolved Aurignacian has `r evolved_site_count` sites and `r evolved_sign_count` sign types. A Mantel test to evaluate the correlation between distance in time and distribution of sign types found a statistically significant correlation (R = `r chron_r`, p = `r chron_p`). This confirms our assumption that a meaningful change in sign types occurs over time during the Aurignacian period.
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
 
 ```{r}
 library(ggraph)
@@ -705,34 +688,6 @@ strength_function <- function(artifact_data, group_data){
 ```
 
 
-<<<<<<< HEAD
-=======
-```{r}
-#| label: tbl-mantel-table
-#| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard matrix of sign type diversity and a geographic distance matrix"
-#| tbl-cap-location: bottom
-## Mantel test for geography vs signs
-
-trans_strength <- strength_function(trans_artifact_data, trans_unique_data)
-proto_strength <- strength_function(proto_artifact_data, proto_unique_data)
-early_strength <- strength_function(early_artifact_data, early_unique_data)
-evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data)
- 
-full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
-   mutate(`Aurignacian phase` = c("Transitional", 
-                            "Proto-Aurignacian",
-                            "Early Aurignacian", 
-                            "Evolved Aurignacian"), 
-          .before = 1)
- 
-mantel_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, `Mantel R`, `Mantel p`)
-
-kable(mantel_table)
-
-```
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
-
 # Results
 
 ## Cultural Group Detection
@@ -870,7 +825,6 @@ While the results of the seriation and network analyses point to two main groups
 ## Cultural Connection Strength
 
 ```{r}
-<<<<<<< HEAD
 #| label: tbl-strength-table
 #| tbl-cap: "Table of the results per phase for the perMANOVA"
 #| tbl-cap-location: bottom
@@ -888,16 +842,19 @@ full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_stre
           .before = 1)
  
 mantel_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, `Mantel R`, `Mantel p`)
+  dplyr::select(`Aurignacian phase`, 
+                `Mantel R`, 
+                `Mantel p`)
 
 
 strength_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, `PerMANOVA R2`, `PerMANOVA F`, `PerMANOVA p`)
+  dplyr::select(`Aurignacian phase`, 
+                `PerMANOVA R2`, 
+                `PerMANOVA F`, 
+                `PerMANOVA p`)
 
 kable(strength_table)
 
-=======
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
 trans_perm_r <- trans_strength %>% 
   dplyr::select(`PerMANOVA R2`)
 early_perm_r <- early_strength %>% 
@@ -914,23 +871,9 @@ early_perm_f <- early_strength %>%
 
 The perMANOVA R^2^ statistics presented in @tbl-strength-table show the proportion of sign variation that can be explained by group membership. The Transitional period has the highest score of `r trans_perm_r` while the Early Aurignacian has the lowest score of `r early_perm_r`. We see a large decline in scores between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian periods. The pseudo-F statistic quantifies the difference between groups, with the Transitional phase having the highest value of `r trans_perm_f`, and the Early Aurignacian having the lowest value of `r early_perm_f`. Similar to the R^2^ statistic, we see a decline in values between the Transitional and the Proto-Aurignacian periods, before a slight increase in between the Early and Evolved Aurignacian period. The perMANOVA p-value indicates a statistically significant difference in the distribution of signs between the restricted and broad range groups for the Proto , Early, and Evolved Aurignacian phases, but not the Transitional phase (p = `r trans_perm_p`).
 
-```{r}
-#| label: tbl-strength-table
-#| tbl-cap: "Table of the results per phase for the perMANOVA"
-#| tbl-cap-location: bottom
-
-strength_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, 
-                `PerMANOVA R2`, 
-                `PerMANOVA F`, 
-                `PerMANOVA p`)
-
-kable(strength_table)
-```
-
 # Discussion
 
-## Grouping Dynamics Across the Four Phases of the Aurignacian
+## Group Dynamics Across the Four Phases of the Aurignacian
 
 Our first aim was to determine how the grouping dynamics of geometric signs changed across four phases of the Aurignacian, specifically in terms of diversity, size, connectivity, and distribution. The results from @fig-seriation show that each phase can be divided into two main cultural groups, with sign type number and diversity serving as a major dividing factor, and that group size varied from phase to phase, with a large increase in between the Transitional phase and the Proto-Aurignacian. @fig-neighbor-net shows that group inter-connectivity and intra-connectivity varies from phase to phase, with weak intra-group connections and no inter-group connections in the Transitional phase, to stronger intraconnections and interconnections starting to form in the Proto-Aurignacian, to very strong connections (both between and within groups) in the Early Aurignacian, to weaker connections in the Evolved Aurignacian. The perMANOVA tests show that the changes between the Proto, Early, and Evolved Aurignacian phases are statistically significant, that the Transitional period experiences the highest level of difference between groups, while the Early Aurignacian has the least.
 
@@ -1081,7 +1024,6 @@ This study adds to our knowledge of social networks within the Aurignacian perio
 
 One limitation is the potential ambiguity that arises with some of the sign types. While @Von_Petzinger_2009 argues in favor of Aurignacian geometric signs as symbolic expression, potential ambiguity still remains over whether function is consistent across all sign type occurrences, particularly in regards to the simpler sign types composed from fewer elements. We included the more ambiguous sign types because similar sign occurrence may still serve as evidence of cultural connectivity regardless of function, even if it is random copying [@Herskind2023], and additionally, greater quantities of included sign types serves to establish stronger connections [@Gravel-Miguel_Coward_2023]. This ambiguity may be addressed in the future through the usage of the data recently released in SignBase 2.0 covering sites in Germany, which contains more detailed information on the specific order and patterns in which signs occurred on individual objects. <!-- citation to signbase 2.0 ?--> 
 
-<<<<<<< HEAD
 # Methods
 
 The distribution of objects across sites is highly skewed, as seen in @fig-site-map C. To minimize the influence of this skewed distribution, we followed @Lycett_2019 in using presence/absence data for each sign at each site, reducing the effect of variation in object count between sites. We used Mantel tests with a Euclidean object abundance distance matrix and a Jaccard distance matrix of sign types. The test seeks to determine the level of correspondence between the matrices through permutational evaluation of the null distribution [@Mantel_Smouse], (here 1000 permutations), producing a Mantel R statistic and a p-value. The R statistic falls between -1, meaning a strong negative correlation, and 1, meaning a strong positive correlation, while a value of 0 means no correlation. The p-value estimates the probability of obtaining the observed correlation if the null hypothesis of no correlation were true (we use an alpha value of 0.05 for the threshold of statistical significance). The Mantel tests were performed using the vegan package [@Vegan2001]. The test indicated that there was no significant correlation between object abundance and sign type distribution (R = `r r_value_object_abundance_correlation`, p = `r p_value_object_abundance_correlation`), validating our decision to use presence/absence data.
@@ -1115,26 +1057,16 @@ kable(mantel_table)
 
 ```
 
-=======
-
-# Methods
-
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
 ## Cultural Group Detection Using Seriation and Network Analysis
 
 Seriation analysis is the arrangement of data into a linear order to reveal patterns [@Hahsler_Hornik_Buchta]. We used the Brower-Kile [-@Brower_Kile_1988] seriation algorithm from the seriation package [@seriation_pckge], in which a unidimensional sequence is generated by reordering the rows and columns to group the presences along the diagonal. To investigate connectivity among clusters of sites in the seriation solution, we used network analysis to represent and quantify the relationship between sites [@Mills_2017]. Each node is a site, and each edge is a measure of sign type distribution similarity, as computed by the Jaccard similarity algorithm. To avoid cluttering the graph, all edges below the value of 0.2 were removed. Results were plotted with the Fruchterman-Reingold layout [@Fruchterman_Reingold_1991], a force-directed graph layout for uniform edge lengths, and network analysis was performed using the vegan [@Vegan2001], statnet [@statnet_package] and igraph [@igraph_package] packages.
 
 ##  PerMANOVA for Cultural Connection Strength
 
-<<<<<<< HEAD
 PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017; @Shennan_Crema_Kerig_2015]. The results are expressed by an R^2^ statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, a pseudo-F statistic, and a p-value. The pseudo-F statistic compares the total sum of squared dissimilarities between groups to total sum of squared dissimilarities within groups. Larger pseudo-F statistics indicate more separation between groups. The p-value quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance). The perMANOVA was performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
-=======
-PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017; @Shennan_Crema_Kerig_2015]. The results are expressed by an R^2^ statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, a pseudo-F statistic, and a p-value. The pseudo-F statistic compares the total sum of squared dissimilarities between groups to the total sum of squared dissimilarities within groups. Larger pseudo-F statistics indicate more separation between groups. The p-value quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance). The perMANOVA was performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
 
 ## Mantel tests
 
 The test seeks to determine the level of correspondence between the matrices through permutational evaluation of the null distribution [@Mantel_Smouse] (here 1000 permutations), producing a Mantel R statistic and a p-value. The R statistic falls between -1, meaning a strong negative correlation, and 1, meaning a strong positive correlation, while a value of 0 means no correlation. The p-value estimates the probability of obtaining the observed correlation if the null hypothesis of no correlation were true (we use an alpha value of 0.05 for the threshold of statistical significance). The Mantel tests were performed using the vegan package [@Vegan2001].
->>>>>>> 6197bef1502d40283d516d79469e5551327d9a4c
-
 
 # References
