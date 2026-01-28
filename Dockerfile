@@ -1,5 +1,5 @@
 # Use Rocker's RStudio image as the base
-FROM rocker/rstudio:4.3.0
+FROM rocker/rstudio:4.4.1
 
 # Install Quarto and system dependencies for R packages
 RUN apt-get update && apt-get install -y --no-install-recommends \

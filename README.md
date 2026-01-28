@@ -2,7 +2,7 @@
 # Geometric signs reveal changes in social structures and networks during the Western Eurasian Aurignacian
 
 [![Reproducibility
-Check](https://github.com/sophiecooper2/SignBase/actions/workflows/reproducibility.yml/badge.svg)](https://github.com/sophiecooper2/SignBase/actions/workflows/reproducibility.yml)
+Check](https://github.com/sophiecooper2/SignBase/actions/workflows/render-manuscript.yml/badge.svg)](https://github.com/sophiecooper2/SignBase/actions/workflows/render-manuscript.yml)
 
 This repository contains the data and code for our paper:
 
