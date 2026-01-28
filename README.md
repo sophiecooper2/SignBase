@@ -40,7 +40,7 @@ environment.
 4.  Our manuscript is a Quarto document that contains the text of our
     paper interwoven with blocks of R code that generates the data
     visualizations and tables. To execute all the code and generate a
-    docx document showing the results, run this line in the R console
+    docx document showing the results, run this line in the R console:
 
 <!-- -->
 
@@ -66,7 +66,7 @@ following these steps:
 
 <!-- -->
 
-    docker build -t singbase .
+    docker build -t signbase .
 
 to build the container on your computer, it will take a few minutes and
 require a fast internet connection.
@@ -75,11 +75,11 @@ require a fast internet connection.
 
 <!-- -->
 
-    docker run -d -p 8787:8787 -v $(pwd):/project  -w /project -e PASSWORD=rstudio singbase
+    docker run -d -p 8787:8787 -v $(pwd):/project  -w /project -e PASSWORD=rstudio signbase
 
 For Windows (Git Bash):
 
-    MSYS_NO_PATHCONV=1 docker run -d -p 8787:8787 -v $(pwd):/project -w /project -e PASSWORD=rstudio singbase
+    MSYS_NO_PATHCONV=1 docker run -d -p 8787:8787 -v $(pwd):/project -w /project -e PASSWORD=rstudio signbase
 
 to start the container on your computer
 
@@ -88,11 +88,11 @@ to start the container on your computer
 
 6.  In RStudio, open this README file and follow the steps above in the
     section ‘How to download and run locally’. You can run
-    `quarto::quarto_render("analysis/paper/paper.qmd")` to render the
-    Quarto document that is the manuscript submitted for publication
+    `quarto::quarto_render("paper/paper.qmd")` to render the Quarto
+    document that is the manuscript submitted for publication
 
 7.  After the code has executed, view the rendered output document by
-    running `browseURL("analysis/paper/paper.docx")`
+    running `browseURL("paper/paper.docx")`
 
 8.  When finished, to delete all the Docker containers from your
     computer, run this in the terminal on your desktop:
