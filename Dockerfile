@@ -14,6 +14,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set working directory
 WORKDIR /home/rstudio/SignBase
 
+# --- RSTUDIO PROJECT AUTO-LOAD CONFIG ---
+RUN mkdir -p /home/rstudio/.local/share/rstudio/projects_settings
+RUN echo "/project/SignBase.Rproj" > /home/rstudio/.local/share/rstudio/projects_settings/last-project-path
+RUN mkdir -p /home/rstudio/.config/rstudio
+RUN echo '{"initial_working_directory": "/project"}' > /home/rstudio/.config/rstudio/rstudio-prefs.json
+RUN chown -R rstudio:rstudio /home/rstudio/.local /home/rstudio/.config
+
 # Copy renv configuration files
 COPY renv.lock renv.lock
 COPY .Rprofile .Rprofile
