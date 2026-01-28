@@ -41,7 +41,7 @@ filters:
   - ../templates/author-info-blocks.lua
   - ../templates/pagebreak.lua
 bibliography: references.bib
-csl: "../templates/nature.csl" # Insert path for the bib-style
+csl: "../templates/elsevier-vancouver.csl" # Insert path for the bib-style
 abstract: |
   The Aurignacian technocomplex (ca. 43–30 ka BP) marks a pivotal expansion of Homo sapiens into Western Eurasia, yet the evolution of social organization during this transition remains debated. Here we investigate social dynamics through the analysis of geometric signs on mobile objects across four chronological phases. Using seriation and network analysis, we demonstrate that sign distribution reflects cultural grouping rather than geographic isolation. We find that social connectivity evolved dynamically: the Transitional phase exhibits sparse, disconnected groups, while the Early Aurignacian reveals peak inter-group connectivity and sign diversity, coinciding with the climatic pressures of Heinrich Stadial 4. Conversely, the Evolved Aurignacian shows reduced connectivity associated with population dispersal. These results push back the emergence of complex inter-group social networks to approximately 41 ka BP, approximately a millennium earlier than previously proposed, suggesting that geometric signs likely functioned as vital information technologies to navigate environmental instability and demographic expansion.
 keywords: |
@@ -505,6 +505,15 @@ knitr::include_graphics(here::here("figures/map-and-hist-plot.png"))
 ```
 
 
+# Methods
+
+The distribution of objects across sites is highly skewed, as seen in @fig-site-map C. To minimize the influence of this skewed distribution, we followed @Lycett_2019 in using presence/absence data for each sign at each site, reducing the effect of variation in object count between sites. We used Mantel tests with a Euclidean object abundance distance matrix and a Jaccard dissimilarity matrix of sign types. The test seeks to determine the level of correspondence between the matrices through permutational evaluation of the null distribution [@Mantel_Smouse], (here 1000 permutations), producing a Mantel R statistic and a p-value. The R statistic falls between -1, meaning a strong negative correlation, and 1, meaning a strong positive correlation, while a value of 0 means no correlation. The p-value estimates the probability of obtaining the observed correlation if the null hypothesis of no correlation were true (we use an alpha value of 0.05 for the threshold of statistical significance). The Mantel tests were performed using the vegan package [@Vegan2001]. The test indicated that there was no significant correlation between object abundance and sign type distribution (R = `r r_value_object_abundance_correlation`, p = `r p_value_object_abundance_correlation`), validating our decision to use presence/absence data. 
+
+Ages of the objects were determined by calibrating the uncalibrated ages provided by SignBase using the rcarbon package [@Crema_Bevan_2021]. The calibrated radiocarbon dates of the sampled data range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We assigned each object to a chronological phase following the date ranges recorded in @tbl-aur-table. The Transitional phase has `r trans_site_count` sites and `r trans_sign_count` sign types, the Proto-Aurignacian has `r proto_site_count` sites and `r proto_sign_count` sign types, the Early Aurignacian has `r early_site_count` sites and `r early_sign_count` sign types, and the Evolved Aurignacian has `r evolved_site_count` sites and `r evolved_sign_count` sign types. A Mantel test to evaluate the correlation between distance in time and distribution of sign types found a statistically significant correlation (R = `r chron_r`, p = `r chron_p`). This confirms that our assumption that a meaningful change in sign types occurs over time during the Aurignacian period.
+
+If the distribution of sign types can be mostly explained by geographic distance, then we would see similarity in sign type distribution decreasing as geographic distance increases [@Herskind2023; @Rigaud_dErrico_Vanhaeren_2015]. This relationship can be investigated using the isolation-by-distance framework, which proposes that cultural difference can be primarily explained by geographic distance [@Lycett_2019]. To confirm that the distribution of sign types is influenced by cultural factors rather than geographic distance, we calculated the correlation between sign type distribution and geographic distance for each phase. We used Mantel tests with a geographic distance matrix and a Jaccard dissimilarity matrix, with the results shown in @tbl-mantel-table. None of the phases have a statistically significant correlation between sign type distribution and geographical distance, so isolation by distance may play a role that may warrant further investigation with larger samples, but does not fully explain the variance. 
+
+
 ```{r}
 library(ggraph)
 library(statnet)
@@ -686,6 +695,42 @@ strength_function <- function(artifact_data, group_data){
 }
 
 ```
+
+
+
+
+```{r}
+#| label: tbl-mantel-table
+#| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard matrix of sign type diversity and a geographic distance matrix"
+#| tbl-cap-location: bottom
+## Mantel test for geography vs signs
+
+trans_strength <- strength_function(trans_artifact_data, trans_unique_data)
+proto_strength <- strength_function(proto_artifact_data, proto_unique_data)
+early_strength <- strength_function(early_artifact_data, early_unique_data)
+evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data)
+ 
+full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
+   mutate(`Aurignacian phase` = c("Transitional", 
+                            "Proto-Aurignacian",
+                            "Early Aurignacian", 
+                            "Evolved Aurignacian"), 
+          .before = 1)
+ 
+mantel_table <- full_table %>% 
+  dplyr::select(`Aurignacian phase`, `Mantel R`, `Mantel p`)
+
+kable(mantel_table)
+
+```
+
+## Cultural Group Detection Using Seriation and Network Analysis
+
+Seriation analysis is the arrangement of data into a linear order to reveal patterns [@seriation_pckge]. We used the Brower-Kile [-@Brower_Kile_1988] seriation algorithm from the seriation package [@seriation_pckge], in which a unidimensional sequence is generated by reordering the rows and columns to group the presences along the diagonal. To investigate connectivity among clusters of sites in the seriation solution, we used network analysis to represent and quantify the relationship between sites [@Mills_2017]. Each node is a site, and each edge is a measure of sign type distribution similarity, as computed by the Jaccard dissimilarity algorithm. To avoid cluttering the graph, all edges below the value of 0.2 were removed. Results were plotted with the Fruchterman-Reingold layout [@Fruchterman_Reingold_1991], a force-directed graph layout for uniform edge lengths, and network analysis was performed using the vegan [@Vegan2001], statnet [@statnet_package] and igraph [@igraph_package] packages.
+
+##  PerMANOVA for Cultural Connection Strength
+
+PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017; @Shennan_Crema_Kerig_2015]. The results are expressed by an R^2^ statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, a pseudo-F statistic, and a p-value. The pseudo-F statistic compares the total sum of squared dissimilarities between groups to total sum of squared dissimilarities within groups. Larger pseudo-F statistics indicate more separation between groups. The p-value quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance). The perMANOVA was performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
 
 
 # Results
@@ -1020,50 +1065,9 @@ That said, our results also contrast with @Vanhaeren_d, who found nine ethnicall
 
 # Conclusion
 
-This study adds to our knowledge of social networks within the Aurignacian period, as our results document dynamic patterns of social exchange and connection. Previous work [@bahn1982inter; @Horiuchi_Takakura_2019; @Rogers_2013; @baker2024evidence; @Golovanova_Doronichev_Doronicheva_Sapega_Shackley_2021; @Gamble_1982] has used material culture analysis to reconstruct Upper Paleolithic social networks, which have been argued to be a driver of cultural and evolutionary change [@dErrico_Baker_Rigaud_2025; @Greenbaum_Friesem_Hovers_Feldman_Kolodny_2019; @Creanza_Kolodny_Feldman_2017; @Cullen_1996; @Hill_Wood_Baggio_Hurtado_Boyd_2014; @Derex_Boyd_2016; @Romano_Lozano_Fern2022]. @Foley_Gamble_2009 places the emergence of complex inter-group connectivity at around 30 k BP, however, our results suggests evidence of inter-connectivity beginning at around 41 k BP, perhaps suggesting an earlier emergence of at least regionally complex inter-connectivity than previously predicted, at least within Pleistocene Europe. We attempted to rectify the low temporal resolution that tends to affect network analysis results when analyzing older, more time-averaged data sets [@Gravel-Miguel_Coward_2023] by dividing the data up into smaller time periods. Additionally, by focusing on change over time, we are able to see social networks as fluid and dynamic, rather than static and bounded [@Maher_Conkey_2019]. Our results do not support the conclusions drawn in @Vanhaeren_d <!-- BM: mention Baker et al too -->, where Aurignacian artwork is found to be a symbolic marker of structured ethnic identity, but are supported by @Kovacevic_Shennan_Vanhaeren_dErrico_Thomas_2015, which utilizes the same data as @Vanhaeren_d to conclude that cultural identity by-descent with modification is a more likely explanation for the distribution of Aurignacian ornaments.
+This study adds to our knowledge of social networks within the Aurignacian period, as our results document dynamic patterns of social exchange and connection. Previous work [@bahn1982inter; @Horiuchi_Takakura_2019; @Rogers_2013; @baker2024evidence; @Golovanova_Doronichev_Doronicheva_Sapega_Shackley_2021; @Gamble_1982] has used material culture analysis to reconstruct Upper Paleolithic social networks, which have been argued to be a driver of cultural and evolutionary change [@dErrico_Baker_Rigaud_2025; @Greenbaum_Friesem_Hovers_Feldman_Kolodny_2019; @Creanza_Kolodny_Feldman_2017; @Cullen_1996; @Hill_Wood_Baggio_Hurtado_Boyd_2014; @Derex_Boyd_2016; @Romano_Lozano_Fern2022]. @Foley_Gamble_2009 places the emergence of complex inter-group connectivity at around 30 k BP, however, our results suggests evidence of inter-connectivity beginning at around 41 k BP, perhaps suggesting an earlier emergence of at least regionally complex inter-connectivity than previously predicted, at least within Pleistocene Europe. We attempted to rectify the low temporal resolution that tends to affect network analysis results when analyzing older, more time-averaged data sets [@Gravel-Miguel_Coward_2023] by dividing the data up into smaller time periods. Additionally, by focusing on change over time, we are able to see social networks as fluid and dynamic, rather than static and bounded [@Maher_Conkey_2019]. Our results do not support the conclusions drawn in @Vanhaeren_d, where Aurignacian artwork is found to be a symbolic marker of structured ethnic identity, but are supported by @Kovacevic_Shennan_Vanhaeren_dErrico_Thomas_2015, which utilizes the same data as @Vanhaeren_d to conclude that cultural identity by-descent with modification is a more likely explanation for the distribution of Aurignacian ornaments.
 
 One limitation is the potential ambiguity that arises with some of the sign types. While @Von_Petzinger_2009 argues in favor of Aurignacian geometric signs as symbolic expression, potential ambiguity still remains over whether function is consistent across all sign type occurrences, particularly in regards to the simpler sign types composed from fewer elements. We included the more ambiguous sign types because similar sign occurrence may still serve as evidence of cultural connectivity regardless of function, even if it is random copying [@Herskind2023], and additionally, greater quantities of included sign types serve to establish stronger connections [@Gravel-Miguel_Coward_2023]. This ambiguity may be addressed in the future through the usage of the data recently released in SignBase 2.0 covering sites in Germany, which contains more detailed information on the specific order and patterns in which signs occurred on individual objects. <!-- citation to signbase 2.0 ?--> 
 
-# Methods
-
-The distribution of objects across sites is highly skewed, as seen in @fig-site-map C. To minimize the influence of this skewed distribution, we followed @Lycett_2019 in using presence/absence data for each sign at each site, reducing the effect of variation in object count between sites. We used Mantel tests with a Euclidean object abundance distance matrix and a Jaccard dissimilarity matrix of sign types. The test seeks to determine the level of correspondence between the matrices through permutational evaluation of the null distribution [@Mantel_Smouse], (here 1000 permutations), producing a Mantel R statistic and a p-value. The R statistic falls between -1, meaning a strong negative correlation, and 1, meaning a strong positive correlation, while a value of 0 means no correlation. The p-value estimates the probability of obtaining the observed correlation if the null hypothesis of no correlation were true (we use an alpha value of 0.05 for the threshold of statistical significance). The Mantel tests were performed using the vegan package [@Vegan2001]. The test indicated that there was no significant correlation between object abundance and sign type distribution (R = `r r_value_object_abundance_correlation`, p = `r p_value_object_abundance_correlation`), validating our decision to use presence/absence data. 
-
-Ages of the objects were determined by calibrating the uncalibrated ages provided by SignBase using the rcarbon package [@Crema_Bevan_2021]. The calibrated radiocarbon dates of the sampled data range from approximately `r date_min_pretty` BP to `r date_max_pretty` BP, spanning an overall time range of `r date_range_pretty` years. We assigned each object to a chronological phase following the date ranges recorded in @tbl-aur-table. The Transitional phase has `r trans_site_count` sites and `r trans_sign_count` sign types, the Proto-Aurignacian has `r proto_site_count` sites and `r proto_sign_count` sign types, the Early Aurignacian has `r early_site_count` sites and `r early_sign_count` sign types, and the Evolved Aurignacian has `r evolved_site_count` sites and `r evolved_sign_count` sign types. A Mantel test to evaluate the correlation between distance in time and distribution of sign types found a statistically significant correlation (R = `r chron_r`, p = `r chron_p`). This confirms that our assumption that a meaningful change in sign types occurs over time during the Aurignacian period.
-
-If the distribution of sign types can be mostly explained by geographic distance, then we would see similarity in sign type distribution decreasing as geographic distance increases [@Herskind2023; @Rigaud_dErrico_Vanhaeren_2015]. This relationship can be investigated using the isolation-by-distance framework, which proposes that cultural difference can be primarily explained by geographic distance [@Lycett_2019]. To confirm that the distribution of sign types is influenced by cultural factors rather than geographic distance, we calculated the correlation between sign type distribution and geographic distance for each phase. We used Mantel tests with a geographic distance matrix and a Jaccard dissimilarity matrix, with the results shown in @tbl-mantel-table. None of the phases have a statistically significant correlation between sign type distribution and geographical distance, so isolation by distance may play a role that may warrant further investigation with larger samples, but does not fully explain the variance. 
-
-
-```{r}
-#| label: tbl-mantel-table
-#| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard matrix of sign type diversity and a geographic distance matrix"
-#| tbl-cap-location: bottom
-## Mantel test for geography vs signs
-
-trans_strength <- strength_function(trans_artifact_data, trans_unique_data)
-proto_strength <- strength_function(proto_artifact_data, proto_unique_data)
-early_strength <- strength_function(early_artifact_data, early_unique_data)
-evolved_strength <- strength_function(evolved_artifact_data, evolved_unique_data)
- 
-full_table <- rbind(trans_strength, proto_strength, early_strength, evolved_strength) %>% 
-   mutate(`Aurignacian phase` = c("Transitional", 
-                            "Proto-Aurignacian",
-                            "Early Aurignacian", 
-                            "Evolved Aurignacian"), 
-          .before = 1)
- 
-mantel_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, `Mantel R`, `Mantel p`)
-
-kable(mantel_table)
-
-```
-
-## Cultural Group Detection Using Seriation and Network Analysis
-
-Seriation analysis is the arrangement of data into a linear order to reveal patterns [@seriation_pckge]. We used the Brower-Kile [-@Brower_Kile_1988] seriation algorithm from the seriation package [@seriation_pckge], in which a unidimensional sequence is generated by reordering the rows and columns to group the presences along the diagonal. To investigate connectivity among clusters of sites in the seriation solution, we used network analysis to represent and quantify the relationship between sites [@Mills_2017]. Each node is a site, and each edge is a measure of sign type distribution similarity, as computed by the Jaccard dissimilarity algorithm. To avoid cluttering the graph, all edges below the value of 0.2 were removed. Results were plotted with the Fruchterman-Reingold layout [@Fruchterman_Reingold_1991], a force-directed graph layout for uniform edge lengths, and network analysis was performed using the vegan [@Vegan2001], statnet [@statnet_package] and igraph [@igraph_package] packages.
-
-##  PerMANOVA for Cultural Connection Strength
-
-PerMANOVA quantifies the level of variation between groups versus the level of variation within groups [@Anderson_2017; @Shennan_Crema_Kerig_2015]. The results are expressed by an R^2^ statistic, which quantifies how much of the variation in sign distribution can be explained by group membership, a pseudo-F statistic, and a p-value. The pseudo-F statistic compares the total sum of squared dissimilarities between groups to total sum of squared dissimilarities within groups. Larger pseudo-F statistics indicate more separation between groups. The p-value quantifies the probability of obtaining the observed difference if the null hypothesis were true (we use an alpha value of 0.05 for the threshold of statistical significance). The perMANOVA was performed using the vegan [@Vegan2001] and igraph [@igraph_package] packages.
 
 # References
