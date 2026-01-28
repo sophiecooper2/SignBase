@@ -65,7 +65,7 @@ following these steps:
 3.  Set your terminal working directory to the compendium, and run (be sure to include the period):
 
 ```
-docker build -t singbase .
+docker build -t signbase .
 ``` 
 
  to build the container on your computer, it will take a few minutes and require a fast internet connection.
@@ -86,9 +86,9 @@ to start the container on your computer
  
 5.  Go to <http://localhost:8787/> with your browser and enter `rstudio` in both fields to start RStudio in your browser
     
-6.  In RStudio, open this README file and follow the steps above in the section 'How to download and run locally'. You can run `quarto::quarto_render("analysis/paper/paper.qmd")` to render the Quarto document that is the manuscript submitted for publication
+6.  In RStudio, open this README file and follow the steps above in the section 'How to download and run locally'. You can run `quarto::quarto_render("paper/paper.qmd")` to render the Quarto document that is the manuscript submitted for publication
 
-8.  After the code has executed, view the rendered output document by running `browseURL("analysis/paper/paper.docx")`
+8.  After the code has executed, view the rendered output document by running `browseURL("paper/paper.docx")`
 
 9.  When finished, to delete all the Docker containers from your computer, run this in the terminal on your desktop:  `docker ps -aq | xargs docker stop | xargs docker rm`
 
