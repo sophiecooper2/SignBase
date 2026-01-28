@@ -1,0 +1,35 @@
+name: Render Manuscript
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: docker build -t signbase .
+
+      - name: Render Quarto Document
+        # We run the container and pass the quarto command directly
+        # The output paper.docx will be created inside the container
+        run: |
+          docker run --name render-container signbase \
+          quarto render paper/paper.qmd --to docx
+
+      - name: Download .docx from Container
+        # Copy the rendered file from the container to the GitHub runner
+        run: |
+          docker cp render-container:/home/rstudio/SignBase/paper/paper.docx ./paper.docx
+
+      - name: Upload to Summary Page
+        uses: actions/upload-artifact@v4
+        with:
+          name: Manuscript-Word-Doc
+          path: paper.docx
+          retention-days: 7
