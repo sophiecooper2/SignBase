@@ -12,6 +12,8 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.path = "README-"
 )
+
+library(quarto)
 ```
 
 # Geometric signs reveal changes in social structures and networks during the Western Eurasian Aurignacian
