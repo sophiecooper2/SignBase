@@ -10,10 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && gdebi --non-interactive quarto-1.3.450-linux-amd64.deb \
     && rm quarto-1.3.450-linux-amd64.deb \
     && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
-WORKDIR /home/rstudio/SignBase
-
+    
 # --- RSTUDIO PROJECT AUTO-LOAD CONFIG ---
 RUN mkdir -p /home/rstudio/.local/share/rstudio/projects_settings
 RUN echo "/project/SignBase.Rproj" > /home/rstudio/.local/share/rstudio/projects_settings/last-project-path
@@ -21,19 +18,25 @@ RUN mkdir -p /home/rstudio/.config/rstudio
 RUN echo '{"initial_working_directory": "/project"}' > /home/rstudio/.config/rstudio/rstudio-prefs.json
 RUN chown -R rstudio:rstudio /home/rstudio/.local /home/rstudio/.config
 
-# Copy renv configuration files
-COPY renv.lock renv.lock
-COPY .Rprofile .Rprofile
-COPY renv/activate.R renv/activate.R
-COPY renv/settings.json renv/settings.json
+# --- TERMINAL CONFIG ---
+RUN echo 'cd /project' >> /home/rstudio/.bashrc
+RUN echo "source /opt/conda/etc/profile.d/conda.sh" >> /home/rstudio/.bashrc
 
-# Restore R packages from renv.lock
-# We install renv first to ensure the restore command works
-RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
-RUN R -e "renv::restore()"
+#  Set up Project
+WORKDIR /project
+COPY . /project
 
-# Copy the rest of your repository
-COPY . .
+# ---  RENV RESTORE ---
 
-# Ensure permissions are correct for the rstudio user
-RUN chown -R rstudio:rstudio /home/rstudio/SignBase
+# A. Set RENV paths to location OUTSIDE /project 
+ENV RENV_PATHS_LIBRARY=/opt/renv/library
+ENV RENV_PATHS_CACHE=/opt/renv/cache
+
+#  Create directories and give 'rstudio' user permission
+RUN mkdir -p /opt/renv && chown -R rstudio:rstudio /opt/renv
+
+# Install renv and restore
+RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')" && \
+    R -e "options(renv.config.cache.symlinks = FALSE); renv::restore(prompt = FALSE)"
+
+
