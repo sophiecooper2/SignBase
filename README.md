@@ -7,7 +7,7 @@ Check](https://github.com/sophiecooper2/SignBase/actions/workflows/render-manusc
 This repository contains the data and code for our paper:
 
 > Cooper, Sophie, Aleah Rosner, Eva Oryn, Kenneth B. Vernon, and Ben
-> Marwick,Geometric signs reveal changes in social structures and
+> Marwick, Geometric signs reveal changes in social structures and
 > networks during the Western Eurasian Aurignacian
 
 <!-- A pre-print of this paper is freely available on SocArXiv:
@@ -69,7 +69,8 @@ following these steps:
     docker build -t signbase .
 
 to build the container on your computer, it will take a few minutes and
-require a fast internet connection.
+require a fast internet connection to download and install the required
+packages in the container.
 
 4.  Run in your terminal (linux and OSX):
 
