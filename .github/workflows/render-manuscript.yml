@@ -25,7 +25,8 @@ jobs:
       - name: Download .docx from Container
         # Copy the rendered file from the container to the GitHub runner
         run: |
-          docker cp render-container:/home/rstudio/SignBase/paper/paper.docx ./paper.docx
+          docker cp render-container:/project/paper/paper.docx ./paper.docx
+
 
       - name: Upload to Summary Page
         uses: actions/upload-artifact@v4
