@@ -66,6 +66,8 @@ The Aurignacian period (~43-30 ka BP) is largely characterized by material cultu
 
 We adopt a three-phase framework (Proto-Aurignacian, Early Aurignacian, Evolved/Late Aurignacian) as a first-order chronological scaffold [@tbl-aur-table]. This scheme preserves the two transitions of greatest relevance to our research question: the Proto to Early boundary, which broadly corresponds to the shift from initial dispersal to established populations, and the Early to Evolved/Late boundary, which coincides with the onset of pronounced regional diversification in material culture. We acknowledge that these phases are analytical conveniences rather than discrete cultural entities [@canessa2026unpacking; @clark200917], and we test the sensitivity of our results to alternative periodisations (two-phase: @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; four-phase: Evolved/Late split; Supplement S4), including boundary-shift analyses that perturb the Proto/Early and Early/Evolved thresholds by ±500 and ±1000 years (Supplement S5.5). Phase assignments follow published site attributions, translated from legacy Périgord terminology where necessary.
 
+Phase assignments based on radiocarbon dates alone may conflict with technological attributions. Recent specialist reassessments have placed Abri Pataud in the Early Aurignacian (Aurignacian I) on the basis of its lithic technology [@Chiotti_2005; @Higham_Abri_Pataud_2011], La Ferrassie's Layer 7 in the Early Aurignacian directly above the Châtelperronian [@Talamo_La_Ferrassie_2020], and Mladeč in the Evolved Aurignacian on the basis of its massive-base bone points and ~31 ka BP dates [@Oliva_2006]. We test the sensitivity of our results to these reclassifications in Supplement S7, where we also address stratigraphic mixing concerns at Vogelherd [@Schurch_Conard_2026].
+
 ```{r}
 #| label: tbl-aur-table
 #| tbl-cap: "Summary of chronological, cultural and environmental characteristics of Aurignacian periods [@Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Chu_Richter_2020; @Fletcher_Sánchez]"
@@ -307,7 +309,7 @@ object_euc_data <- time_unique_data_full %>%
 # BM: Ensure binary data as input to jaccard distance
 artifact_data_bin <- 
 artifact_data %>% 
-  mutate_all(~ as.numeric(. > 0))
+  mutate(across(everything(), ~ as.numeric(. > 0)))
 
 jac_full <- vegan::vegdist(artifact_data_bin, method = "jaccard", binary = TRUE) 
 
@@ -334,7 +336,7 @@ chron_sign_df <- signbase_full_clean %>%
   column_to_rownames("id") %>% 
   dplyr::select(line:star) %>% 
   # BM: Ensure binary data as input to jaccard distance
-  mutate_all(~ as.numeric(. > 0)) %>% 
+  mutate(across(everything(), ~ as.numeric(. > 0))) %>% 
   vegdist("jaccard")
 
 chron_mantel <- vegan::mantel(chron_df, chron_sign_df, permutations = 1000)
@@ -707,9 +709,9 @@ all_cols <- Reduce(union, list(colnames(proto_artifact_data),
                                colnames(evolved_artifact_data)))
 all_mat <- rbind(pad(proto_artifact_data, all_cols),
                  pad(early_artifact_data, all_cols),
-                 pad(evolved_artifact_data, all_cols))  %>%
-  select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-  mutate_all(~ as.numeric(. > 0))
+                 pad(evolved_artifact_data, all_cols))
+all_mat <- all_mat[, colSums(all_mat) > 0, drop = FALSE]
+all_mat <- as.data.frame(lapply(all_mat, function(x) as.numeric(x > 0)))
 
 sizes <- c(nrow(proto_artifact_data),
            nrow(early_artifact_data), 
@@ -1134,6 +1136,8 @@ This study adds to our knowledge of social networks within the Aurignacian perio
 One limitation is the potential ambiguity that arises with some of the sign types. While @Von_Petzinger_2009 argues in favor of Aurignacian geometric signs as symbolic expression, potential ambiguity still remains over whether function is consistent across all sign type occurrences, particularly in regards to the simpler sign types composed from fewer elements. We included the more ambiguous sign types because similar sign occurrence may still serve as evidence of cultural connectivity regardless of function, even if it is random copying [@Herskind2023], and additionally, greater quantities of included sign types serve to establish stronger connections [@Gravel-Miguel_Coward_2023]. This ambiguity may be addressed in the future through the usage of the data recently released in SignBase 2.0 covering sites in Germany, which contains more detailed information on the specific order and patterns in which signs occurred on individual objects. <!-- citation to signbase 2.0 ?--> 
 
 A further limitation concerns the effects of time-averaging on our network reconstructions. @Daems_Coco_Gillreath-Brown_Kafetzaki_2024 demonstrate that time-averaging reduces the fidelity of network interpretations compared to non-time-averaged networks, and that these effects are highly dependent on initial network structures. Our division of the Aurignacian into three phases partially addresses this issue, but each phase still spans several thousand years, and individual sites may contain occupations from multiple millennia. The palimpsest nature of archaeological deposits means that our networks likely compress diachronic changes in social connectivity, potentially obscuring shorter-term fluctuations in interaction patterns. @Padilla-Iglesias_Bischoff_2024 further show that hunter-gatherer mobility patterns profoundly affect our ability to reconstruct social networks from archaeological assemblages, with implications for how we interpret network metrics such as mean degree and transitivity. These methodological constraints should be borne in mind when interpreting the social organisation patterns discussed above.
+
+A further limitation concerns the reliability of site-level phase assignments. Our primary analysis assigns each site to a single Aurignacian phase based on calibrated radiocarbon dates, but recent specialist reassessments demonstrate that radiocarbon dates alone are insufficient: Abri Pataud's lithic technology places it in the Early Aurignacian despite basal dates within the Proto-Aurignacian range [@Chiotti_2005; @Higham_Abri_Pataud_2011], La Ferrassie's Aurignacian begins with the Early Aurignacian directly above the Châtelperronian [@Talamo_La_Ferrassie_2020], and Mladeč's massive-base bone points and ~31 ka BP dates indicate an Evolved Aurignacian attribution [@Oliva_2006]. Additionally, Vogelherd Cave's stratigraphy is severely compromised by excavation methodology and post-depositional disturbance, with documented mixing between Aurignacian, Gravettian, and Magdalenian layers [@Schurch_Conard_2026]. We test the sensitivity of our results to these reassignments in Supplement S7; the reclassification of La Ferrassie in particular removes a major hub from the Proto-Aurignacian network and alters the phase-ordering of connectivity.
 
 # Data Availability
 

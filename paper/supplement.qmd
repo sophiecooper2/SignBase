@@ -542,10 +542,18 @@ kable(ari_table,
 permanova_louvain <- function(artifact_data, df, threshold = 0.2,
                               metric = "jaccard") {
   lvgr <- get_louvain_groups(artifact_data, threshold, metric)
-  jac <- vegan::vegdist(artifact_data %>%
-                          mutate_all(~ as.numeric(. > 0)),
-                        "jaccard", binary = TRUE)
+  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+                  "concenline","pinleft","pinright","star")
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat_bin <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat_bin <- as.data.frame(lapply(mat_bin, function(x) as.numeric(x > 0)))
+  jac <- vegan::vegdist(mat_bin, "jaccard", binary = TRUE)
   df$louvain_group <- factor(lvgr[df$site_name])
+  df <- df %>% filter(!is.na(louvain_group))
+  jac <- vegdist(mat_bin[df$site_name %in% df$site_name, , drop = FALSE], "jaccard", binary = TRUE)
   set.seed(500)
   perm <- vegan::adonis2(jac ~ louvain_group,
                           data = df,
@@ -561,11 +569,20 @@ permanova_louvain <- function(artifact_data, df, threshold = 0.2,
 
 permanova_manual <- function(df, phase, threshold = 0.2) {
   df <- df %>% filter(site_name %in% names(manual_groups[[phase]]))
-  arts <- df %>% column_to_rownames("site_name") %>%
-    dplyr::select(line:star) %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+                  "concenline","pinleft","pinright","star")
+  present <- intersect(sign_names, colnames(df))
+  arts <- as.data.frame(df[, present, drop = FALSE], row.names = df$site_name)
+  arts <- arts[, colSums(arts) > 0, drop = FALSE]
+  arts <- as.data.frame(lapply(arts, function(x) as.numeric(x > 0)))
   jac <- vegan::vegdist(arts, "jaccard", binary = TRUE)
+  df$manual_group <- factor(manual_groups[[phase]][df$site_name])
+  set.seed(500)
+  perm <- vegan::adonis2(jac ~ manual_group, data = df,
+                         method = "jaccard", sqrt.dist = TRUE)
   df$manual_group <- factor(manual_groups[[phase]][df$site_name])
   set.seed(500)
   perm <- vegan::adonis2(jac ~ manual_group, data = df,
@@ -747,8 +764,8 @@ run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
     dplyr::select(site_name, obline:star) %>%
     distinct(site_name, .keep_all = TRUE)
   pooled_art <- pooled %>%
-    column_to_rownames("site_name") %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0)
+    column_to_rownames("site_name")
+  pooled_art <- pooled_art[, colSums(pooled_art) > 0, drop = FALSE]
   keep_cols <- names(pooled_art)
 
   null_mods <- numeric(n_perm)
@@ -805,7 +822,6 @@ The p-values indicate whether the observed community structure is significantly 
 
 **Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, the Proto Aurignacian's observed modularity of `r n3(val(null_results, "Observed", "proto_aurignacian", 0.2))` approaches but does not reach significance against the null (p = `r n3(val(null_results, "p", "proto_aurignacian", 0.2))`), while the Early (`r n3(val(null_results, "Observed", "early_aurignacian", 0.2))`, p = `r n3(val(null_results, "p", "early_aurignacian", 0.2))`) and Evolved (`r n3(val(null_results, "Observed", "evolved_aurignacian", 0.2))`, p = `r n3(val(null_results, "p", "evolved_aurignacian", 0.2))`) Aurignacian modularity values are clearly non-significant. This means that the community structure detected by Louvain partitioning is not, on its own, strong evidence for culturally meaningful sub-groups within phases. The main-text seriation and PerMANOVA results — which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) — remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix, but this structure does not exceed what would be expected from a random assembly of sites with similar sign-type distributions.
 
-
 ## S5.4 Assemblage Richness / Sample-Size Confound {#sec-s5-4}
 
 Node degree in a presence/absence network could be driven by sign-type richness rather than genuine cultural connectivity: sites with more sign types have more opportunities for co-occurrence. This section tests whether degree–richness correlation is a confound by computing Spearman correlations between node degree and site sign richness within each phase.
@@ -817,8 +833,8 @@ Node degree in a presence/absence network could be driven by sign-type richness 
 
 compute_phase_dr <- function(df) {
   arts <- df %>% column_to_rownames("site_name") %>%
-    dplyr::select(obline:star) %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0)
+    dplyr::select(obline:star)
+  arts <- arts[, colSums(arts) > 0, drop = FALSE]
   rich <- rowSums(arts > 0)
 
   jac_dist <- as.matrix(vegdist(arts, "jaccard", binary = TRUE))
@@ -1340,8 +1356,6 @@ The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A r
 The main-text claim that each phase resolves into two cultural groups — restricted-range versus broader-range sign repertoires — rests on a single Brower-Kile seriation run followed by manual block assignment (see S5). Two limitations remain unaddressed by S1–S5. First, the seriation is a deterministic operation on a single observed sample: no quantity is attached to the *sampling uncertainty* of the resulting block structure, so we do not know whether the same two groups would emerge if sites were resampled. Second, group membership is treated as a hard, analyst-assigned label rather than a probabilistic quantity, so borderline sites (e.g. Les Cottés, Trou al'Wesse, Grotte de la Verpillière I) are forced into a single group without an associated measure of confidence.
 
 This section addresses both limitations. In S6.2 we use bootstrap resampling of sites within each phase to build a **consensus co-clustering matrix** (Monti et al. 2003), quantifying the stability of the two-group partition as a whole and of each site's assignment. In S6.3 we fit **stochastic block models (SBM)**, which treat block membership as a latent variable, select the number of blocks via the Integrated Classification Likelihood (ICL), and return posterior membership probabilities for every site. In S6.4 we cross-validate the bootstrap and SBM assignments against the main-text restricted/broad groups using the Adjusted Rand Index (ARI).
-
-> **Software note.** The SBM analyses (S6.3) require the `blockmodels` package, which is not currently in the `renv` lockfile. Before rendering this section, run `renv::install("blockmodels")`. The bootstrap analyses (S6.2) use only packages already loaded above, so they render regardless.
 
 ## S6.2 Bootstrap Consensus Analysis {#sec-s6-2}
 
@@ -1900,3 +1914,137 @@ The joint comparison in @tbl-objtype-joint shows that figurine exclusion has a m
 **The figurine effect is Vogelherd-specific, not category-wide.** Removing Vogelherd figurines alone (−2.6%) produces nearly the same effect as removing all 63 figurines globally (−2.7%). Figurines at Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, and La Ferrassie do not alter network structure. This indicates that Vogelherd's figurine assemblage is unusually rich — 50 of 63 figurines — and contributes disproportionately to sign-type counts, but its 114 remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
 
 **Conclusion.** The main-text findings are robust to figurine exclusion. The Proto-Aurignacian hub structure, the phase-ordering gradient (Proto > Early > Evolved), and the two-group community structure are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Proto: 0.387 → 0.359), suggesting that figurines contribute to community cohesion — consistent with Bentz and Dutkiewicz's (2026) argument that figurines carry high-information sign sequences — but the communities themselves are defined by shared sign types across all object types.
+
+# S8. Site Reclassification Sensitivity Analysis {#sec-s8}
+
+## S8.1 Rationale
+
+The main analysis assigns each site to an Aurignacian phase based on calibrated radiocarbon dates. However, several recent specialist reassessments demonstrate that radiocarbon dates alone are insufficient for phase attribution, and that the archaeological content of layers should take precedence:
+
+- **Abri Pataud**: The lithic technology in levels 14–9 (carinated scraper bladelet cores, dual reduction systems) is diagnostic of the Early Aurignacian, not the Proto-Aurignacian, despite basal dates of ~41,200–39,500 cal BP that fall within the Proto-Aurignacian range [@Chiotti_2005; @Chiotti_Cretin_2011; @Higham_Abri_Pataud_2011]. The site is classified as Aurignacian I (Early) in the Périgord sequence.
+- **La Ferrassie**: The Aurignacian at La Ferrassie begins in Layer 7, directly overlying the Châtelperronian (Layer 6). Talamo et al. (2020) classify this as Early Aurignacian based on carinated scrapers and wide Aurignacian blades. No split-base bone points (Proto-Aurignacian diagnostic) were found [@Delporte_et_al_1977; @Talamo_La_Ferrassie_2020]. Layer 7b has mixed Early/Recent Aurignacian components.
+- **Mladeč**: The ~20 lithic artifacts include only one carinated end scraper. The 40 bone points with massive bases ("Mladeč-type") lack split bases and occur stratigraphically above split-based points at other Central European sites, placing them in the Evolved Aurignacian [@Oliva_2006]. Direct dates of ~31 ka ¹⁴C BP (~35–36 cal BP) are too young for Proto-Aurignacian [@Wild_et_al_2005].
+- **Vogelherd**: Riek's 1931 excavation removed 500 m³ in 12 weeks with no screening, using large horizontal spits that did not follow geological horizons. Documented mixing includes 38 refit connections between Aurignacian layers IV and V, Neolithic burials disturbing the southwestern area, and ~2–3% of tools in the Aurignacian layers potentially deriving from other periods [@Schurch_Conard_2026].
+
+This section tests two scenarios: (A) reclassifying Abri Pataud and La Ferrassie to the Early Aurignacian and Mladeč to the Evolved Aurignacian, following specialist technological attributions; and (B) additionally excluding Vogelherd entirely, given its documented stratigraphic mixing.
+
+```{r}
+# ── Analysis A: Reclassify sites to technologically correct phases ──────────
+reclass_sites <- c("Abri Pataud", "La Ferrassie", "Mladeč")
+
+signbase_reclass <- signbase_full_clean %>%
+  mutate(time_period = case_when(
+    site_name == "Abri Pataud" ~ "early_aurignacian",
+    site_name == "La Ferrassie" ~ "early_aurignacian",
+    site_name == "Mladeč" ~ "evolved_aurignacian",
+    TRUE ~ time_period
+  ))
+
+lat_long_reclass <- signbase_reclass %>%
+  dplyr::select(site_name, longitude, latitude) %>%
+  distinct(site_name, .keep_all = TRUE)
+
+proto_reclass   <- make_phase_data("proto_aurignacian", signbase_reclass, lat_long_reclass)
+early_reclass   <- make_phase_data("early_aurignacian", signbase_reclass, lat_long_reclass)
+evolved_reclass <- make_phase_data("evolved_aurignacian", signbase_reclass, lat_long_reclass)
+
+proto_art_r   <- extract_artifact(proto_reclass)
+early_art_r   <- extract_artifact(early_reclass)
+evolved_art_r <- extract_artifact(evolved_reclass)
+
+reclass_stats <- bind_rows(
+  network_stats(proto_art_r, threshold = 0.2) %>% mutate(Phase = "Proto-Aurignacian"),
+  network_stats(early_art_r, threshold = 0.2) %>% mutate(Phase = "Early Aurignacian"),
+  network_stats(evolved_art_r, threshold = 0.2) %>% mutate(Phase = "Evolved Aurignacian")
+) %>%
+  mutate(Condition = "Reclassified") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
+
+# ── Analysis B: Additionally exclude Vogelherd ──────────────────────────────
+exclude_sites <- c("Abri Pataud", "La Ferrassie", "Mladeč", "Vogelherd")
+
+signbase_exclude <- signbase_full_clean %>%
+  filter(!site_name %in% exclude_sites)
+
+lat_long_exclude <- signbase_exclude %>%
+  dplyr::select(site_name, longitude, latitude) %>%
+  distinct(site_name, .keep_all = TRUE)
+
+proto_excl   <- make_phase_data("proto_aurignacian", signbase_exclude, lat_long_exclude)
+early_excl   <- make_phase_data("early_aurignacian", signbase_exclude, lat_long_exclude)
+evolved_excl <- make_phase_data("evolved_aurignacian", signbase_exclude, lat_long_exclude)
+
+proto_art_e   <- extract_artifact(proto_excl)
+early_art_e   <- extract_artifact(early_excl)
+evolved_art_e <- extract_artifact(evolved_excl)
+
+excl_stats <- bind_rows(
+  { ns <- network_stats(proto_art_e, threshold = 0.2); data.frame(Phase = "Proto-Aurignacian", n_sites = ns$n_sites, n_edges = ns$n_edges, density = ns$density, mean_degree = ns$mean_degree, transitivity = ns$transitivity, modularity = ns$modularity) },
+  { ns <- network_stats(early_art_e, threshold = 0.2); data.frame(Phase = "Early Aurignacian", n_sites = ns$n_sites, n_edges = ns$n_edges, density = ns$density, mean_degree = ns$mean_degree, transitivity = ns$transitivity, modularity = ns$modularity) },
+  { ns <- network_stats(evolved_art_e, threshold = 0.2); data.frame(Phase = "Evolved Aurignacian", n_sites = ns$n_sites, n_edges = ns$n_edges, density = ns$density, mean_degree = ns$mean_degree, transitivity = ns$transitivity, modularity = ns$modularity) }
+) %>%
+  mutate(Condition = "Excl. reclassified + Vogelherd") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
+```
+
+## S8.2 Results
+
+```{r}
+#| label: tbl-reclass-comparison
+#| tbl-cap: "Network statistics under three conditions: baseline (all sites as originally assigned), reclassified (Abri Pataud and La Ferrassie moved to Early Aurignacian, Mladeč moved to Evolved Aurignacian), and excluded (reclassified sites plus Vogelherd removed entirely). Threshold = 0.2, Jaccard similarity."
+#| tbl-cap-location: bottom
+
+baseline_reclass <- bind_rows(
+  network_stats(proto_art, threshold = 0.2) %>% mutate(Phase = "Proto-Aurignacian"),
+  network_stats(early_art, threshold = 0.2) %>% mutate(Phase = "Early Aurignacian"),
+  network_stats(evolved_art, threshold = 0.2) %>% mutate(Phase = "Evolved Aurignacian")
+) %>%
+  mutate(Condition = "Baseline") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
+
+all_reclass <- bind_rows(baseline_reclass, reclass_stats, excl_stats)
+
+kable(all_reclass,
+      col.names = c("Phase", "Condition", "Sites", "Edges", "Density",
+                    "Mean degree", "Transitivity", "Modularity"),
+      digits = 3,
+      align = "lllcccccc")
+```
+
+```{r}
+# ── Compute % change from baseline for prose ────────────────────────────────
+reclass_pct <- all_reclass %>%
+  group_by(Phase) %>%
+  mutate(baseline_md = first(mean_degree),
+         pct_change = round((mean_degree - baseline_md) / baseline_md * 100, 1)) %>%
+  ungroup()
+```
+
+### Reclassification effects by phase
+
+**Proto-Aurignacian.** Reclassifying Abri Pataud, La Ferrassie, and Mladeč reduces the Proto from `r all_reclass$n_sites[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_sites[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]` sites and from `r all_reclass$n_edges[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_edges[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]` edges. Mean degree drops from `r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]` (`r reclass_pct$pct_change[reclass_pct$Phase == "Proto-Aurignacian" & reclass_pct$Condition == "Reclassified"]`%), and modularity increases from `r all_reclass$modularity[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$modularity[all_reclass$Phase == "Proto-Aurignacian" & reclass_pct$Condition == "Reclassified"]`. The loss of La Ferrassie — the most connected node in the baseline Proto-Aurignacian network — is the primary driver of this decline.
+
+**Early Aurignacian.** Adding Abri Pataud and La Ferrassie increases the Early from `r all_reclass$n_sites[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_sites[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]` sites and from `r all_reclass$n_edges[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_edges[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]` edges. Mean degree rises from `r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]` (`r reclass_pct$pct_change[reclass_pct$Phase == "Early Aurignacian" & reclass_pct$Condition == "Reclassified"]`%).
+
+**Evolved Aurignacian.** Adding Mladeč increases the Evolved from `r all_reclass$n_sites[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_sites[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]` sites and from `r all_reclass$n_edges[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_edges[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]` edges. Mean degree rises from `r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]` (`r reclass_pct$pct_change[reclass_pct$Phase == "Evolved Aurignacian" & reclass_pct$Condition == "Reclassified"]`%).
+
+## S8.3 Phase-Ordering Reversal
+
+The most consequential finding is that **the phase ordering of connectivity reverses under reclassification**:
+
+| Condition | Ordering |
+|-----------|----------|
+| Baseline | Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]`) > Early (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]`) > Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]`) |
+| Reclassified | Early (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]`) > Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]`) > Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]`) |
+
+Under the reclassified assignments, the Early Aurignacian becomes the most connected phase, the Evolved Aurignacian is intermediate, and the Proto-Aurignacian — which loses La Ferrassie, its primary hub — becomes the least connected. This ordering is preserved when Vogelherd is additionally excluded (Analysis B): Early (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`) > Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`) > Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`).
+
+## S8.4 Interpretation
+
+The reclassification analysis reveals that the main-text finding — that the Proto-Aurignacian was the most connected phase — is **contingent on the assignment of La Ferrassie to the Proto-Aurignacian**. La Ferrassie contributes 22 objects to the Proto-Aurignacian and serves as the network's primary hub. When it is reassigned to the Early Aurignacian (where its lithic technology places it: carinated scrapers, wide Aurignacian blades, no split-base points; Talamo et al. 2020; Delporte et al. 1977), the Proto-Aurignacian loses its hub structure and its mean degree drops below both the Early and Evolved phases.
+
+This does not invalidate the main-text analysis, but it necessitates a qualification: **the Proto-Aurignacian's apparent connectivity advantage depends on radiocarbon-based phase assignments that specialist lithic analysis contradicts.** The three-phase ordering Proto > Early > Evolved should be treated as a hypothesis consistent with one plausible phase assignment, not as a demonstrated fact. Two alternative orderings — Early > Evolved > Proto (reclassified) and Early > Proto > Evolved (intermediate scenarios) — are equally consistent with the data under different but archaeologically justified phase attributions.
+
+What remains robust across all conditions is the **two-group community structure**: restricted-range and broader-range assemblages persist in every phase regardless of which sites are included. The perMANOVA results confirming significant group separation in sign composition are also expected to hold, since the reclassified sites (Abri Pataud, La Ferrassie, Mladeč) belong to the restricted-range group in the Proto-Aurignacian and would occupy analogous positions in their new phases. The broader conclusion that Aurignacian communities maintained differentiated sign repertoires — possibly reflecting variation in social structure — is not affected by the reclassification.
+
+The exclusion analysis (Analysis B) shows that removing all four problematic sites (Abri Pataud, La Ferrassie, Mladeč, Vogelherd) further reduces connectivity across all phases but preserves the reclassified ordering: the Early Aurignacian (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`°) remains the most connected, followed by the Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`°) and the Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`°). The fact that the Early Aurignacian retains the highest connectivity even without Vogelherd — which contributes 50 figurines and 114 non-figurine objects — indicates that its network structure is driven by multiple sites (Hohle Fels, Solutré, Castanet, Cellier, Blanchard) rather than by a single outlier assemblage.

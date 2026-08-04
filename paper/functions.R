@@ -53,16 +53,22 @@ extract_artifact <- function(df) {
   df %>%
     column_to_rownames("site_name") %>%
     dplyr::select(line:star) %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0)
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0))
 }
 
 # ── Automated group detection ─────────────────────────────────────────────────
 # Louvain community detection on a site × sign binary matrix.
 # Returns a named integer vector (community ID per site).
 get_louvain_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
-  mat <- artifact_data %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+                  "concenline","pinleft","pinright","star")
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
   if (metric == "jaccard") {
     jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
   } else if (metric == "sorensen") {
@@ -196,8 +202,8 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
                              threshold = 0.2, metric = "jaccard") {
 
   artifact_data <- artifact_data %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
 
   if (metric == "jaccard") {
     jac <- vegdist(artifact_data, "jaccard", binary = TRUE)
@@ -265,9 +271,16 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
 # Parameterised network-stats function (threshold & metric exposed).
 # NOTE: igraph:: is used explicitly throughout to avoid sna/statnet masking.
 network_stats <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
-  mat <- artifact_data %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+  # Select only sign-type columns that have at least one nonzero value
+  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+                  "concenline","pinleft","pinright","star")
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
   if (metric == "jaccard") {
     jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
   } else if (metric %in% c("sorensen", "bray")) {
@@ -306,9 +319,15 @@ set.seed(42)
 # Compute per-site network centrality metrics for a binary artifact matrix
 # Returns a data.frame with site_name, degree, strength, betweenness, eigenvector
 node_centrality <- function(artifact_data, threshold = 0.2) {
-  mat <- artifact_data %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+                  "concenline","pinleft","pinright","star")
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
   jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
   adj  <- 1 - jac
   adj[adj < threshold] <- 0
@@ -335,7 +354,7 @@ centrality_from_signs <- function(df, threshold = 0.2) {
     group_by(site_name) %>%
     summarise(across(where(is.numeric), ~ sum(.))) %>%
     column_to_rownames("site_name") %>%
-    mutate_all(~ as.numeric(. > 0))
+    mutate(across(everything(), ~ as.numeric(. > 0)))
   jac <- as.matrix(vegan::vegdist(signs, "jaccard", binary = TRUE))
   adj  <- 1 - jac
   adj[adj < threshold] <- 0
@@ -359,7 +378,7 @@ centrality_from_signs <- function(df, threshold = 0.2) {
 strength_function <- function(artifact_data, group_data) {
 
   set.seed(500)
-  jac <- vegan::vegdist(artifact_data %>% mutate_all(~ as.numeric(. > 0)),
+  jac <- vegan::vegdist(artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))),
                         "jaccard", binary = TRUE)
   perman <- vegan::adonis2(jac ~ as.factor(group_data$group),
                            method = "jaccard",
@@ -453,8 +472,8 @@ pad <- function(m, all_cols) {
 # Parameterised network-plot function (threshold & metric exposed).
 network_plot <- function(artifact_data, threshold = 0.2, metric = "jaccard", title = NULL) {
   mat <- artifact_data %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
   if (metric == "jaccard") {
     jac <- vegan::vegdist(mat, "jaccard", binary = TRUE)
   } else if (metric %in% c("sorensen", "bray")) {
@@ -640,8 +659,8 @@ run_mantel_comp <- function(df) {
   art <- df %>%
     column_to_rownames("site_name") %>%
     dplyr::select(line:star) %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
   jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
 
   # Flat coordinate Euclidean distance
@@ -678,8 +697,8 @@ run_betadisper <- function(phase_df, groups) {
   art <- phase_df %>%
     column_to_rownames("site_name") %>%
     dplyr::select(line:star) %>%
-    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
-    mutate_all(~ as.numeric(. > 0))
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
   jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
 
   bd <- vegan::betadisper(jac, as.factor(groups))
