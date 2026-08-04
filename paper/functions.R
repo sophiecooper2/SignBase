@@ -663,6 +663,36 @@ run_mantel_comp <- function(df) {
   )
 }
 
+# ── betadisper ────────────────────────────────────────────────────────────────
+# Test for homogeneity of multivariate dispersions (betadisper) across groups.
+# Returns group medians, distances to median, and ANOVA test for dispersion
+# differences. Used to validate perMANOVA results.
+#
+# Args:
+#   phase_df: Data frame for a single phase with columns site_name, longitude,
+#             latitude, plus sign columns (line, notch, etc.)
+#   groups:   Numeric vector of group labels (1 = restricted, 2 = broad)
+#
+# Returns: List with betadisper object, ANOVA results, and summary table
+run_betadisper <- function(phase_df, groups) {
+  art <- phase_df %>%
+    column_to_rownames("site_name") %>%
+    dplyr::select(line:star) %>%
+    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
+    mutate_all(~ as.numeric(. > 0))
+  jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
+
+  bd <- vegan::betadisper(jac, as.factor(groups))
+  bd_anova <- anova(bd)
+
+  list(
+    betadisper = bd,
+    anova = bd_anova,
+    medians = bd$medians,
+    p_value = round(bd_anova$`Pr(>F)`[1], 3)
+  )
+}
+
 # ── S3 registration ───────────────────────────────────────────────────────────
 # Ensure ggplot2::autoplot() dispatches to autoplot.DiversityIndex even when the
 # function is defined in a sourced script rather than the global environment.

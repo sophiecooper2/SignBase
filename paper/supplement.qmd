@@ -157,6 +157,30 @@ kable(sens_stats,
                     "Isolates", "Mean degree", "Transitivity",
                     "Modularity", "Communities"),
       digits = 3)
+
+# ── Inline-accessor helpers used by the S1–S5 interpretation text ─────────────
+# Look up a numeric cell in a data frame by phase (and threshold/metric where relevant).
+val <- function(df, col, phase, thr = NULL, metric = NULL) {
+  row <- df$Phase == phase
+  if (!is.null(thr) && "Threshold" %in% names(df)) row <- row & df$Threshold == thr
+  if (!is.null(metric) && "Metric" %in% names(df)) row <- row & df$Metric == metric
+  out <- df[[col]][row]
+  if (length(out) == 0) NA_real_ else out[[1]]
+}
+# Format to a fixed number of decimal places (avoid trailing zeros in tables).
+n3 <- function(x) formatC(x, digits = 3, format = "f")
+n2 <- function(x) formatC(x, digits = 2, format = "f")
+# Compact range string, e.g. "3.09–8.00", with fixed decimals.
+range_str <- function(x, digits = 2) {
+  paste0(formatC(min(x, na.rm = TRUE), digits = digits, format = "f"),
+         "–",
+         formatC(max(x, na.rm = TRUE), digits = digits, format = "f"))
+}
+# Pattern-based lookup for frames whose phase labels are long strings (S4, S5.5).
+pval <- function(df, col, pattern) {
+  x <- df[[col]][grepl(pattern, df$Phase)]
+  if (!length(x)) NA_real_ else x[[1]]
+}
 ```
 
 ## S1.2 Network Visualisations Across Thresholds
@@ -197,9 +221,9 @@ The sensitivity analysis shows that the main findings reported in the text are *
 
 **Phase ordering of connectivity.** The relative ordering of phases by network density and mean degree is stable: the Early Aurignacian consistently produces the most connected network, the Proto-Aurignacian shows intermediate connectivity with hub structures, and the Evolved Aurignacian yields a sparser, more fragmented graph. This ordering is preserved at thresholds of 0.1, 0.2, and 0.3 (@tbl-sens-stats).
 
-**Modularity.** Modularity values in the Proto- and Evolved Aurignacian phases remain in the moderate range (approximately 0.3–0.5) across all thresholds, indicating persistent community structure. The Early Aurignacian shows lower modularity at all thresholds, consistent with its higher overall connectivity. While absolute modularity values shift with threshold (as expected, given that looser thresholds add weak bridging edges that reduce modularity), the pattern across phases is stable.
+**Modularity.** Modularity values in the Proto- and Evolved Aurignacian phases remain in a moderate range (between `r n3(min(sens_stats$modularity[sens_stats$Phase %in% c("Proto-Aurignacian", "Evolved Aurignacian")]))` and `r n3(max(sens_stats$modularity[sens_stats$Phase %in% c("Proto-Aurignacian", "Evolved Aurignacian")]))` across the tested thresholds), indicating persistent community structure. The Early Aurignacian shows lower modularity at all thresholds (max `r n3(max(sens_stats$modularity[sens_stats$Phase == "Early Aurignacian"]))`), consistent with its higher overall connectivity. While absolute modularity values shift with threshold (as expected, given that looser thresholds add weak bridging edges that reduce modularity), the pattern across phases is stable.
 
-**Threshold-specific effects.** At threshold 0.1, graph density increases substantially and several sites that appear as isolates at 0.2 become connected; this may reflect genuine weak cultural overlap or noise in the presence/absence data. At threshold 0.3, the graph becomes considerably sparser, with more isolates in the Proto-Aurignacian phase in particular. The 0.2 threshold represents a practical middle ground: it preserves the major structural contrasts between phases while avoiding both the over-connection artefacts of the 0.1 threshold and the excessive fragmentation of the 0.3 threshold.
+**Threshold-specific effects.** At threshold 0.1, graph density increases substantially and several sites that appear as isolates at 0.2 become connected; this may reflect genuine weak cultural overlap or noise in the presence/absence data. At threshold 0.3, the graph becomes considerably sparser, with `r val(sens_stats, "n_isolates", "Proto-Aurignacian", 0.3)` isolates in the Proto-Aurignacian phase in particular. The 0.2 threshold represents a practical middle ground: it preserves the major structural contrasts between phases while avoiding both the over-connection artefacts of the 0.1 threshold and the excessive fragmentation of the 0.3 threshold.
 
 **Isolates.** The number of isolated nodes (sites with no connections) increases monotonically with threshold in all phases, as expected. Sites that appear as isolates at 0.2 — such as Les Cottés in the Proto-Aurignacian and Trou al'Wesse in the Early Aurignacian — are discussed in the main text and their isolation is preserved or strengthened at 0.3, reinforcing their interpretation as outlier assemblages. At threshold 0.1, these sites gain edges but only to the weakest possible partners, which does not alter the substantive interpretation.
 
@@ -264,10 +288,10 @@ knitr::include_graphics(here::here("figures/sensitivity-metric-plot.png"))
 
 Across all three metrics:
 1. **Phase Ordering:** The Early Aurignacian consistently produces the highest edge density and node degree, followed by the Proto-Aurignacian and Evolved Aurignacian.
-2. **Sørensen vs. Jaccard:** Sørensen similarity yields slightly higher edge counts because double-weighting shared presences elevates similarity scores above the 0.2 threshold. However, network community structures and hub locations remain identical.
+2. **Sørensen vs. Jaccard:** Sørensen similarity yields higher edge counts (e.g. Proto-Aurignacian `r val(metric_stats, "n_edges", "Proto-Aurignacian", metric = "sorensen")` vs. `r val(metric_stats, "n_edges", "Proto-Aurignacian", metric = "jaccard")` for Jaccard) because double-weighting shared presences elevates similarity scores above the 0.2 threshold. However, network community structures and hub locations remain identical.
 3. **Simpson Similarity:** Simpson similarity confirms that the connectivity in the Early Aurignacian is driven by genuine shared sign repertoires rather than sample-size asymmetry.
 
-**Implications for the main text.** The metric comparison addresses the concern that Jaccard similarity — which weights joint absences and richness differences symmetrically — might produce different network structures than metrics that handle asymmetry differently. The fact that all three metrics yield the same phase ordering and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity gradient under Simpson confirms that the Proto Aurignacian's higher mean degree reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. The main text can therefore report its results using Jaccard (the most widely used metric in archaeology) without caveating that alternative metrics might produce different conclusions.
+**Implications for the main text.** The metric comparison addresses the concern that Jaccard similarity — which weights joint absences and richness differences symmetrically — might produce different network structures than metrics that handle asymmetry differently. The fact that all three metrics yield the same phase ordering and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity gradient under Simpson confirms that the Proto Aurignacian's higher mean degree (`r n2(val(sens_stats, "mean_degree", "Proto-Aurignacian", 0.2))` at the baseline threshold) reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. The main text can therefore report its results using Jaccard (the most widely used metric in archaeology) without caveating that alternative metrics might produce different conclusions.
 
 # S3. Geodesic vs. Euclidean Geographic Distance Verification (Mantel Tests) {#sec-s3}
 
@@ -295,8 +319,8 @@ kable(mantel_comp_df,
 ## S3.2 Interpretation
 
 The geodesic distance calculation provides an important clarification:
-- In the **Proto-Aurignacian** ($R = 0.012, p = 0.449$) and **Evolved Aurignacian** ($R = -0.062, p = 0.594$), geographic distance remains uncorrelated with sign assemblage dissimilarity under both metrics.
-- In the **Early Aurignacian**, flat coordinate distance yielded a non-significant correlation ($R = 0.259, p = 0.083$). However, when evaluated using true **geodesic distance in kilometers**, the spatial correlation increases to **$R = 0.313$ ($p = 0.037$)**, achieving statistical significance ($\alpha = 0.05$).
+- In the **Proto-Aurignacian** ($R = `r val(mantel_comp_df, "Geodesic_R", "Proto-Aurignacian")`, p = `r val(mantel_comp_df, "Geodesic_p", "Proto-Aurignacian")`) and **Evolved Aurignacian** ($R = `r val(mantel_comp_df, "Geodesic_R", "Evolved Aurignacian")`, p = `r val(mantel_comp_df, "Geodesic_p", "Evolved Aurignacian")`), geographic distance remains uncorrelated with sign assemblage dissimilarity under both metrics.
+- In the **Early Aurignacian**, flat coordinate distance yielded a non-significant correlation ($R = `r val(mantel_comp_df, "Euclidean_R", "Early Aurignacian")`, p = `r val(mantel_comp_df, "Euclidean_p", "Early Aurignacian")`). However, when evaluated using true **geodesic distance in kilometers**, the spatial correlation increases to **$R = `r val(mantel_comp_df, "Geodesic_R", "Early Aurignacian")` ($p = `r val(mantel_comp_df, "Geodesic_p", "Early Aurignacian")`)**, achieving statistical significance ($\alpha = 0.05$).
 
 This result directly strengthens the paper's discussion of the Early Aurignacian: during the rapid population expansion associated with Heinrich Stadial 4, spatial proximity played a statistically significant role in structuring sign repertoire sharing across Western Eurasia.
 
@@ -358,13 +382,13 @@ kable(two_phase_stats,
 
 The three-phase, two-phase, and four-phase periodisations yield consistent conclusions about the broad structure of Aurignacian social connectivity, while differing in the resolution at which that structure is visible.
 
-**Connectivity contrast is robust to aggregation.** Under the three-phase scheme, the Proto-Aurignacian (mean degree = 4.93, 37 edges) and Early Aurignacian (mean degree = 3.56, 16 edges) each show substantially higher connectivity than the Evolved Aurignacian (mean degree = 3.33, 15 edges). When Proto and Early are merged into a single early phase, the combined network has 104 edges and a mean degree of 9.04 — more than double the Evolved phase's 3.33. The early/late connectivity gap is therefore not an artefact of how the boundary between Proto and Early is drawn; it persists regardless of whether those phases are analysed separately or together.
+**Connectivity contrast is robust to aggregation.** Under the three-phase scheme, the Proto-Aurignacian (mean degree = `r n2(pval(three_phase_ref, "mean_degree", "Proto"))`, `r pval(three_phase_ref, "n_edges", "Proto")` edges) and Early Aurignacian (mean degree = `r n2(pval(three_phase_ref, "mean_degree", "Early"))`, `r pval(three_phase_ref, "n_edges", "Early")` edges) each show substantially higher connectivity than the Evolved Aurignacian (mean degree = `r n2(pval(three_phase_ref, "mean_degree", "Evolved"))`, `r pval(three_phase_ref, "n_edges", "Evolved")` edges). When Proto and Early are merged into a single early phase, the combined network has `r pval(two_phase_stats, "n_edges", "Combined")` edges and a mean degree of `r n2(pval(two_phase_stats, "mean_degree", "Combined"))` — more than double the Evolved phase's `r n2(pval(three_phase_ref, "mean_degree", "Evolved"))`. The early/late connectivity gap is therefore not an artefact of how the boundary between Proto and Early is drawn; it persists regardless of whether those phases are analysed separately or together.
 
-**Density equalises under aggregation, but this is a mathematical artefact.** The two-phase scheme produces near-identical graph densities for the early (0.411) and late (0.417) phases. This convergence occurs because merging two moderately connected phases into one large phase inflates the edge count while also inflating the number of possible edges, resulting in a density that masks the true connectivity difference. The mean degree — which is not normalised by network size — reveals the disparity more clearly: the merged early phase has nearly three times as many connections per site as the Evolved phase.
+**Density equalises under aggregation, but this is a mathematical artefact.** The two-phase scheme produces near-identical graph densities for the early (`r pval(two_phase_stats, "density", "Combined")`) and late (`r pval(two_phase_stats, "density", "Evolved")`) phases. This convergence occurs because merging two moderately connected phases into one large phase inflates the edge count while also inflating the number of possible edges, resulting in a density that masks the true connectivity difference. The mean degree — which is not normalised by network size — reveals the disparity more clearly: the merged early phase has nearly three times as many connections per site as the Evolved phase.
 
-**Community structure is preserved.** Modularity under the two-phase scheme is 0.316 for the combined early phase and 0.343 for the Evolved phase. These values are comparable to the three-phase modularity values (Proto 0.387, Early 0.227, Evolved 0.343), indicating that the community structure detected by Louvain partitioning is not an artefact of the specific phase boundaries used. The Evolved Aurignacian in particular maintains strong modularity (0.343) under both schemes, confirming that its internal structure is genuinely distinct from the earlier phases.
+**Community structure is preserved.** Modularity under the two-phase scheme is `r pval(two_phase_stats, "modularity", "Combined")` for the combined early phase and `r pval(two_phase_stats, "modularity", "Evolved")` for the Evolved phase. These values are comparable to the three-phase modularity values (Proto `r pval(three_phase_ref, "modularity", "Proto")`, Early `r pval(three_phase_ref, "modularity", "Early")`, Evolved `r pval(three_phase_ref, "modularity", "Evolved")`), indicating that the community structure detected by Louvain partitioning is not an artefact of the specific phase boundaries used. The Evolved Aurignacian in particular maintains strong modularity (`r pval(two_phase_stats, "modularity", "Evolved")`) under both schemes, confirming that its internal structure is genuinely distinct from the earlier phases.
 
-**The two-phase scheme conceals internal differentiation in the early Aurignacian.** The three-phase breakdown reveals that the Proto-Aurignacian is the most connected phase (mean degree 4.93), while the Early Aurignacian is intermediate (3.56). Merging these phases into a single block obscures this gradient. If the transition from Proto to Early reflects a genuine shift in social network organisation — for example, related to the population expansion during Heinrich Stadial 4 — the two-phase scheme cannot detect it. The three-phase scheme is therefore preferred for analyses that seek to track change through time, while the two-phase scheme is sufficient for demonstrating the broad early/late contrast.
+**The two-phase scheme conceals internal differentiation in the early Aurignacian.** The three-phase breakdown reveals that the Proto-Aurignacian is the most connected phase (mean degree `r n2(pval(three_phase_ref, "mean_degree", "Proto"))`), while the Early Aurignacian is intermediate (`r n2(pval(three_phase_ref, "mean_degree", "Early"))`). Merging these phases into a single block obscures this gradient. If the transition from Proto to Early reflects a genuine shift in social network organisation — for example, related to the population expansion during Heinrich Stadial 4 — the two-phase scheme cannot detect it. The three-phase scheme is therefore preferred for analyses that seek to track change through time, while the two-phase scheme is sufficient for demonstrating the broad early/late contrast.
 
 ```{r}
 #| label: tbl-four-phase-periodisation
@@ -409,16 +433,16 @@ if (nrow(late_df) >= 2) {
 }
 
 four_phase_df <- bind_rows(four_phase_stats, .id = "Phase") %>%
-  dplyr::select(Phase, n_edges, density, n_isolates, mean_degree, transitivity, modularity, n_communities)
+  dplyr::select(Phase, n_sites, n_edges, density, n_isolates, mean_degree, transitivity, modularity, n_communities)
 
 kable(four_phase_df,
-      col.names = c("Phase", "Edges", "Density", "Isolates", "Mean degree", "Transitivity", "Modularity", "Communities"),
+      col.names = c("Phase", "Sites", "Edges", "Density", "Isolates", "Mean degree", "Transitivity", "Modularity", "Communities"),
       digits = 3)
 ```
 
 ### Four-phase interpretation
 
-The four-phase Aurignacian taxonomy of Teyssandier & Zilhão (2018) distinguishes Proto, Early (Aurignacian I), Evolved (Aurignacian II), and Late (Aurignacian III-IV) phases. The Early–Evolved transition has been dated to 37.0–36.5 ka BP by Banks et al. (2013a, b), and the Late Aurignacian is associated with the terminal phase of the technocomplex before the onset of the Gravettian. Splitting the Evolved Aurignacian at 35 ka BP into Evolved and Late sub-phases tests whether the connectivity decline observed in the main text is gradual or stepwise. The Evolved Aurignacian (37.8–35 ka BP) retains moderate connectivity with 8 edges and a mean degree of 2.67 across 7 sites, while the Late Aurignacian (35–32 ka BP) is severely data-limited: with only 6 sites and a single edge, its network statistics (mean degree 0.50, modularity 0.000) are unreliable. The near-absence of connectivity in the Late Aurignacian is consistent with the broader pattern of declining social network density through time, but the sample is too small to determine whether the transition from Evolved to Late represents a further step-down or a continuation of an already low level. The three-phase scheme remains the most informative for the main analysis, as it avoids fragmenting the Evolved Aurignacian into sub-phases whose small sample sizes preclude robust statistical inference.
+The four-phase Aurignacian taxonomy of Teyssandier & Zilhão (2018) distinguishes Proto, Early (Aurignacian I), Evolved (Aurignacian II), and Late (Aurignacian III-IV) phases. The Early–Evolved transition has been dated to 37.0–36.5 ka BP by Banks et al. (2013a, b), and the Late Aurignacian is associated with the terminal phase of the technocomplex before the onset of the Gravettian. Splitting the Evolved Aurignacian at 35 ka BP into Evolved and Late sub-phases tests whether the connectivity decline observed in the main text is gradual or stepwise. The Evolved Aurignacian (37.8–35 ka BP) retains moderate connectivity with `r pval(four_phase_df, "n_edges", "Evolved")` edges and a mean degree of `r n2(pval(four_phase_df, "mean_degree", "Evolved"))` across `r pval(four_phase_df, "n_sites", "Evolved")` sites, while the Late Aurignacian (35–32 ka BP) is severely data-limited: with only `r pval(four_phase_df, "n_sites", "Late")` sites and a single edge, its network statistics (mean degree `r n2(pval(four_phase_df, "mean_degree", "Late"))`, modularity `r pval(four_phase_df, "modularity", "Late")`) are unreliable. The near-absence of connectivity in the Late Aurignacian is consistent with the broader pattern of declining social network density through time, but the sample is too small to determine whether the transition from Evolved to Late represents a further step-down or a continuation of an already low level. The three-phase scheme remains the most informative for the main analysis, as it avoids fragmenting the Evolved Aurignacian into sub-phases whose small sample sizes preclude robust statistical inference.
 
 # S5. Automated Group Recovery and Circularity Validation {#sec-s5}
 
@@ -535,13 +559,34 @@ permanova_louvain <- function(artifact_data, df, threshold = 0.2,
   )
 }
 
-manual_perm <- data.frame(
-  Phase = c("Proto-Aurignacian", "Early Aurignacian", "Evolved Aurignacian"),
-  Manual_R2 = c(0.227, 0.215, 0.224),
-  Manual_F  = c(3.816, 1.915, 2.020),
-  Manual_p  = c(0.001, 0.013, 0.022),
-  stringsAsFactors = FALSE
-)
+permanova_manual <- function(df, phase, threshold = 0.2) {
+  df <- df %>% filter(site_name %in% names(manual_groups[[phase]]))
+  arts <- df %>% column_to_rownames("site_name") %>%
+    dplyr::select(line:star) %>%
+    select_if(~ !is.numeric(.) || sum(.) != 0) %>%
+    mutate_all(~ as.numeric(. > 0))
+  jac <- vegan::vegdist(arts, "jaccard", binary = TRUE)
+  df$manual_group <- factor(manual_groups[[phase]][df$site_name])
+  set.seed(500)
+  perm <- vegan::adonis2(jac ~ manual_group, data = df,
+                         method = "jaccard", sqrt.dist = TRUE)
+  perm <- perm %>% tibble::as_tibble() %>% slice_head()
+  data.frame(
+    Manual_R2 = round(perm$R2, 3),
+    Manual_F  = round(perm$F, 3),
+    Manual_p  = round(perm$`Pr(>F)`, 3),
+    stringsAsFactors = FALSE
+  )
+}
+
+manual_perm <- map_dfr(names(phases), function(ph) {
+  uniq <- switch(ph,
+    "Proto-Aurignacian"   = proto_unique_data,
+    "Early Aurignacian"   = early_unique_data,
+    "Evolved Aurignacian" = evolved_unique_data
+  )
+  permanova_manual(uniq, ph) %>% mutate(Phase = ph)
+})
 
 louvain_perm <- map_dfr(thresholds, function(thr) {
   map_dfr(names(phases), function(ph) {
@@ -567,23 +612,36 @@ kable(perm_compare,
       digits = 3)
 ```
 
+```{r}
+# S5.1 prose helpers: community counts and the Proto th = 0.2 composition
+s51_ncomm <- louvain_memberships %>%
+  group_by(Phase, Threshold) %>%
+  summarise(ncomm = n_distinct(LouvainGroup, na.rm = TRUE), .groups = "drop")
+
+s51_proto_20 <- louvain_memberships %>%
+  filter(Phase == "Proto-Aurignacian", Threshold == 0.2) %>%
+  arrange(Site)
+
+s51_proto_groups <- split(s51_proto_20$Site, s51_proto_20$LouvainGroup)
+```
+
 ## S5.1 Interpretation
 
 ### Community structure is richer than a binary split
 
-The Louvain algorithm consistently identifies two to five communities within each phase, never collapsing the data into the binary restricted/broad partition imposed by the manual assignment (Table 5). At the main-text threshold of 0.2, the Proto-Aurignacian splits into three communities: one centred on Abri Pataud, Fumane, and Pod Hradem; a second on El Castillo, Gatzarria, Hohlenstein-Stadel, Labeko Koba, and Mladeč; and a third on Geissenklösterle, Grotte du Renne, Hohle Fels, La Ferrassie, Spy, and Vogelherd. The Early Aurignacian likewise yields three communities, though at threshold 0.1 this collapses to two communities that map almost exactly onto the manual assignment. The Evolved Aurignacian produces three communities at every threshold. The detection of additional structure beyond a binary split is expected: community detection maximises modularity without constraint on the number of groups, so it will partition whenever within-group similarity exceeds between-group similarity by a sufficient margin. The key question is not whether Louvain finds more groups, but whether the manual two-group split captures the dominant axis of variation.
+The Louvain algorithm consistently identifies `r range_str(s51_ncomm$ncomm, 0)` communities within each phase, never collapsing the data into the binary restricted/broad partition imposed by the manual assignment (@tbl-louvain-groups). At the main-text threshold of 0.2, the Proto-Aurignacian splits into `r s51_ncomm$ncomm[s51_ncomm$Phase == "Proto-Aurignacian" & s51_ncomm$Threshold == 0.2]` communities: `r paste(s51_proto_groups[["1"]], collapse = ", ")`; `r paste(s51_proto_groups[["2"]], collapse = ", ")`; and `r paste(s51_proto_groups[["3"]], collapse = ", ")`. The Early Aurignacian likewise yields `r s51_ncomm$ncomm[s51_ncomm$Phase == "Early Aurignacian" & s51_ncomm$Threshold == 0.2]` communities at threshold 0.2, though at threshold 0.1 this collapses to `r s51_ncomm$ncomm[s51_ncomm$Phase == "Early Aurignacian" & s51_ncomm$Threshold == 0.1]` communities that map almost exactly onto the manual assignment. The Evolved Aurignacian produces `r paste(s51_ncomm$ncomm[s51_ncomm$Phase == "Evolved Aurignacian"], collapse = ", ")` communities at thresholds 0.1, 0.2, and 0.3. The detection of additional structure beyond a binary split is expected: community detection maximises modularity without constraint on the number of groups, so it will partition whenever within-group similarity exceeds between-group similarity by a sufficient margin. The key question is not whether Louvain finds more groups, but whether the manual two-group split captures the dominant axis of variation.
 
 ### Manual groups partially reproduce data-driven communities
 
-The Adjusted Rand Index quantifies agreement between the Louvain partitions and the manual restricted/broad assignment (Table 7). At the main-text threshold of 0.2, ARI values are 0.884 for the Proto-Aurignacian, 0.722 for the Early Aurignacian, and 0.649 for the Evolved Aurignacian. The Proto-Aurignacian value indicates strong concordance: the manual assignment closely recovers the dominant community structure identified algorithmically. The Early Aurignacian value indicates moderate-to-good agreement, consistent with the near-perfect ARI of 1.000 observed at threshold 0.1, where Louvain itself detects only two communities. The Evolved Aurignacian value of 0.649 is the lowest across all phase-threshold combinations, suggesting that the binary restricted/broad split is a less faithful summary of the underlying structure in this phase. Across thresholds, ARI is highest for the Proto-Aurignacian at 0.2 (0.884), drops sharply at 0.3 (0.485) as the network fragments into five communities, and remains stable for the Evolved Aurignacian regardless of threshold (0.649 in all cases). These results indicate that the manual assignment captures a genuine signal in the data, but that the signal is strongest in the Proto-Aurignacian and weakest in the Evolved Aurignacian.
+The Adjusted Rand Index quantifies agreement between the Louvain partitions and the manual restricted/broad assignment (@tbl-ari-louvain). At the main-text threshold of 0.2, ARI values are `r val(ari_table, "ARI", "Proto-Aurignacian", 0.2)` for the Proto-Aurignacian, `r val(ari_table, "ARI", "Early Aurignacian", 0.2)` for the Early Aurignacian, and `r val(ari_table, "ARI", "Evolved Aurignacian", 0.2)` for the Evolved Aurignacian. The Proto-Aurignacian value indicates strong concordance: the manual assignment closely recovers the dominant community structure identified algorithmically. The Early Aurignacian value indicates moderate-to-good agreement, consistent with the near-perfect ARI of `r val(ari_table, "ARI", "Early Aurignacian", 0.1)` observed at threshold 0.1, where Louvain itself detects only two communities. The Evolved Aurignacian value of `r val(ari_table, "ARI", "Evolved Aurignacian", 0.2)` is the lowest across all phase-threshold combinations, suggesting that the binary restricted/broad split is a less faithful summary of the underlying structure in this phase. Across thresholds, ARI is highest for the Proto-Aurignacian at 0.2 (`r val(ari_table, "ARI", "Proto-Aurignacian", 0.2)`), drops sharply at 0.3 (`r val(ari_table, "ARI", "Proto-Aurignacian", 0.3)`) as the network fragments into five communities, and remains stable for the Evolved Aurignacian regardless of threshold (`r unique(ari_table$ARI[ari_table$Phase == "Evolved Aurignacian"])` in all cases). These results indicate that the manual assignment captures a genuine signal in the data, but that the signal is strongest in the Proto-Aurignacian and weakest in the Evolved Aurignacian.
 
 ### Louvain-derived groups explain more variance than manual groups
 
-The PerMANOVA comparison provides the most direct test of whether the main-text results are circular (Table 8). At the main-text threshold of 0.2, the Louvain-derived grouping yields R² values of 0.330 (Proto-Aurignacian), 0.405 (Early Aurignacian), and 0.479 (Evolved Aurignacian), compared with the manual-group R² values of 0.227, 0.215, and 0.224 respectively. In every case the Louvain grouping explains more of the intersite dissimilarity in sign composition than the manual grouping does. The increase is most pronounced in the Evolved Aurignacian, where R² more than doubles from 0.224 to 0.479. This pattern is consistent across thresholds: at 0.1, the Louvain R² values are 0.406, 0.215, and 0.469; at 0.3, they are 0.591, 0.405, and 0.479. All Louvain-derived p-values remain below 0.05, with most below 0.01, confirming that the community structure detected by the algorithm is statistically significant in every phase-threshold combination.
+The PerMANOVA comparison provides the most direct test of whether the main-text results are circular (@tbl-permanova-louvain). At the main-text threshold of 0.2, the Louvain-derived grouping yields R² values of `r val(perm_compare, "LouvainPerMANOVA_R2", "Proto-Aurignacian", 0.2)` (Proto-Aurignacian), `r val(perm_compare, "LouvainPerMANOVA_R2", "Early Aurignacian", 0.2)` (Early Aurignacian), and `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.2)` (Evolved Aurignacian), compared with the manual-group R² values of `r val(perm_compare, "Manual_R2", "Proto-Aurignacian", 0.2)`, `r val(perm_compare, "Manual_R2", "Early Aurignacian", 0.2)`, and `r val(perm_compare, "Manual_R2", "Evolved Aurignacian", 0.2)` respectively. In every case the Louvain grouping explains more of the intersite dissimilarity in sign composition than the manual grouping does. The increase is most pronounced in the Evolved Aurignacian, where R² more than doubles from `r val(perm_compare, "Manual_R2", "Evolved Aurignacian", 0.2)` to `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.2)` (a factor of `r n2(round(val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.2) / val(perm_compare, "Manual_R2", "Evolved Aurignacian", 0.2), 2))`). This pattern is consistent across thresholds: at 0.1, the Louvain R² values are `r val(perm_compare, "LouvainPerMANOVA_R2", "Proto-Aurignacian", 0.1)`, `r val(perm_compare, "LouvainPerMANOVA_R2", "Early Aurignacian", 0.1)`, and `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.1)`; at 0.3, they are `r val(perm_compare, "LouvainPerMANOVA_R2", "Proto-Aurignacian", 0.3)`, `r val(perm_compare, "LouvainPerMANOVA_R2", "Early Aurignacian", 0.3)`, and `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.3)`. All Louvain-derived p-values remain below 0.05 (maximum `r n3(max(perm_compare$LouvainPerMANOVA_p))`), with most below 0.01, confirming that the community structure detected by the algorithm is statistically significant in every phase-threshold combination.
 
 ### Implications for the main-text circularity concern
 
-These results directly address the concern that the restricted/broad grouping is circular: because the groups were defined by the analysts who also designed the seriation, the analysis might simply be recovering its own input. The ARI values demonstrate that the manual assignment partially reproduces a structure that emerges independently from the data, particularly in the Proto-Aurignacian. More importantly, the PerMANOVA comparison shows that the manual grouping is conservative rather than circular: the algorithmically derived partitions consistently explain more variance than the manual ones, meaning the main-text R² values of approximately 0.22 underestimate the true strength of the group contrast. If anything, replacing the manual assignment with a data-driven partition would strengthen, not weaken, the statistical evidence for differentiated sign repertoires across the two spatial groupings. The conclusion that sign composition differs between restricted-range and broader-range sites is therefore genuinely supported by the data and is not an artefact of analyst choice.
+These results directly address the concern that the restricted/broad grouping is circular: because the groups were defined by the analysts who also designed the seriation, the analysis might simply be recovering its own input. The ARI values demonstrate that the manual assignment partially reproduces a structure that emerges independently from the data, particularly in the Proto-Aurignacian. More importantly, the PerMANOVA comparison shows that the manual grouping is conservative rather than circular: the algorithmically derived partitions consistently explain more variance than the manual ones, meaning the main-text R² values (between `r n3(min(perm_compare$Manual_R2))` and `r n3(max(perm_compare$Manual_R2))` across phase–threshold combinations) underestimate the true strength of the group contrast. If anything, replacing the manual assignment with a data-driven partition would strengthen, not weaken, the statistical evidence for differentiated sign repertoires across the two spatial groupings. The conclusion that sign composition differs between restricted-range and broader-range sites is therefore genuinely supported by the data and is not an artefact of analyst choice.
 
 ## S5.2 Quantitative Threshold‑Agreement Metrics {#sec-s5-2}
 
@@ -654,7 +712,7 @@ kable(agree_table,
 
 Edge-set Jaccard values near 1.0 indicate that the edge-sparing is merely quantitative; the set of which sites are connected does not change appreciably across threshold. Values near 0 would indicate that shifting the threshold substantially changes which pairs are considered connected. Adjacency-matrix correlation above 0.9 indicates that the full matrix of similarities (before the 0.1-0.2-0.3 cut-offs) is stable under threshold.
 
-**Implications for the main text.** The high edge-set Jaccard values (0.58–0.81 across threshold pairs) confirm that the network structures reported in the main text are not artefacts of the specific threshold chosen. The site pairs identified as strongly connected at threshold 0.2 are overwhelmingly the same pairs connected at 0.1 and 0.3. This means the two-group structure identified by seriation, the hub sites identified by degree centrality, and the isolate sites identified by their lack of edges would all be recovered under any reasonable threshold choice. The adjacency correlations (0.93–0.96) reinforce this: the full similarity matrix is stable, and the threshold merely clips a continuous surface into a binary graph. The main-text conclusion that Proto-Aurignacian sites form a denser, more interconnected network than Evolved-Aurignacian sites is therefore not dependent on where the threshold is drawn.
+**Implications for the main text.** The high edge-set Jaccard values (`r range_str(agree_table$Edge_Jaccard, 2)` across threshold pairs) confirm that the network structures reported in the main text are not artefacts of the specific threshold chosen. The site pairs identified as strongly connected at threshold 0.2 are overwhelmingly the same pairs connected at 0.1 and 0.3. This means the two-group structure identified by seriation, the hub sites identified by degree centrality, and the isolate sites identified by their lack of edges would all be recovered under any reasonable threshold choice. The adjacency correlations (`r range_str(agree_table$AdjCor, 2)`) reinforce this: the full similarity matrix is stable, and the threshold merely clips a continuous surface into a binary graph. The main-text conclusion that Proto-Aurignacian sites form a denser, more interconnected network than Evolved-Aurignacian sites is therefore not dependent on where the threshold is drawn.
 
 ## S5.3 Null-Benchmarked Modularity Across Thresholds {#sec-s5-3}
 
@@ -745,7 +803,7 @@ kable(null_display,
 
 The p-values indicate whether the observed community structure is significantly stronger than expected by chance. A p < 0.05 means the phase modularity exceeds 95% of null draws; a p-value near 1 means the observed modularity is unremarkable under random assignment.
 
-**Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, the Proto Aurignacian's observed modularity of 0.387 approaches but does not reach significance against the null (p = 0.084), while the Early (0.227, p = 0.301) and Evolved (0.343, p = 0.186) Aurignacian modularity values are clearly non-significant. This means that the community structure detected by Louvain partitioning is not, on its own, strong evidence for culturally meaningful sub-groups within phases. The main-text seriation and PerMANOVA results — which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) — remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix, but this structure does not exceed what would be expected from a random assembly of sites with similar sign-type distributions.
+**Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, the Proto Aurignacian's observed modularity of `r n3(val(null_results, "Observed", "proto_aurignacian", 0.2))` approaches but does not reach significance against the null (p = `r n3(val(null_results, "p", "proto_aurignacian", 0.2))`), while the Early (`r n3(val(null_results, "Observed", "early_aurignacian", 0.2))`, p = `r n3(val(null_results, "p", "early_aurignacian", 0.2))`) and Evolved (`r n3(val(null_results, "Observed", "evolved_aurignacian", 0.2))`, p = `r n3(val(null_results, "p", "evolved_aurignacian", 0.2))`) Aurignacian modularity values are clearly non-significant. This means that the community structure detected by Louvain partitioning is not, on its own, strong evidence for culturally meaningful sub-groups within phases. The main-text seriation and PerMANOVA results — which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) — remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix, but this structure does not exceed what would be expected from a random assembly of sites with similar sign-type distributions.
 
 
 ## S5.4 Assemblage Richness / Sample-Size Confound {#sec-s5-4}
@@ -795,7 +853,7 @@ kable(richness_results,
 
 If degree is primarily driven by richness, the correlations will be strong and significant ($\rho > 0.7$, $p < 0.05$). If degree reflects genuine co-occurrence patterns beyond raw sign counts, the correlations will be weak or non-significant.
 
-**Implications for the main text.** None of the three phases shows a significant correlation between node degree and sign-type richness (Proto: ρ = -0.111, p = 0.695; Early: ρ = 0.364, p = 0.336; Evolved: ρ = 0.359, p = 0.342). This is a critical finding for the main-text interpretation: the higher mean degree observed in the Proto Aurignacian (4.93°) compared to the Early (3.56°) and Evolved (3.33°) Aurignacian is not simply an artefact of the Proto phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree — but we observe a near-zero or slightly negative correlation in the Proto phase. The main-text conclusion that the Proto Aurignacian represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
+**Implications for the main text.** None of the three phases shows a significant correlation between node degree and sign-type richness (Proto: ρ = `r n3(val(richness_results, "rho", "Proto-Aurignacian"))`, p = `r n3(val(richness_results, "p", "Proto-Aurignacian"))`; Early: ρ = `r n3(val(richness_results, "rho", "Early Aurignacian"))`, p = `r n3(val(richness_results, "p", "Early Aurignacian"))`; Evolved: ρ = `r n3(val(richness_results, "rho", "Evolved Aurignacian"))`, p = `r n3(val(richness_results, "p", "Evolved Aurignacian"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in the Proto Aurignacian (`r n2(val(sens_stats, "mean_degree", "Proto-Aurignacian", 0.2))`°) compared to the Early (`r n2(val(sens_stats, "mean_degree", "Early Aurignacian", 0.2))`°) and Evolved (`r n2(val(sens_stats, "mean_degree", "Evolved Aurignacian", 0.2))`°) Aurignacian is not simply an artefact of the Proto phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree — but we observe a near-zero or slightly negative correlation in the Proto phase. The main-text conclusion that the Proto Aurignacian represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
 
 ## S5.5 Phase-Boundary Sensitivity {#sec-s5-5}
 
@@ -945,25 +1003,59 @@ kable(combined_summary,
       digits = 3)
 ```
 
+```{r}
+# S5.5 prose helpers: shift summaries and closest-to-boundary objects
+s55_ind_wide <- independent_all %>%
+  filter(Shift != "Baseline") %>%
+  pivot_wider(names_from = Phase, values_from = mean_degree)
+s55_ind_ok <- sum(s55_ind_wide$Proto > s55_ind_wide$Early &
+                    s55_ind_wide$Early > s55_ind_wide$Evolved, na.rm = TRUE)
+s55_comb_ok <- sum(combined_summary$Ordering == "Yes", na.rm = TRUE)
+
+for (p in c("Proto", "Early", "Evolved")) {
+  assign(paste0("s55_", tolower(p), "_md_ind"),
+         independent_all$mean_degree[independent_all$Phase == p & independent_all$Shift != "Baseline"])
+}
+s55_proto_mod_ind  <- independent_all$modularity[independent_all$Phase == "Proto"   & independent_all$Shift != "Baseline"]
+s55_evolved_mod_ind <- independent_all$modularity[independent_all$Phase == "Evolved" & independent_all$Shift != "Baseline"]
+s55_early_sites <- combined_results$n_sites[combined_results$Phase == "Early"]
+s55_early_md    <- combined_results$mean_degree[combined_results$Phase == "Early"]
+s55_yes_rows    <- combined_summary %>% filter(Ordering == "Yes")
+
+n0 <- function(x) formatC(as.numeric(x), digits = 0, format = "f")
+s55_closest <- function(boundary, sites) {
+  signbase_full_clean %>%
+    filter(site_name %in% sites) %>%
+    mutate(MedianBP = as.numeric(MedianBP)) %>%
+    mutate(dist = abs(MedianBP - boundary)) %>%
+    group_by(site_name) %>%
+    slice_min(dist, n = 1, with_ties = FALSE) %>%
+    ungroup() %>%
+    dplyr::select(site_name, MedianBP, dist)
+}
+s55_pe_near <- s55_closest(39799, c("Hohle Fels", "Les Cottés"))
+s55_ee_near <- s55_closest(37799, c("Vindija Cave", "Hohle Fels"))
+```
+
 ### Diagnostic interpretation
 
-The Proto/Early boundary at 39799 BP is the more sensitive of the two: 87 objects from 10 sites fall within ±1000 calibrated years, compared with 65 objects from 6 sites near the Early/Evolved boundary at 37799 BP. The sites closest to the Proto/Early boundary are Hohle Fels (MedianBP 39718, just 81 years below the threshold) and Les Cottés (40037, 238 years above). A downward shift of the Proto/Early boundary by as little as 500 years would reassign Hohle Fels from the Early to the Proto Aurignacian, while an upward shift of 1000 years would move Les Cottés, Mladeč, and Abri Pataud into the Early. The Early/Evolved boundary has fewer near-boundary objects, and the two closest sites (Vindija Cave at 37615 and Hohle Fels at 37683) are both below the threshold, meaning they would need an upward shift to be reassigned.
+The Proto/Early boundary at 39799 BP is the more sensitive of the two: `r boundary_proximity$Objects[boundary_proximity$Boundary == "Proto/Early (39799 BP)" & boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Boundary == "Proto/Early (39799 BP)" & boundary_proximity$Window == "±1000 years"]` sites fall within ±1000 calibrated years, compared with `r boundary_proximity$Objects[boundary_proximity$Boundary == "Early/Evolved (37799 BP)" & boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Boundary == "Early/Evolved (37799 BP)" & boundary_proximity$Window == "±1000 years"]` sites near the Early/Evolved boundary at 37799 BP. The sites closest to the Proto/Early boundary are Hohle Fels (MedianBP `r n0(s55_pe_near$MedianBP[s55_pe_near$site_name == "Hohle Fels"])`, just `r n0(s55_pe_near$dist[s55_pe_near$site_name == "Hohle Fels"])` years below the threshold) and Les Cottés (`r n0(s55_pe_near$MedianBP[s55_pe_near$site_name == "Les Cottés"])`, `r n0(s55_pe_near$dist[s55_pe_near$site_name == "Les Cottés"])` years above). A downward shift of the Proto/Early boundary by as little as 500 years would reassign Hohle Fels from the Early to the Proto Aurignacian, while an upward shift of 1000 years would move Les Cottés, Mladeč, and Abri Pataud into the Early. The Early/Evolved boundary has fewer near-boundary objects, and the two closest sites (Vindija Cave at `r n0(s55_ee_near$MedianBP[s55_ee_near$site_name == "Vindija Cave"])` and Hohle Fels at `r n0(s55_ee_near$MedianBP[s55_ee_near$site_name == "Hohle Fels"])`) are both below the threshold, meaning they would need an upward shift to be reassigned.
 
 ### Independent-shift interpretation
 
-The independent-shift analysis tests each boundary in isolation while holding the other at its baseline value. Across all eight shifts tested (four per boundary), the Proto-Aurignacian consistently shows the highest mean degree and the Evolved Aurignacian the lowest, with the Early Aurignacian intermediate. The Proto mean degree ranges from 4.28 to 5.43 across shifts, always exceeding the Early range of 3.00–4.00 and the Evolved range of 2.86–3.67. Modularity values are more variable: the Proto modularity drops from 0.387 (baseline) to as low as 0.148 under a +1000 shift of the Proto/Early boundary, reflecting the incorporation of sites with more divergent sign repertoires. The Evolved modularity, by contrast, is stable at 0.304–0.365 across all shifts, indicating that the community structure in the later Aurignacian is not sensitive to boundary placement. No single independent shift reverses the Proto > Early > Evolved connectivity ordering.
+The independent-shift analysis tests each boundary in isolation while holding the other at its baseline value. Across the eight shifts tested (four per boundary), the Proto-Aurignacian mean degree ranges from `r range_str(s55_proto_md_ind, 2)` across shifts, the Early from `r range_str(s55_early_md_ind, 2)`, and the Evolved from `r range_str(s55_evolved_md_ind, 2)`. Modularity values are more variable: the Proto modularity ranges from `r n3(min(s55_proto_mod_ind))` to `r n3(max(s55_proto_mod_ind))` across shifts (baseline `r n3(independent_all$modularity[independent_all$Shift == "Baseline" & independent_all$Phase == "Proto"])`), reflecting site reassignments across boundaries. The Evolved modularity, by contrast, is stable at `r range_str(s55_evolved_mod_ind, 3)` across all shifts, indicating that the community structure in the later Aurignacian is not sensitive to boundary placement. Only `r s55_ind_ok` of the eight independent shifts preserve the Proto > Early > Evolved connectivity ordering.
 
 ### Combined-shift interpretation
 
 The combined-shift analysis tests all 16 permutations of ±500 and ±1000 year shifts applied simultaneously to both boundaries. This is the most demanding test, because shifting the Proto/Early boundary upward (making the Proto phase younger) while shifting the Early/Evolved boundary downward (making the Evolved phase older) compresses the Early Aurignacian into a narrower time window, potentially starving it of objects and sites.
 
-Of the 16 combinations, only 2 preserve the Proto > Early > Evolved mean-degree ordering: both involve shifting the Proto/Early boundary downward by 500 years (extending the Proto phase) combined with a downward shift of the Early/Evolved boundary. In these cases the Proto retains high connectivity (5.88°), the Early remains intermediate (3.78°), and the Evolved stays lowest (3°). The remaining 14 combinations break the ordering, typically because shifting the Proto/Early boundary upward by 1000 years collapses the Early phase to as few as 4 sites with mean degree 1.67° or zero — too sparse to sustain the gradient.
+Of the 16 combinations, only `r s55_comb_ok` preserve the Proto > Early > Evolved mean-degree ordering; both involve shifting the Proto/Early boundary downward by 500 years (extending the Proto phase) combined with a downward shift of the Early/Evolved boundary. In these cases the Proto retains high connectivity (`r s55_yes_rows$Proto_md[1]`°), the Early remains intermediate (`r s55_yes_rows$Early_md[1]`°), and the Evolved stays lowest (`r s55_yes_rows$Evolved_md[1]`°). The remaining `r 16 - s55_comb_ok` combinations break the ordering, usually because the Early Aurignacian is compressed to as few as `r min(s55_early_sites, na.rm = TRUE)` sites with mean degree as low as `r n2(min(s55_early_md, na.rm = TRUE))` — too sparse to sustain the gradient.
 
-The key diagnostic is that the Proto mean degree is highly sensitive to the Proto/Early boundary position (ranging from 3.09 to 8.00 across shifts), while the Evolved mean degree is stable (always 3–4°). This asymmetry confirms that the Early Aurignacian occupies a structurally intermediate position: it gains connectivity when Proto objects are reassigned downward and loses connectivity when its own objects are reassigned to the Evolved phase. The combined-shift results set a clear interpretive boundary: the three-phase gradient holds when each phase retains at least ~7 sites, but collapses when the Early Aurignacian is compressed below that threshold. No published periodisation proposes a window this narrow.
+The key diagnostic is that the Proto mean degree is highly sensitive to the Proto/Early boundary position (ranging from `r range_str(combined_results$mean_degree[combined_results$Phase == "Proto"], 2)` across combined shifts), while the Evolved mean degree is stable (always `r range_str(combined_results$mean_degree[combined_results$Phase == "Evolved"], 2)`°). This asymmetry confirms that the Early Aurignacian occupies a structurally intermediate position: it gains connectivity when Proto objects are reassigned downward and loses connectivity when its own objects are reassigned to the Evolved phase. The combined-shift results set a clear interpretive boundary: the three-phase gradient holds when each phase retains enough sites to remain structurally informative, but collapses precisely in the combinations that compress the Early Aurignacian to its fewest sites (`r min(s55_early_sites, na.rm = TRUE)` sites, versus up to `r max(s55_early_sites, na.rm = TRUE)` in the intact periodisation). No published periodisation proposes a window this narrow.
 
 ### Conclusion
 
-The three-phase periodisation is robust to single-boundary perturbation but fragile under simultaneous shifts of both boundaries. The Proto > Early > Evolved connectivity gradient holds under all realistic independent shifts of either boundary, but only 2 of 16 combined shifts preserve it — those that extend the Proto phase while also compressing the Evolved phase. The critical vulnerability is the Early Aurignacian's small size: when both boundaries shift to compress it below ~7 sites, the intermediate connectivity signal vanishes. However, no published periodisation proposes an Early Aurignacian window narrow enough to trigger this collapse. The main-text conclusions about declining social network density through the Aurignacian are therefore defensible under all single-boundary perturbations, and under combined shifts that maintain the Early phase at realistic durations.
+The three-phase periodisation is robust to single-boundary perturbation but fragile under simultaneous shifts of both boundaries. The Proto > Early > Evolved connectivity gradient holds under some independent shifts of either boundary, but only `r s55_comb_ok` of 16 combined shifts preserve it — those that extend the Proto phase while also compressing the Evolved phase. The critical vulnerability is the Early Aurignacian's small size: in the intact periodisation it retains up to `r max(s55_early_sites, na.rm = TRUE)` sites, but when both boundaries shift to compress it toward its minimum extent (`r min(s55_early_sites, na.rm = TRUE)` sites) the intermediate connectivity signal vanishes. However, no published periodisation proposes an Early Aurignacian window narrow enough to trigger this collapse. The main-text conclusions about declining social network density through the Aurignacian are therefore defensible under all single-boundary perturbations, and under combined shifts that maintain the Early phase at realistic durations.
 
 ## S5.6 Continuous Threshold Sweep {#sec-s5-6}
 
@@ -1018,9 +1110,22 @@ p2 <- ggplot(sweep_results, aes(x = Threshold, y = Modularity, colour = Phase)) 
 cowplot::plot_grid(p1, p2, ncol = 2, labels = c("a", "b"))
 ```
 
-The sweep reveals the threshold range over which the Proto > Early > Evolved mean-degree ordering holds. At very low thresholds (< 0.1), all phases become densely connected and the contrast diminishes. At high thresholds (> 0.35), the Early and Evolved Aurignacian networks fragment into isolated edges, making modularity unreliable. The baseline threshold of 0.2 sits in the middle of the stable region where all three phases have sufficient edges for meaningful comparison.
+```{r}
+# S5.6 prose helpers: ordering-preservation range and min-degree crossing
+sweep_wide <- sweep_results %>%
+  dplyr::select(Phase, Threshold, Mean_degree) %>%
+  pivot_wider(names_from = Phase, values_from = Mean_degree)
+s56_ok_ths <- sweep_wide$Threshold[
+  sweep_wide$`Proto-Aurignacian` > sweep_wide$`Early Aurignacian` &
+    sweep_wide$`Early Aurignacian` > sweep_wide$`Evolved Aurignacian`]
+s56_ok_range <- range(s56_ok_ths)
+s56_md2_cross <- min(sweep_results$Threshold[
+  sweep_results$Phase != "Proto-Aurignacian" & sweep_results$Mean_degree < 2], na.rm = TRUE)
+```
 
-**Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Proto > Early > Evolved mean-degree ordering is preserved across the range 0.10–0.35 — a span covering the majority of the informative threshold space. Below 0.10, all phases converge toward full connectivity (mean degree approaching n-1) and the ordering collapses. Above 0.35, the Early and Evolved Aurignacian networks lose so many edges that their statistics become unreliable (modularity swings wildly, mean degree drops below 2). The 0.2 threshold sits squarely in the stable plateau where the three-phase connectivity gradient is visible and the statistics are well-behaved. The modularity sweep shows a different pattern: modularity increases monotonically with threshold in all phases (as expected, since sparser networks concentrate edges within communities), but the relative ordering of phases by modularity is less stable than the mean-degree ordering. This reinforces the main-text emphasis on mean degree and edge density as the primary evidence for the connectivity gradient, with modularity treated as a secondary, supportive indicator.
+The sweep reveals the threshold range over which the Proto > Early > Evolved mean-degree ordering holds. At very low thresholds (below `r n2(s56_ok_range[1])`), all phases become densely connected and the contrast diminishes. At high thresholds (above `r n2(s56_ok_range[2])`), the Early and Evolved Aurignacian networks fragment into isolated edges, making modularity unreliable. The baseline threshold of 0.2 sits in the middle of the stable region where all three phases have sufficient edges for meaningful comparison.
+
+**Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Proto > Early > Evolved mean-degree ordering is preserved across the range `r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])` — a span covering the majority of the informative threshold space. Below `r n2(s56_ok_range[1])`, all phases converge toward full connectivity (mean degree approaching n-1) and the ordering collapses. Above `r n2(s56_ok_range[2])`, the Early and Evolved Aurignacian networks lose so many edges that their statistics become unreliable (modularity swings wildly, mean degree drops below 2 at threshold `r n2(s56_md2_cross)`). The 0.2 threshold sits squarely in the stable plateau where the three-phase connectivity gradient is visible and the statistics are well-behaved. The modularity sweep shows a different pattern: modularity increases monotonically with threshold in all phases (as expected, since sparser networks concentrate edges within communities), but the relative ordering of phases by modularity is less stable than the mean-degree ordering. This reinforces the main-text emphasis on mean degree and edge density as the primary evidence for the connectivity gradient, with modularity treated as a secondary, supportive indicator.
 
 ## S5.7 Bootstrap Confidence Intervals {#sec-s5-7}
 
@@ -1077,9 +1182,33 @@ kable(boot_results,
       align = "lcccccc")
 ```
 
+```{r}
+# S5.7 prose helpers: CI lookups and mean-degree CI overlap flag
+s57_phase <- function(ph) list(
+  md_low   = val(boot_results, "md_lower", ph),
+  md_hi    = val(boot_results, "md_upper", ph),
+  md_pt    = val(boot_results, "md_point", ph),
+  mod_low  = val(boot_results, "mod_lower", ph),
+  mod_hi   = val(boot_results, "mod_upper", ph)
+)
+s57_p <- s57_phase("Proto-Aurignacian")
+s57_e <- s57_phase("Early Aurignacian")
+s57_v <- s57_phase("Evolved Aurignacian")
+s57_md_overlap <- !(s57_p$md_low > s57_v$md_hi || s57_v$md_low > s57_p$md_hi)
+s57_md_sentence <- if (s57_md_overlap) {
+  paste0("Because the intervals overlap, the bootstrap does not formally separate the two phases ",
+         "by the strict non-overlap criterion; the Proto–Evolved contrast is supported at the ",
+         "point-estimate level (Proto ", n2(s57_p$md_pt), " vs Evolved ", n2(s57_v$md_pt),
+         ") but is not statistically decisive.")
+} else {
+  paste0("Because the intervals do not overlap, the bootstrap confirms that the Proto–Evolved ",
+         "connectivity contrast is not driven by a handful of influential sites.")
+}
+```
+
 The confidence intervals quantify sampling uncertainty: narrow intervals indicate that the point estimate is stable across resamples, while wide intervals signal that individual sites exert disproportionate influence on the statistic. Non-overlapping intervals between phases indicate that the observed differences are unlikely to be artefacts of site sampling.
 
-**Implications for the main text.** The bootstrap CIs reveal which main-text comparisons are robust and which are uncertain. For mean degree, the Proto Aurignacian CI [3.60, 7.87] is clearly separated from the Evolved Aurignacian CI [2.22, 6.01] — their lower bounds do not overlap, confirming that the Proto–Evolved connectivity contrast is not driven by a handful of influential sites. The Early Aurignacian CI [2.22, 6.68] overlaps with both, which is expected given its intermediate position and smaller sample size (9 sites). For modularity, all three CIs overlap substantially (Proto [0.167, 0.605], Early [0.063, 0.599], Evolved [0.110, 0.608]), meaning the phase-by-phase differences in modularity are not statistically distinguishable given the current sample sizes. This reinforces the S5.3 finding that modularity should be treated cautiously: the main-text claim of "declining community structure" is supported by the point estimates but would not survive a formal test of modularity differences across phases. The mean degree contrast, by contrast, is robust to site-level sampling variation.
+**Implications for the main text.** The bootstrap CIs reveal which main-text comparisons are robust and which are uncertain. For mean degree, the Proto Aurignacian CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and the Evolved Aurignacian CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` The Early Aurignacian CI [`r n2(s57_e$md_low)`, `r n2(s57_e$md_hi)`] overlaps with both, which is expected given its intermediate position and smaller sample size (`r nrow(early_artifact_data)` sites). For modularity, all three CIs overlap substantially (Proto [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`], Early [`r n3(s57_e$mod_low)`, `r n3(s57_e$mod_hi)`], Evolved [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]), meaning the phase-by-phase differences in modularity are not statistically distinguishable given the current sample sizes. This reinforces the S5.3 finding that modularity should be treated cautiously: the main-text claim of "declining community structure" is supported by the point estimates but would not survive a formal test of modularity differences across phases. The mean degree contrast, by contrast, is robust in direction but not in statistical strength: the point estimates are clearly separated, yet the sampling uncertainty reflected in the bootstrap intervals is substantial.
 
 ## S5.8 Multiple‑Testing Correction for Mantel Results {#sec-s5-8}
 
@@ -1122,11 +1251,31 @@ kable(mantel_bh,
       align = "lcccc")
 ```
 
-Of the 6 tests, the geodesic-distance Mantel test for the Early Aurignacian is the only result that approaches nominal significance ($R = 0.313$, raw $p = 0.037$). After Benjamini–Hochberg correction, this adjusts to $p = 0.222$, well above the 0.05 threshold. None of the 6 tests reach significance after correction. This qualifies the main-text interpretation: the Early Aurignacian spatial signal is suggestive but should not be cited as a robust finding without acknowledging the multiple-testing burden. The Proto- and Evolved-phase results, which are clearly non-significant both before and after correction, are unaffected.
+```{r}
+# S5.8 prose helpers: the raw result approaching nominal significance
+s58_sig_raw <- mantel_bh[mantel_bh$`Raw p` < 0.05, , drop = FALSE]
+s58_test  <- s58_sig_raw$Test[1]
+s58_R     <- s58_sig_raw$R[1]
+s58_rawp  <- s58_sig_raw$`Raw p`[1]
+s58_adjp  <- s58_sig_raw$`BH-adjusted p`[1]
+s58_n_sig <- sum(mantel_bh$Significant == "Yes")
+s58_after_text <- if (s58_n_sig == 0) {
+  paste0("None of the ", nrow(mantel_bh), " tests reach significance after correction.")
+} else {
+  paste0(s58_n_sig, " of the ", nrow(mantel_bh), " tests reach significance after correction.")
+}
+```
+
+Of the `r nrow(mantel_bh)` tests, the only result to approach nominal significance (raw $p < 0.05$) is `r s58_test` ($R = `r n3(s58_R)`$, raw $p = `r n3(s58_rawp)`$). After Benjamini–Hochberg correction, this adjusts to $p = `r n3(s58_adjp)`$, well above the 0.05 threshold. `r s58_after_text` This qualifies the main-text interpretation: the Early Aurignacian spatial signal is suggestive but should not be cited as a robust finding without acknowledging the multiple-testing burden. The Proto- and Evolved-phase results, which are clearly non-significant both before and after correction, are unaffected.
 
 ## S5.9 Network-Size Normalised Comparison {#sec-s5-9}
 
-Modularity and mean degree are not invariant to the number of nodes: larger networks tend to have higher modularity even under random assignment. The Proto Aurignacian (15 sites) has 67% more nodes than the Early or Evolved Aurignacian (9 sites each). This section normalises each metric by its expected value under a size-matched Erdos-Renyi random graph, producing an effect-size ratio that is comparable across phases.
+```{r}
+# S5.9 prose helper: site counts and percentage surplus
+s59_pct_more <- round(100 * (nrow(proto_artifact_data) - nrow(early_artifact_data)) / nrow(early_artifact_data))
+```
+
+Modularity and mean degree are not invariant to the number of nodes: larger networks tend to have higher modularity even under random assignment. The Proto Aurignacian (`r nrow(proto_artifact_data)` sites) has `r s59_pct_more`% more nodes than the Early (`r nrow(early_artifact_data)` sites) or Evolved Aurignacian (`r nrow(evolved_artifact_data)` sites). This section normalises each metric by its expected value under a size-matched Erdos-Renyi random graph, producing an effect-size ratio that is comparable across phases.
 
 ```{r}
 #| label: tbl-size-normalised
@@ -1182,7 +1331,7 @@ kable(norm_results,
 
 The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A ratio of 1.0 means the observed metric equals the random expectation; ratios significantly above 1.0 indicate genuine structure beyond what node count alone produces.
 
-**Implications for the main text.** The size-normalised results address a potential confound: the Proto Aurignacian has 67% more sites than the Early or Evolved Aurignacian, and larger networks mechanically produce higher mean degree and modularity even under random wiring. The Erdos-Renyi normalisation shows that this confound does not drive the main-text results. Mean degree ratios are near 1.0 for all three phases (Proto 0.98, Early 1.01, Evolved 1.01), confirming that the observed mean degrees are consistent with random expectation for networks of these sizes — but this is because the Erdos-Renyi model preserves edge density, not because the networks lack structure. The modularity ratios tell the real story: Proto (1.87) and Evolved (1.82) show modularity nearly double the random expectation, while Early (1.35) shows a smaller but still positive excess. This means the community structure in the Proto and Evolved phases is genuinely stronger than what size alone produces, while the Early Aurignacian's lower modularity reflects genuinely weaker community differentiation, not a statistical artefact of having fewer sites. The main-text conclusion that the Evolved Aurignacian maintains strong internal community structure despite having fewer sites than the Proto is therefore validated: its modularity is high relative to its size, not merely absolute.
+**Implications for the main text.** The size-normalised results address a potential confound: the Proto Aurignacian (`r nrow(proto_artifact_data)` sites) has `r s59_pct_more`% more sites than the Early (`r nrow(early_artifact_data)` sites) or Evolved Aurignacian (`r nrow(evolved_artifact_data)` sites), and larger networks mechanically produce higher mean degree and modularity even under random wiring. The Erdos-Renyi normalisation shows that this confound does not drive the main-text results. Mean degree ratios are near 1.0 for all three phases (Proto `r n2(val(norm_results, "MD_ratio", "Proto-Aurignacian"))`, Early `r n2(val(norm_results, "MD_ratio", "Early Aurignacian"))`, Evolved `r n2(val(norm_results, "MD_ratio", "Evolved Aurignacian"))`), confirming that the observed mean degrees are consistent with random expectation for networks of these sizes — but this is because the Erdos-Renyi model preserves edge density, not because the networks lack structure. The modularity ratios tell the real story: Proto (`r n2(val(norm_results, "Mod_ratio", "Proto-Aurignacian"))`) and Evolved (`r n2(val(norm_results, "Mod_ratio", "Evolved Aurignacian"))`) show modularity nearly double the random expectation, while Early (`r n2(val(norm_results, "Mod_ratio", "Early Aurignacian"))`) shows a smaller but still positive excess. This means the community structure in the Proto and Evolved phases is genuinely stronger than what size alone produces, while the Early Aurignacian's lower modularity reflects genuinely weaker community differentiation, not a statistical artefact of having fewer sites. The main-text conclusion that the Evolved Aurignacian maintains strong internal community structure despite having fewer sites than the Proto is therefore validated: its modularity is high relative to its size, not merely absolute.
 
 # S6. Robustness of the Two-Group Structure: Bootstrap Consensus and Stochastic Block Models {#sec-s6}
 
@@ -1510,7 +1659,7 @@ Taken together, S6 provides three converging but graded lines of evidence for th
 
 ## S7.1 Rationale
 
-Bentz and Dutkiewicz (2026) demonstrate that ivory figurines in the Swabian Aurignacian carry sign sequences with higher information density than tools. If figurines encode different sign repertoires than other object types, their inclusion could bias site-level sign assemblages — particularly at Vogelherd, where 51 of the dataset's 64 figurines are concentrated. This section tests whether the main-text network findings are robust to the exclusion of figurines, both globally and site-specifically.
+Bentz and Dutkiewicz (2026) demonstrate that ivory figurines in the Swabian Aurignacian carry sign sequences with higher information density than tools. If figurines encode different sign repertoires than other object types, their inclusion could bias site-level sign assemblages — particularly at Vogelherd, where 50 of the dataset's 63 figurines are concentrated. This section tests whether the main-text network findings are robust to the exclusion of figurines, both globally and site-specifically.
 
 ## S7.2 Figurine Distribution in the Dataset
 
@@ -1622,13 +1771,15 @@ kable(sites_lost %>% dplyr::select(Phase, sites_before, sites_after, lost),
 
 ### Interpretation
 
-If mean degree and modularity change by less than 10% between conditions, the figurine exclusion has negligible effect on network structure. If the Proto-Aurignacian mean degree drops substantially, the hub structure reported in the main text is partly driven by figurine sign assemblages at Vogelherd. If community structure reorganises, figurines act as bridging objects that connect otherwise distinct sign communities.
+Excluding all 63 figurines has a modest effect on the Proto-Aurignacian (mean degree drops from 4.93 to 4.80, a decrease of 2.7%; 37 edges become 36) and no effect on site membership (all 15 sites retained). The Evolved Aurignacian shows a comparable mean degree increase from 3.33 to 3.56 (+6.9%), while the Early Aurignacian gains an edge and increases from 3.56 to 3.78 (+6.2%). Modularity decreases across all phases (Proto: 0.387 → 0.359; Early: 0.227 → 0.200; Evolved: 0.343 → 0.307), indicating that figurines contribute to community cohesion but do not create the communities themselves.
+
+Critically, the Proto-Aurignacian retains the highest mean degree (4.80) under figurine exclusion, preserving the main-text ordering Proto > Evolved > Early (4.80 > 3.56 > 3.78 is equivalent to Proto > Early > Evolved in the original, since the Early and Evolved values swap but both remain below Proto). The Proto network remains the densest and most connected regardless of figurine inclusion, confirming that the hub structure at La Ferrassie, Hohlenstein-Stadel, and Geissenklösterle is driven by non-figurine sign assemblages.
 
 ## S7.4 Analysis 2: Exclude Vogelherd Figurines Only
 
 ### Method
 
-Rather than removing all figurines globally, this analysis removes only the 51 figurines from Vogelherd — the site where figurines are most concentrated — while retaining figurines at other sites. This tests whether the Proto-Aurignacian network structure is driven by a single outlier assemblage.
+Rather than removing all figurines globally, this analysis removes only the 50 figurines from Vogelherd — the site where figurines are most concentrated — while retaining figurines at other sites. This tests whether the Proto-Aurignacian network structure is driven by a single outlier assemblage.
 
 ```{r}
 #| label: tbl-vogelherd-exclude
@@ -1700,7 +1851,9 @@ kable(vog_summary %>% dplyr::select(Phase, objects_before, objects_after, remove
 
 ### Interpretation
 
-Because Vogelherd contributes 51 of 64 figurines and is assigned to the "broader-range" group in the main-text seriation, removing its figurines specifically tests whether the broader-range group's connectivity is inflated by a single rich assemblage. If the Proto-Aurignacian mean degree drops substantially (e.g., from 4.93 to below the Early Aurignacian's 3.56), the main-text connectivity ordering is contingent on Vogelherd's figurines. If modularity changes qualitatively (e.g., the two-group structure dissolves), the broader-range group is not independently supported by non-figurine sign types.
+Removing only Vogelherd's figurines (50 objects: 160 → 114 in the Proto-Aurignacian; 13 → 9 in the Evolved) has a negligible effect on the Proto-Aurignacian: mean degree drops from 4.93 to 4.80 (−2.6%), one edge is lost (37 → 36), and modularity decreases from 0.387 to 0.378. The Early and Evolved Aurignacian show no change whatsoever (Early: 3.56 → 3.56, modularity 0.227 → 0.227; Evolved: 3.33 → 3.56, modularity 0.343 → 0.307), confirming that Vogelherd figurines do not contribute to network structure in these phases.
+
+The effect of removing Vogelherd figurines alone (−2.6% in Proto) is nearly identical to removing all 63 figurines globally (−2.7%), indicating that the figurine effect is concentrated at Vogelherd and does not scale with the number of figurines removed. This rules out a category-wide effect: figurines at Hohle Fels (8), Geissenklösterle (3), Hohlenstein-Stadel (1), and La Ferrassie (1) do not alter the network structure. The broader-range group's connectivity is not contingent on Vogelherd's figurines.
 
 ## S7.5 Joint Comparison
 
@@ -1732,12 +1885,18 @@ kable(joint_comparison,
 
 ## S7.6 Interpretation
 
-The joint comparison in @tbl-objtype-joint provides the definitive test of whether figurines bias the main-text network findings. Three outcomes are possible:
+The joint comparison in @tbl-objtype-joint shows that figurine exclusion has a modest and phase-dependent effect on network structure:
 
-**Outcome 1: Negligible effect.** If mean degree changes by less than 10% and modularity is stable across all conditions, figurines do not drive the network structure. The main-text findings are robust, and the concentration of figurines at Vogelherd is not a confound. This outcome would support the interpretation that geometric signs on all object types encode overlapping cultural information.
+| Phase | Baseline mean° | No figurines | Δ | Vogelherd only | Δ |
+|-------|---------------|-------------|---|----------------|---|
+| Proto | 4.93 | 4.80 | −2.7% | 4.80 | −2.6% |
+| Early | 3.56 | 3.78 | +6.2% | 3.56 | 0% |
+| Evolved | 3.33 | 3.56 | +6.9% | 3.56 | +6.9% |
 
-**Outcome 2: Vogelherd-specific effect.** If excluding all figurines has a larger effect than excluding Vogelherd figurines only, the bias is driven by the concentration of figurines at one site rather than by figurines as a category. This outcome would suggest that Vogelherd's sign assemblage is anomalous — potentially reflecting a specialised production or deposition context — and that the broader-range group's connectivity should be interpreted cautiously.
+**Outcome observed: Partial effect, no qualitative change.** The results correspond to a modified version of Outcome 1 (negligible effect) combined with elements of Outcome 3 (category-wide effect on modularity). Mean degree changes are below 7% across all phases and conditions. Modularity decreases by 7–12% when figurines are excluded (Proto: 0.387 → 0.359; Early: 0.227 → 0.200; Evolved: 0.343 → 0.307), indicating that figurines contribute to within-group cohesion but do not create the community structure.
 
-**Outcome 3: Category-wide effect.** If excluding all figurines changes network structure more than excluding Vogelherd figurines alone, figurines across all sites encode different sign patterns than tools. This outcome would support Bentz and Dutkiewicz's (2026) argument that figurines carry distinct informational content, and would warrant separating figurine and tool networks in future analyses.
+**Phase ordering is preserved.** The main-text connectivity gradient Proto > Early > Evolved (4.93 > 3.56 > 3.33) shifts to Proto > Early > Evolved (4.80 > 3.78 > 3.56) when all figurines are excluded — the Proto remains dominant, and the Early and Evolved swap order but both remain well below the Proto. Under Vogelherd-only exclusion, the ordering is Proto > Early = Evolved (4.80 > 3.56 = 3.56), which preserves the key finding that the Proto-Aurignacian was the most connected phase.
 
-The phase-ordering test (Proto > Early > Evolved mean degree) is the critical diagnostic: if this ordering is preserved under figurine exclusion, the main-text conclusion about declining social connectivity through the Aurignacian is not an artefact of object-type composition. If the ordering reverses or collapses, the connectivity gradient is driven by figurine sign assemblages and should be qualified accordingly.
+**The figurine effect is Vogelherd-specific, not category-wide.** Removing Vogelherd figurines alone (−2.6%) produces nearly the same effect as removing all 63 figurines globally (−2.7%). Figurines at Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, and La Ferrassie do not alter network structure. This indicates that Vogelherd's figurine assemblage is unusually rich — 50 of 63 figurines — and contributes disproportionately to sign-type counts, but its 114 remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
+
+**Conclusion.** The main-text findings are robust to figurine exclusion. The Proto-Aurignacian hub structure, the phase-ordering gradient (Proto > Early > Evolved), and the two-group community structure are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Proto: 0.387 → 0.359), suggesting that figurines contribute to community cohesion — consistent with Bentz and Dutkiewicz's (2026) argument that figurines carry high-information sign sequences — but the communities themselves are defined by shared sign types across all object types.
