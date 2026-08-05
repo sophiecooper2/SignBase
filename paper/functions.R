@@ -69,6 +69,7 @@ get_louvain_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard
   mat <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat <- mat[, colSums(mat) > 0, drop = FALSE]
   mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
+  rownames(mat) <- rownames(artifact_data)
   if (metric == "jaccard") {
     jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
   } else if (metric == "sorensen") {

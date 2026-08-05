@@ -316,7 +316,7 @@ kable(metric_stats,
 
 ```{r fig.height=10, fig.width=11}
 #| label: fig-metric-networks
-#| fig-cap: "Site networks for Proto-Aurignacian (top), Early Aurignacian (middle), and Evolved Aurignacian (bottom) under Jaccard (left), Sørensen-Dice (centre), and Simpson (right) similarity metrics at threshold = 0.2."
+#| fig-cap: "Site networks for Aur-P1 (top) and Aur-P2 (bottom) under Jaccard (left), Sørensen-Dice (centre), and Simpson (right) similarity metrics at threshold = 0.2."
 
 plot_metric_list <- list()
 for (ph_name in names(phases)) {
@@ -341,11 +341,11 @@ knitr::include_graphics(here::here("figures/sensitivity-metric-plot.png"))
 ## S2.2 Interpretation
 
 Across all three metrics:
-1. **Phase Ordering:** The Early Aurignacian consistently produces the highest edge density and node degree, followed by the Proto-Aurignacian and Evolved Aurignacian.
-2. **Sørensen vs. Jaccard:** Sørensen similarity yields higher edge counts (e.g. Proto-Aurignacian `r val(metric_stats, "n_edges", "Proto-Aurignacian", metric = "sorensen")` vs. `r val(metric_stats, "n_edges", "Proto-Aurignacian", metric = "jaccard")` for Jaccard) because double-weighting shared presences elevates similarity scores above the 0.2 threshold. However, network community structures and hub locations remain identical.
-3. **Simpson Similarity:** Simpson similarity confirms that the connectivity in the Early Aurignacian is driven by genuine shared sign repertoires rather than sample-size asymmetry.
+1. **Phase contrast:** Aur-P1 consistently produces the higher edge count and node degree, while Aur-P2 is sparser, consistent with its smaller sample.
+2. **Sørensen vs. Jaccard:** Sørensen similarity yields higher edge counts (e.g. Aur-P1 `r val(metric_stats, "n_edges", "Aur-P1", metric = "sorensen")` vs. `r val(metric_stats, "n_edges", "Aur-P1", metric = "jaccard")` for Jaccard) because double-weighting shared interest elevates similarity scores above the 0.2 threshold. However, network community structures and hub locations remain identical.
+3. **Simpson Similarity:** Simpson similarity shows that the Aur-P1 connectivity is driven by genuine shared sign repertoires rather than sample-size asymmetry.
 
-**Implications for the main text.** The metric comparison addresses the concern that Jaccard similarity — which weights joint absences and richness differences symmetrically — might produce different network structures than metrics that handle asymmetry differently. The fact that all three metrics yield the same phase ordering and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity gradient under Simpson confirms that the Proto Aurignacian's higher mean degree (`r n2(val(sens_stats, "mean_degree", "Proto-Aurignacian", 0.2))` at the baseline threshold) reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. The main text can therefore report its results using Jaccard (the most widely used metric in archaeology) without caveating that alternative metrics might produce different conclusions.
+**Implications for the main text.** The metric comparison addresses the concern that Jaccard similarity — which weights joint absences and richness differences symmetrically — might produce different network structures than metrics that handle asymmetry differently. The fact that all three metrics yield the same phase contrast and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity contrast under Simpson confirms that Aur-P1's higher mean degree (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. The main text can therefore report its results using Jaccard (the most widely used metric in archaeology) without caveating that alternative metrics might produce different conclusions.
 
 # S3. Geodesic vs. Euclidean Geographic Distance Verification (Mantel Tests) {#sec-s3}
 
@@ -359,9 +359,8 @@ In the main text, Mantel tests evaluate whether sign assemblage dissimilarity co
 #| tbl-cap-location: bottom
 
 mantel_comp_df <- bind_rows(
-  "Proto-Aurignacian"   = run_mantel_comp(proto_unique_data),
-  "Early Aurignacian"   = run_mantel_comp(early_unique_data),
-  "Evolved Aurignacian" = run_mantel_comp(evolved_unique_data),
+  "Aur-P1" = run_mantel_comp(aurp1_unique_data),
+  "Aur-P2" = run_mantel_comp(aurp2_unique_data),
   .id = "Phase"
 )
 
@@ -373,10 +372,10 @@ kable(mantel_comp_df,
 ## S3.2 Interpretation
 
 The geodesic distance calculation provides an important clarification:
-- In the **Proto-Aurignacian** ($R = `r val(mantel_comp_df, "Geodesic_R", "Proto-Aurignacian")`, p = `r val(mantel_comp_df, "Geodesic_p", "Proto-Aurignacian")`) and **Evolved Aurignacian** ($R = `r val(mantel_comp_df, "Geodesic_R", "Evolved Aurignacian")`, p = `r val(mantel_comp_df, "Geodesic_p", "Evolved Aurignacian")`), geographic distance remains uncorrelated with sign assemblage dissimilarity under both metrics.
-- In the **Early Aurignacian**, flat coordinate distance yielded a non-significant correlation ($R = `r val(mantel_comp_df, "Euclidean_R", "Early Aurignacian")`, p = `r val(mantel_comp_df, "Euclidean_p", "Early Aurignacian")`). However, when evaluated using true **geodesic distance in kilometers**, the spatial correlation increases to **$R = `r val(mantel_comp_df, "Geodesic_R", "Early Aurignacian")` ($p = `r val(mantel_comp_df, "Geodesic_p", "Early Aurignacian")`)**, achieving statistical significance ($\alpha = 0.05$).
+- In **Aur-P1** ($R = `r val(mantel_comp_df, "Geodesic_R", "Aur-P1")`, p = `r val(mantel_comp_df, "Geodesic_p", "Aur-P1")`), geographic distance remains uncorrelated with sign assemblage dissimilarity under both metrics.
+- In **Aur-P2** ($R = `r val(mantel_comp_df, "Geodesic_R", "Aur-P2")`, p = `r val(mantel_comp_df, "Geodesic_p", "Aur-P2")`), the same non-significant result holds under both metrics.
 
-This result directly strengthens the paper's discussion of the Early Aurignacian: during the rapid population expansion associated with Heinrich Stadial 4, spatial proximity played a statistically significant role in structuring sign repertoire sharing across Western Eurasia.
+Consistent with the main-text Mantel tests (which report no significant geographic signal in either phase), neither phase shows a significant correlation between geographic distance and sign assemblage dissimilarity, whether distance is measured as flat Euclidean coordinates or as true geodesic kilometers.
 
 # S4. Periodisation Scheme Sensitivity {#sec-s4}
 
@@ -508,7 +507,7 @@ The sensitivity analyses in S1–S4 treat the network threshold, similarity metr
 
 Rather than relying on author-constructed group assignments, we use Louvain community detection on Jaccard similarity networks to partition sites into groups from the sign data, without any human assignment. The Louvain algorithm identifies clusters of sites whose sign repertoires are more similar to each other than to sites in other clusters, optimising Newman–Girvan modularity. By comparing these data-driven communities to the ones used in the main analysis, we quantify how much of the two-group structure emerges from the data rather than being imported by the analyst.
 
-We run Louvain detection for each phase at each of the three thresholds (0.1, 0.2, 0.3) and for each dissimilarity metric (Jaccard, Sørensen, Simpson). For each partition we compute two measures:
+We run Louvain detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute two measures:
 
 1. **Adjusted Rand Index (ARI)** between the Louvain-derived communities and the manually assigned restricted/broad groups. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
 2. **PerMANOVA re-run** using the Louvain-assigned community labels as the grouping variable, and comparison of R^2^ and pseudo-F against the values reported from the manual assignment.
@@ -539,28 +538,24 @@ kable(louvain_wide,
 ```
 
 ```{r}
+#| label: tbl-ari-louvain
+#| tbl-cap: "Adjusted Rand Index (ARI) between Louvain-derived communities and the manually assigned restricted/broad groups, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
+#| tbl-cap-location: bottom
+
 # ▸ ARI: Louvain vs. manual restricted/broad groups at each threshold
 # Manual groups hard-coded (1 = restricted, 2 = broad); source: paper.qmd
 manual_groups <- list(
-  "Proto-Aurignacian" = c(
-    "Abri Pataud" = 1, "Fumane" = 1, "Pod Hradem" = 1, "Gatzarria" = 1,
-    "Hohlenstein-Stadel" = 1, "Mladeč" = 1, "Labeko Koba" = 1,
-    "El Castillo" = 1,
-    "Geissenklösterle" = 2, "Hohle Fels" = 2, "Grotte du Renne" = 2,
-    "Vogelherd" = 2, "Spy" = 2, "La Ferrassie" = 2, "Les Cottés" = 2
-  ),
-  "Early Aurignacian" = c(
-    "Grottes de Fonds-de-Forêt" = 1, "Riparo Bombrini" = 1,
-    "Grotte de la Verpillière I" = 1, "Vindija Cave" = 1,
-    "Hohle Fels" = 2, "Solutré" = 2, "Castanet" = 2,
-    "Cellier" = 2, "Blanchard" = 2, "Trou al'Wesse" = 2
-  ),
-  "Evolved Aurignacian" = c(
-    "Les Rois" = 1, "Gargas" = 1, "La Viña" = 1,
-    "Sirgenstein Cave" = 1, "Vindija Cave" = 1,
-    "Bockstein-Törle" = 2, "Vogelherd" = 2,
-    "Hohle Fels" = 2, "Trou Magrite" = 2
-  )
+  "Aur-P1" = c("Abri Pataud" = 1, "Fumane" = 1, "Pod Hradem" = 1,
+               "Riparo Bombrini" = 1, "Grottes de Fonds-de-Forêt" = 1,
+               "Labeko Koba" = 1, "Hohlenstein-Stadel" = 1, "Gatzarria" = 1,
+               "Grotte de la Verpillière I" = 1,
+               "Geissenklösterle" = 2, "Hohle Fels" = 2, "Vogelherd" = 2,
+               "Cellier" = 2, "Blanchard" = 2, "La Ferrassie" = 2,
+               "Castanet" = 2, "Solutré" = 2, "Grotte du Renne" = 2,
+               "Les Cottés" = 2, "Trou al'Wesse" = 2),
+  "Aur-P2" = c("Les Rois" = 1, "Sirgenstein Cave" = 1, "La Viña" = 1,
+               "Mladeč" = 1, "Gargas" = 1, "Vindija Cave" = 1,
+               "Trou Magrite" = 2, "Bockstein-Törle" = 2)
 )
 
 ari_table <- map_dfr(thresholds, function(thr) {
@@ -578,10 +573,6 @@ ari_table <- map_dfr(thresholds, function(thr) {
                stringsAsFactors = FALSE)
   })
 })
-
-#| label: tbl-ari-louvain
-#| tbl-cap: "Adjusted Rand Index (ARI) between Louvain-derived communities and the manually assigned restricted/broad groups, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
-#| tbl-cap-location: bottom
 
 kable(ari_table,
       col.names = c("Phase", "Threshold", "ARI (manual vs Louvain)"),
@@ -604,6 +595,7 @@ permanova_louvain <- function(artifact_data, df, threshold = 0.2,
   present <- intersect(sign_names, colnames(artifact_data))
   mat_bin <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat_bin <- as.data.frame(lapply(mat_bin, function(x) as.numeric(x > 0)))
+  rownames(mat_bin) <- rownames(artifact_data)
   df$louvain_group <- factor(lvgr[df$site_name])
   df <- df %>% filter(!is.na(louvain_group))
   if (nlevels(df$louvain_group) < 2) {
@@ -656,9 +648,8 @@ permanova_manual <- function(df, phase, threshold = 0.2) {
 
 manual_perm <- map_dfr(names(phases), function(ph) {
   uniq <- switch(ph,
-    "Proto-Aurignacian"   = proto_unique_data,
-    "Early Aurignacian"   = early_unique_data,
-    "Evolved Aurignacian" = evolved_unique_data
+    "Aur-P1" = aurp1_unique_data,
+    "Aur-P2" = aurp2_unique_data
   )
   permanova_manual(uniq, ph) %>% mutate(Phase = ph)
 })
@@ -667,9 +658,8 @@ louvain_perm <- map_dfr(thresholds, function(thr) {
   map_dfr(names(phases), function(ph) {
     ad <- phases[[ph]]
     uniq <- switch(ph,
-      "Proto-Aurignacian"   = proto_unique_data,
-      "Early Aurignacian"   = early_unique_data,
-      "Evolved Aurignacian" = evolved_unique_data
+      "Aur-P1" = aurp1_unique_data,
+      "Aur-P2" = aurp2_unique_data
     )
     permanova_louvain(ad, uniq, threshold = thr) %>%
       mutate(Phase = ph, Threshold = thr, .before = 1)
@@ -688,35 +678,42 @@ kable(perm_compare,
 ```
 
 ```{r}
-# S5.1 prose helpers: community counts and the Proto th = 0.2 composition
+# S5.1 prose helpers: community counts and the threshold-0.2 compositions
 s51_ncomm <- louvain_memberships %>%
   group_by(Phase, Threshold) %>%
   summarise(ncomm = n_distinct(LouvainGroup, na.rm = TRUE), .groups = "drop")
 
-s51_proto_20 <- louvain_memberships %>%
-  filter(Phase == "Proto-Aurignacian", Threshold == 0.2) %>%
-  arrange(Site)
-
-s51_proto_groups <- split(s51_proto_20$Site, s51_proto_20$LouvainGroup)
+# Human-readable listing of Louvain communities for a phase/threshold.
+s51_comms <- function(ph, thr = 0.2) {
+  d <- louvain_memberships %>%
+    filter(Phase == ph, Threshold == thr) %>%
+    arrange(Site)
+  comms <- split(d$Site, d$LouvainGroup)
+  vapply(comms, function(sites) {
+    if (length(sites) == 1) sites else
+      paste0(paste(sites[-length(sites)], collapse = ", "),
+             " and ", sites[length(sites)])
+  }, character(1))
+}
 ```
 
 ## S5.1 Interpretation
 
 ### Community structure is richer than a binary split
 
-The Louvain algorithm consistently identifies `r range_str(s51_ncomm$ncomm, 0)` communities within each phase, never collapsing the data into the binary restricted/broad partition imposed by the manual assignment (@tbl-louvain-groups). At the main-text threshold of 0.2, the Proto-Aurignacian splits into `r s51_ncomm$ncomm[s51_ncomm$Phase == "Proto-Aurignacian" & s51_ncomm$Threshold == 0.2]` communities: `r paste(s51_proto_groups[["1"]], collapse = ", ")`; `r paste(s51_proto_groups[["2"]], collapse = ", ")`; and `r paste(s51_proto_groups[["3"]], collapse = ", ")`. The Early Aurignacian likewise yields `r s51_ncomm$ncomm[s51_ncomm$Phase == "Early Aurignacian" & s51_ncomm$Threshold == 0.2]` communities at threshold 0.2, though at threshold 0.1 this collapses to `r s51_ncomm$ncomm[s51_ncomm$Phase == "Early Aurignacian" & s51_ncomm$Threshold == 0.1]` communities that map almost exactly onto the manual assignment. The Evolved Aurignacian produces `r paste(s51_ncomm$ncomm[s51_ncomm$Phase == "Evolved Aurignacian"], collapse = ", ")` communities at thresholds 0.1, 0.2, and 0.3. The detection of additional structure beyond a binary split is expected: community detection maximises modularity without constraint on the number of groups, so it will partition whenever within-group similarity exceeds between-group similarity by a sufficient margin. The key question is not whether Louvain finds more groups, but whether the manual two-group split captures the dominant axis of variation.
+The Louvain algorithm consistently identifies multiple communities within each phase, never collapsing the data into the binary restricted/broad partition imposed by the manual assignment (@tbl-louvain-groups). At the main-text threshold of 0.2, Aur-P1 splits into `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P1" & s51_ncomm$Threshold == 0.2]` communities (`r paste(s51_comms("Aur-P1"), collapse = "; ")`). The two largest of these map almost exactly onto the manual restricted/broad assignment: the first comprises the nine restricted-range sites and the second nine of the eleven broader-range sites, with Les Cottés and Trou al'Wesse separating as singletons. At threshold 0.1, Aur-P1 collapses to `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P1" & s51_ncomm$Threshold == 0.1]` communities, with the broader-range group intact at eleven sites and the restricted-range group divided into two subgroups; at 0.3 the network fragments into `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P1" & s51_ncomm$Threshold == 0.3]` communities as weak cross-group edges are lost. Aur-P2 produces `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P2" & s51_ncomm$Threshold == 0.1]`, `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P2" & s51_ncomm$Threshold == 0.2]`, and `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P2" & s51_ncomm$Threshold == 0.3]` communities at thresholds 0.1, 0.2, and 0.3. The detection of additional structure beyond a binary split is expected: community detection maximises modularity without constraint on the number of groups, so it will partition whenever within-group similarity exceeds between-group similarity by a sufficient margin. The key question is not whether Louvain finds more groups, but whether the manual two-group split captures the dominant axis of variation.
 
 ### Manual groups partially reproduce data-driven communities
 
-The Adjusted Rand Index quantifies agreement between the Louvain partitions and the manual restricted/broad assignment (@tbl-ari-louvain). At the main-text threshold of 0.2, ARI values are `r val(ari_table, "ARI", "Proto-Aurignacian", 0.2)` for the Proto-Aurignacian, `r val(ari_table, "ARI", "Early Aurignacian", 0.2)` for the Early Aurignacian, and `r val(ari_table, "ARI", "Evolved Aurignacian", 0.2)` for the Evolved Aurignacian. The Proto-Aurignacian value indicates strong concordance: the manual assignment closely recovers the dominant community structure identified algorithmically. The Early Aurignacian value indicates moderate-to-good agreement, consistent with the near-perfect ARI of `r val(ari_table, "ARI", "Early Aurignacian", 0.1)` observed at threshold 0.1, where Louvain itself detects only two communities. The Evolved Aurignacian value of `r val(ari_table, "ARI", "Evolved Aurignacian", 0.2)` is the lowest across all phase-threshold combinations, suggesting that the binary restricted/broad split is a less faithful summary of the underlying structure in this phase. Across thresholds, ARI is highest for the Proto-Aurignacian at 0.2 (`r val(ari_table, "ARI", "Proto-Aurignacian", 0.2)`), drops sharply at 0.3 (`r val(ari_table, "ARI", "Proto-Aurignacian", 0.3)`) as the network fragments into five communities, and remains stable for the Evolved Aurignacian regardless of threshold (`r unique(ari_table$ARI[ari_table$Phase == "Evolved Aurignacian"])` in all cases). These results indicate that the manual assignment captures a genuine signal in the data, but that the signal is strongest in the Proto-Aurignacian and weakest in the Evolved Aurignacian.
+The Adjusted Rand Index quantifies agreement between the Louvain partitions and the manual restricted/broad assignment (@tbl-ari-louvain). At the main-text threshold of 0.2, ARI values are `r val(ari_table, "ARI", "Aur-P1", 0.2)` for Aur-P1 and `r val(ari_table, "ARI", "Aur-P2", 0.2)` for Aur-P2. The Aur-P1 value indicates strong concordance: the manual assignment closely recovers the dominant community structure identified algorithmically, because the two leading Louvain communities coincide almost exactly with the restricted and broad groups. The Aur-P2 value is negative, indicating agreement worse than chance: Louvain's two communities cut across the manual groups, clustering the broader-range sites Trou Magrite and Bockstein-Törle with restricted-range sites in the largest community while La Viña and Sirgenstein Cave form the second. Across thresholds, ARI for Aur-P1 is highest at 0.2 (`r val(ari_table, "ARI", "Aur-P1", 0.2)`), remains high at 0.1 (`r val(ari_table, "ARI", "Aur-P1", 0.1)`), and drops at 0.3 (`r val(ari_table, "ARI", "Aur-P1", 0.3)`) as the network fragments into six communities; for Aur-P2 it stays at or below zero (`r val(ari_table, "ARI", "Aur-P2", 0.1)`, `r val(ari_table, "ARI", "Aur-P2", 0.2)`, and `r val(ari_table, "ARI", "Aur-P2", 0.3)`). These results indicate that the manual assignment captures a genuine and strong signal in the well-sampled Aur-P1 phase, but is a poor summary of the data-driven structure in the small Aur-P2 sample.
 
 ### Louvain-derived groups explain more variance than manual groups
 
-The PerMANOVA comparison provides the most direct test of whether the main-text results are circular (@tbl-permanova-louvain). At the main-text threshold of 0.2, the Louvain-derived grouping yields R² values of `r val(perm_compare, "LouvainPerMANOVA_R2", "Proto-Aurignacian", 0.2)` (Proto-Aurignacian), `r val(perm_compare, "LouvainPerMANOVA_R2", "Early Aurignacian", 0.2)` (Early Aurignacian), and `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.2)` (Evolved Aurignacian), compared with the manual-group R² values of `r val(perm_compare, "Manual_R2", "Proto-Aurignacian", 0.2)`, `r val(perm_compare, "Manual_R2", "Early Aurignacian", 0.2)`, and `r val(perm_compare, "Manual_R2", "Evolved Aurignacian", 0.2)` respectively. In every case the Louvain grouping explains more of the intersite dissimilarity in sign composition than the manual grouping does. The increase is most pronounced in the Evolved Aurignacian, where R² more than doubles from `r val(perm_compare, "Manual_R2", "Evolved Aurignacian", 0.2)` to `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.2)` (a factor of `r n2(round(val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.2) / val(perm_compare, "Manual_R2", "Evolved Aurignacian", 0.2), 2))`). This pattern is consistent across thresholds: at 0.1, the Louvain R² values are `r val(perm_compare, "LouvainPerMANOVA_R2", "Proto-Aurignacian", 0.1)`, `r val(perm_compare, "LouvainPerMANOVA_R2", "Early Aurignacian", 0.1)`, and `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.1)`; at 0.3, they are `r val(perm_compare, "LouvainPerMANOVA_R2", "Proto-Aurignacian", 0.3)`, `r val(perm_compare, "LouvainPerMANOVA_R2", "Early Aurignacian", 0.3)`, and `r val(perm_compare, "LouvainPerMANOVA_R2", "Evolved Aurignacian", 0.3)`. All Louvain-derived p-values remain below 0.05 (maximum `r n3(max(perm_compare$LouvainPerMANOVA_p))`), with most below 0.01, confirming that the community structure detected by the algorithm is statistically significant in every phase-threshold combination.
+The PerMANOVA comparison provides the most direct test of whether the main-text results are circular (@tbl-permanova-louvain). At the main-text threshold of 0.2, the Louvain-derived grouping yields R² values of `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.2)` (Aur-P1) and `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.2)` (Aur-P2), compared with the manual-group R² values of `r val(perm_compare, "Manual_R2", "Aur-P1", 0.2)` and `r val(perm_compare, "Manual_R2", "Aur-P2", 0.2)` respectively. In both phases the Louvain grouping explains more of the intersite dissimilarity in sign composition than the manual grouping does — in Aur-P1 R² rises from `r val(perm_compare, "Manual_R2", "Aur-P1", 0.2)` to `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.2)` (a factor of `r n2(round(val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.2) / val(perm_compare, "Manual_R2", "Aur-P1", 0.2), 2))`), and in Aur-P2 from `r val(perm_compare, "Manual_R2", "Aur-P2", 0.2)` to `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.2)`. This pattern holds across thresholds: at 0.1 the Louvain R² values are `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.1)` and `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.1)`; at 0.3 they rise to `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.3)` and `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.3)` as only the strongest, most structured edges survive. Every Louvain-derived p-value is at or below 0.05 (maximum `r n3(max(perm_compare$LouvainPerMANOVA_p))`), so the algorithmically detected structure is statistically significant in both phases — including Aur-P2, where the manual-group PerMANOVA is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`). The community structure detected by the algorithm is therefore at least as well differentiated as, and typically better differentiated than, the structure implied by the manual assignment.
 
 ### Implications for the main-text circularity concern
 
-These results directly address the concern that the restricted/broad grouping is circular: because the groups were defined by the analysts who also designed the seriation, the analysis might simply be recovering its own input. The ARI values demonstrate that the manual assignment partially reproduces a structure that emerges independently from the data, particularly in the Proto-Aurignacian. More importantly, the PerMANOVA comparison shows that the manual grouping is conservative rather than circular: the algorithmically derived partitions consistently explain more variance than the manual ones, meaning the main-text R² values (between `r n3(min(perm_compare$Manual_R2))` and `r n3(max(perm_compare$Manual_R2))` across phase–threshold combinations) underestimate the true strength of the group contrast. If anything, replacing the manual assignment with a data-driven partition would strengthen, not weaken, the statistical evidence for differentiated sign repertoires across the two spatial groupings. The conclusion that sign composition differs between restricted-range and broader-range sites is therefore genuinely supported by the data and is not an artefact of analyst choice.
+These results directly address the concern that the restricted/broad grouping is circular: because the groups were defined by the analysts who also designed the seriation, the analysis might simply be recovering its own input. The ARI values demonstrate that the manual assignment closely reproduces a structure that emerges independently from the data in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2), but is a poor summary of the data-driven structure in Aur-P2 (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)`). More importantly, the PerMANOVA comparison shows that the manual grouping is conservative rather than circular: the algorithmically derived partitions consistently explain more variance than the manual ones, meaning the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) underestimate the true strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "LouvainPerMANOVA_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only eight sites and its PerMANOVA results must be read with that limitation in mind. If anything, replacing the manual assignment with a data-driven partition would strengthen, not weaken, the statistical evidence for differentiated sign repertoires across the two spatial groupings. The conclusion that sign composition differs between restricted-range and broader-range sites is therefore genuinely supported by the data and is not an artefact of analyst choice.
 
 ## S5.2 Quantitative Threshold‑Agreement Metrics {#sec-s5-2}
 
@@ -785,9 +782,9 @@ kable(agree_table,
 
 ## S5.2 Interpretation
 
-Edge-set Jaccard values near 1.0 indicate that the edge-sparing is merely quantitative; the set of which sites are connected does not change appreciably across threshold. Values near 0 would indicate that shifting the threshold substantially changes which pairs are considered connected. Adjacency-matrix correlation above 0.9 indicates that the full matrix of similarities (before the 0.1-0.2-0.3 cut-offs) is stable under threshold.
+Edge-set Jaccard values near 1.0 indicate that the change across thresholds is merely quantitative: the set of which sites are connected does not change appreciably. Values near 0 would indicate that shifting the threshold substantially changes which pairs are considered connected. Adjacency-matrix correlation above 0.9 indicates that the full matrix of similarities (before the 0.1-0.2-0.3 cut-offs) is stable under threshold.
 
-**Implications for the main text.** The high edge-set Jaccard values (`r range_str(agree_table$Edge_Jaccard, 2)` across threshold pairs) confirm that the network structures reported in the main text are not artefacts of the specific threshold chosen. The site pairs identified as strongly connected at threshold 0.2 are overwhelmingly the same pairs connected at 0.1 and 0.3. This means the two-group structure identified by seriation, the hub sites identified by degree centrality, and the isolate sites identified by their lack of edges would all be recovered under any reasonable threshold choice. The adjacency correlations (`r range_str(agree_table$AdjCor, 2)`) reinforce this: the full similarity matrix is stable, and the threshold merely clips a continuous surface into a binary graph. The main-text conclusion that Proto-Aurignacian sites form a denser, more interconnected network than Evolved-Aurignacian sites is therefore not dependent on where the threshold is drawn.
+**Implications for the main text.** The high edge-set Jaccard values (`r range_str(agree_table$Edge_Jaccard, 2)` across threshold pairs) confirm that the network structures reported in the main text are not artefacts of the specific threshold chosen. The site pairs identified as strongly connected at threshold 0.2 are overwhelmingly the same pairs connected at 0.1 and 0.3. This means the two-group structure identified by seriation, the hub sites identified by degree centrality, and the isolate sites identified by their lack of edges would all be recovered under any reasonable threshold choice. The adjacency correlations (`r range_str(agree_table$AdjCor, 2)`) reinforce this: the full similarity matrix is stable, and the threshold merely clips a continuous surface into a binary graph. The main-text conclusions — that each phase contains a two-group restricted/broad structure and that Aur-P1 forms a denser, more interconnected network than Aur-P2 — are therefore not dependent on where the threshold is drawn.
 
 ## S5.3 Null-Benchmarked Modularity Across Thresholds {#sec-s5-3}
 
@@ -802,9 +799,8 @@ Modularity values in the range 0.3-0.5 are often described as "high" without for
 run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
   # Build observed network for this phase
   obs_data <- switch(phase_name,
-    "proto_aurignacian" = proto_unique_data,
-    "early_aurignacian" = early_unique_data,
-    "evolved_aurignacian" = evolved_unique_data
+    "Aur-P1" = aurp1_unique_data,
+    "Aur-P2" = aurp2_unique_data
   )
   obs_art <- extract_artifact(obs_data)
   obs_jac <- as.matrix(vegan::vegdist(as.matrix(obs_art), "jaccard", binary = TRUE))
@@ -862,13 +858,12 @@ run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
 }
 
 null_results <- expand_grid(
-  phase = c("proto_aurignacian", "early_aurignacian", "evolved_aurignacian"),
+  phase = c("Aur-P1", "Aur-P2"),
   threshold = c(0.1, 0.2, 0.3)
 ) %>%
   pmap_dfr(function(phase, threshold) run_null_modularity(phase, threshold))
 
-null_display <- null_results %>%
-  mutate(Phase = str_to_title(str_replace_all(Phase, "_", " ")))
+null_display <- null_results
 
 kable(null_display,
       col.names = c("Phase", "Threshold", "Observed Q", "Null mean Q", "Null SD", "p"),
@@ -878,7 +873,7 @@ kable(null_display,
 
 The p-values indicate whether the observed community structure is significantly stronger than expected by chance. A p < 0.05 means the phase modularity exceeds 95% of null draws; a p-value near 1 means the observed modularity is unremarkable under random assignment.
 
-**Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, the Proto Aurignacian's observed modularity of `r n3(val(null_results, "Observed", "proto_aurignacian", 0.2))` approaches but does not reach significance against the null (p = `r n3(val(null_results, "p", "proto_aurignacian", 0.2))`), while the Early (`r n3(val(null_results, "Observed", "early_aurignacian", 0.2))`, p = `r n3(val(null_results, "p", "early_aurignacian", 0.2))`) and Evolved (`r n3(val(null_results, "Observed", "evolved_aurignacian", 0.2))`, p = `r n3(val(null_results, "p", "evolved_aurignacian", 0.2))`) Aurignacian modularity values are clearly non-significant. This means that the community structure detected by Louvain partitioning is not, on its own, strong evidence for culturally meaningful sub-groups within phases. The main-text seriation and PerMANOVA results — which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) — remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix, but this structure does not exceed what would be expected from a random assembly of sites with similar sign-type distributions.
+**Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, Aur-P1's observed modularity of `r n3(val(null_results, "Observed", "Aur-P1", 0.2))` exceeds the null expectation (null mean `r n3(val(null_results, "Null_mean", "Aur-P1", 0.2))`) and is statistically significant (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`), as it is at threshold 0.3 (`r n3(val(null_results, "Observed", "Aur-P1", 0.3))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.3))`); at the permissive 0.1 threshold, the Aur-P1 value (`r n3(val(null_results, "Observed", "Aur-P1", 0.1))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.1))`) does not reach significance. Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))` at threshold 0.2) is clearly non-significant at every threshold (p = `r n3(val(null_results, "p", "Aur-P2", 0.1))` to `r n3(val(null_results, "p", "Aur-P2", 0.3))`), consistent with the very small number of sites in this phase. This means that the community structure detected by Louvain partitioning is, in the well-sampled Aur-P1 phase, stronger than expected under random assignment, but is not, on its own, strong evidence for discrete culturally meaningful sub-groups. The main-text seriation and PerMANOVA results — which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) — remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix that exceeds chance in Aur-P1, but not in the small Aur-P2 sample.
 
 ## S5.4 Assemblage Richness / Sample-Size Confound {#sec-s5-4}
 
@@ -914,9 +909,8 @@ compute_phase_dr <- function(df) {
 }
 
 richness_results <- bind_rows(
-  compute_phase_dr(proto_unique_data) %>% mutate(Phase = "Proto-Aurignacian"),
-  compute_phase_dr(early_unique_data) %>% mutate(Phase = "Early Aurignacian"),
-  compute_phase_dr(evolved_unique_data) %>% mutate(Phase = "Evolved Aurignacian")
+  compute_phase_dr(aurp1_unique_data) %>% mutate(Phase = "Aur-P1"),
+  compute_phase_dr(aurp2_unique_data) %>% mutate(Phase = "Aur-P2")
 ) %>% dplyr::select(Phase, everything())
 
 kable(richness_results,
@@ -927,31 +921,27 @@ kable(richness_results,
 
 If degree is primarily driven by richness, the correlations will be strong and significant ($\rho > 0.7$, $p < 0.05$). If degree reflects genuine co-occurrence patterns beyond raw sign counts, the correlations will be weak or non-significant.
 
-**Implications for the main text.** None of the three phases shows a significant correlation between node degree and sign-type richness (Proto: ρ = `r n3(val(richness_results, "rho", "Proto-Aurignacian"))`, p = `r n3(val(richness_results, "p", "Proto-Aurignacian"))`; Early: ρ = `r n3(val(richness_results, "rho", "Early Aurignacian"))`, p = `r n3(val(richness_results, "p", "Early Aurignacian"))`; Evolved: ρ = `r n3(val(richness_results, "rho", "Evolved Aurignacian"))`, p = `r n3(val(richness_results, "p", "Evolved Aurignacian"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in the Proto Aurignacian (`r n2(val(sens_stats, "mean_degree", "Proto-Aurignacian", 0.2))`°) compared to the Early (`r n2(val(sens_stats, "mean_degree", "Early Aurignacian", 0.2))`°) and Evolved (`r n2(val(sens_stats, "mean_degree", "Evolved Aurignacian", 0.2))`°) Aurignacian is not simply an artefact of the Proto phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree — but we observe a near-zero or slightly negative correlation in the Proto phase. The main-text conclusion that the Proto Aurignacian represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
+**Implications for the main text.** Neither phase shows a significant correlation between node degree and sign-type richness (Aur-P1: ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`; Aur-P2: ρ = `r n3(val(richness_results, "rho", "Aur-P2"))`, p = `r n3(val(richness_results, "p", "Aur-P2"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in Aur-P1 (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) compared to Aur-P2 (`r n2(val(sens_stats, "mean_degree", "Aur-P2", 0.2))`) is not simply an artefact of the Aur-P1 phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree — but the Aur-P1 correlation is slightly negative (ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`) and the Aur-P2 correlation, while positive, is far from significant given the small sample. The main-text conclusion that Aur-P1 represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
 
 ## S5.5 Phase-Boundary Sensitivity {#sec-s5-5}
 
 ### Rationale
 
-The three-phase periodisation uses calibrated MedianBP thresholds of 39799 (Proto/Early) and 37799 (Early/Evolved). These are conventional round numbers, not derived from a formal change-point analysis. Objects with calibrated dates near these boundaries could be assigned to either adjacent phase depending on the exact threshold chosen. This section tests whether the network-level findings are sensitive to the placement of these boundaries by shifting each by ±500 and ±1000 years, both independently and in combination.
+The two-phase periodisation uses a single calibrated MedianBP threshold of 37799 separating Aur-P1 (43.0–37.8 ka) from Aur-P2 (37.8–32.0 ka). This is a conventional round number, not derived from a formal change-point analysis. Objects with calibrated dates near this boundary could be assigned to either phase depending on the exact threshold chosen. This section tests whether the network-level findings are sensitive to the placement of this boundary by shifting it by ±500 and ±1000 years. The technology-based overrides are held fixed (Hohle Fels, Geissenklösterle, Vogelherd, La Ferrassie, Abri Pataud, and Gatzarria in Aur-P1; Mladeč in Aur-P2; Spy and El Castillo excluded), so the test isolates the effect of the date-based cutoff.
 
 ```{r}
 #| label: tbl-boundary-proximity
-#| tbl-cap: "Number of objects and sites within ±500 and ±1000 calibrated years of each periodisation boundary. The Proto/Early boundary has the larger zone of uncertainty."
+#| tbl-cap: "Number of objects and sites within ±500 and ±1000 calibrated years of the single periodisation boundary at 37799 BP separating Aur-P1 from Aur-P2."
 #| tbl-cap-location: bottom
 
-pe_500 <- signbase_full_clean %>% filter(MedianBP >= 39299, MedianBP <= 40299)
-pe_1000 <- signbase_full_clean %>% filter(MedianBP >= 38799, MedianBP <= 40799)
-ee_500 <- signbase_full_clean %>% filter(MedianBP >= 37299, MedianBP <= 38299)
-ee_1000 <- signbase_full_clean %>% filter(MedianBP >= 36799, MedianBP <= 38799)
+p2_500  <- signbase_full_clean %>% filter(MedianBP >= 37299, MedianBP <= 38299)
+p2_1000 <- signbase_full_clean %>% filter(MedianBP >= 36799, MedianBP <= 38799)
 
 boundary_proximity <- tibble(
-  Boundary = c("Proto/Early (39799 BP)", "Proto/Early (39799 BP)",
-               "Early/Evolved (37799 BP)", "Early/Evolved (37799 BP)"),
-  Window = c("±500 years", "±1000 years", "±500 years", "±1000 years"),
-  Objects = c(nrow(pe_500), nrow(pe_1000), nrow(ee_500), nrow(ee_1000)),
-  Sites = c(n_distinct(pe_500$site_name), n_distinct(pe_1000$site_name),
-            n_distinct(ee_500$site_name), n_distinct(ee_1000$site_name))
+  Boundary = c("Aur-P1/Aur-P2 (37799 BP)", "Aur-P1/Aur-P2 (37799 BP)"),
+  Window = c("±500 years", "±1000 years"),
+  Objects = c(nrow(p2_500), nrow(p2_1000)),
+  Sites = c(n_distinct(p2_500$site_name), n_distinct(p2_1000$site_name))
 )
 
 kable(boundary_proximity,
@@ -960,78 +950,57 @@ kable(boundary_proximity,
 ```
 
 ```{r}
-#| label: tbl-independent-shifts
-#| tbl-cap: "Network statistics under independent boundary shifts. Each row shifts one boundary while holding the other at its baseline value. Positive shifts move the boundary later (older objects reassigned to the younger phase); negative shifts move it earlier."
+#| label: tbl-boundary-shifts
+#| tbl-cap: "Network statistics at the baseline threshold of 0.2 under shifts of the single Aur-P1/Aur-P2 boundary. Positive shifts move the boundary later (older objects reassigned to Aur-P2); negative shifts move it earlier (younger Aur-P2 objects reassigned to Aur-P1)."
 #| tbl-cap-location: bottom
 
-# Helper: rebuild phase data and compute network stats for given boundaries
-compute_phase_stats <- function(pe_boundary, ee_boundary) {
-  # Assign phases based on boundaries
+# Helper: rebuild phase data for a given P1/P2 boundary and compute network stats
+compute_phase2_stats <- function(p2_boundary) {
   signed_clean <- signbase_full_clean %>%
-    mutate(assigned_phase = case_when(
-      MedianBP > pe_boundary ~ "proto_aurignacian",
-      MedianBP > ee_boundary ~ "early_aurignacian",
-      MedianBP > 31999       ~ "evolved_aurignacian"
-    )) %>%
-    filter(!is.na(assigned_phase))
+    mutate(assigned_phase2 = case_when(
+      site_name %in% c("Hohle Fels", "Geissenklösterle", "Vogelherd", "La Ferrassie",
+                       "Abri Pataud", "Gatzarria") ~ "Aur-P1",
+      site_name == "Mladeč" ~ "Aur-P2",
+      MedianBP > p2_boundary ~ "Aur-P1",
+      MedianBP > 31999       ~ "Aur-P2")) %>%
+    filter(!is.na(assigned_phase2))
 
-  results <- map_dfr(unique(signed_clean$assigned_phase), function(ph) {
-    phase_df <- signed_clean %>% filter(assigned_phase == ph)
+  map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
+    phase_df <- signed_clean %>% filter(assigned_phase2 == ph)
     # Skip if fewer than 2 sites
     if (n_distinct(phase_df$site_name) < 2) return(NULL)
     phase_obj <- phase_df %>% group_by(site_name) %>% summarise(nobjects = n())
     phase_unique <- phase_df %>%
       group_by(site_name) %>%
+      mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
       summarize(across(where(is.numeric), sum)) %>%
-      left_join(lat_long_df) %>%
-      left_join(phase_obj)
+      left_join(lat_long_df2) %>%
+      left_join(phase_obj) %>%
+      mutate(time_period = ph)
     phase_artifact <- extract_artifact(phase_unique)
     ns <- network_stats(phase_artifact, threshold = 0.2)
-    label <- switch(ph,
-      "proto_aurignacian"   = "Proto",
-      "early_aurignacian"   = "Early",
-      "evolved_aurignacian" = "Evolved")
     data.frame(
-      Phase = label, n_sites = ns$n_sites, n_edges = ns$n_edges,
+      Phase = ph, n_sites = ns$n_sites, n_edges = ns$n_edges,
       density = ns$density, mean_degree = ns$mean_degree,
       modularity = ns$modularity, n_communities = ns$n_communities,
       stringsAsFactors = FALSE
     )
   })
-  results
 }
 
 # Baseline
-baseline <- compute_phase_stats(39799, 37799)
+baseline <- compute_phase2_stats(37799)
 baseline$Shift <- "Baseline"
 
-# Independent shifts: Proto/Early boundary
-pe_shifts <- map_dfr(c(-1000, -500, 500, 1000), function(s) {
-  res <- compute_phase_stats(39799 + s, 37799)
-  res$Shift <- paste0("P/E ", ifelse(s > 0, "+", ""), s)
+# Independent shifts of the single P1/P2 boundary
+boundary_shifts <- map_dfr(c(-1000, -500, 500, 1000), function(s) {
+  res <- compute_phase2_stats(37799 + s)
+  res$Shift <- paste0("P1/P2 ", ifelse(s > 0, "+", ""), s)
   res
 })
+boundary_shifts_all <- bind_rows(baseline, boundary_shifts)
 
-# Independent shifts: Early/Evolved boundary
-ee_shifts <- map_dfr(c(-1000, -500, 500, 1000), function(s) {
-  res <- compute_phase_stats(39799, 37799 + s)
-  res$Shift <- paste0("E/V ", ifelse(s > 0, "+", ""), s)
-  res
-})
-
-independent_all <- bind_rows(baseline, pe_shifts, ee_shifts)
-
-# Format for display
-independent_wide <- independent_all %>%
-  pivot_wider(
-    names_from = Phase,
-    values_from = c(n_sites, n_edges, density, mean_degree, modularity, n_communities),
-    names_glue = "{Phase}.{.value}"
-  ) %>%
-  dplyr::select(Shift,
-    starts_with("Proto."), starts_with("Early."), starts_with("Evolved."))
-
-kable(independent_all %>%
+kable(boundary_shifts_all %>%
         dplyr::select(Shift, Phase, n_sites, n_edges, mean_degree, modularity) %>%
         arrange(Shift, Phase),
       col.names = c("Shift", "Phase", "Sites", "Edges", "Mean degree", "Modularity"),
@@ -1039,62 +1008,19 @@ kable(independent_all %>%
 ```
 
 ```{r}
-#| label: tbl-combined-shifts
-#| tbl-cap: "Network statistics under combined boundary shifts. Both the Proto/Early and Early/Evolved boundaries are shifted simultaneously. The ordering column indicates whether the Proto > Early > Evolved connectivity gradient is preserved (Yes) or reversed (No)."
-#| tbl-cap-location: bottom
-
-# Combined shifts: all 4×4 = 16 combinations
-combined_results <- map_dfr(c(-1000, -500, 500, 1000), function(pe_s) {
-  map_dfr(c(-1000, -500, 500, 1000), function(ee_s) {
-    res <- compute_phase_stats(39799 + pe_s, 37799 + ee_s)
-    pe_label <- paste0("P/E ", ifelse(pe_s > 0, "+", ""), pe_s)
-    ee_label <- paste0("E/V ", ifelse(ee_s > 0, "+", ""), ee_s)
-    res$PE_shift <- pe_label
-    res$EE_shift <- ee_label
-    res
-  })
-})
-
-# Build summary by filtering each phase separately
-proto_md <- combined_results %>% filter(Phase == "Proto") %>%
-  dplyr::select(PE_shift, EE_shift, Proto_md = mean_degree)
-early_md <- combined_results %>% filter(Phase == "Early") %>%
-  dplyr::select(PE_shift, EE_shift, Early_md = mean_degree)
-evolved_md <- combined_results %>% filter(Phase == "Evolved") %>%
-  dplyr::select(PE_shift, EE_shift, Evolved_md = mean_degree)
-
-combined_summary <- proto_md %>%
-  left_join(early_md, by = c("PE_shift", "EE_shift")) %>%
-  left_join(evolved_md, by = c("PE_shift", "EE_shift")) %>%
-  mutate(Ordering = case_when(
-    is.na(Proto_md) | is.na(Early_md) | is.na(Evolved_md) ~ "Incomplete",
-    Proto_md > Early_md & Early_md > Evolved_md ~ "Yes",
-    TRUE ~ "No"
-  ))
-
-kable(combined_summary,
-      col.names = c("P/E shift", "E/V shift", "Proto mean°", "Early mean°", "Evolved mean°", "Ordering preserved"),
-      digits = 3)
-```
-
-```{r}
-# S5.5 prose helpers: shift summaries and closest-to-boundary objects
-s55_ind_wide <- independent_all %>%
+# S5.5 prose helpers
+s55_order_ok <- boundary_shifts_all %>%
   filter(Shift != "Baseline") %>%
-  pivot_wider(names_from = Phase, values_from = mean_degree)
-s55_ind_ok <- sum(s55_ind_wide$Proto > s55_ind_wide$Early &
-                    s55_ind_wide$Early > s55_ind_wide$Evolved, na.rm = TRUE)
-s55_comb_ok <- sum(combined_summary$Ordering == "Yes", na.rm = TRUE)
-
-for (p in c("Proto", "Early", "Evolved")) {
-  assign(paste0("s55_", tolower(p), "_md_ind"),
-         independent_all$mean_degree[independent_all$Phase == p & independent_all$Shift != "Baseline"])
-}
-s55_proto_mod_ind  <- independent_all$modularity[independent_all$Phase == "Proto"   & independent_all$Shift != "Baseline"]
-s55_evolved_mod_ind <- independent_all$modularity[independent_all$Phase == "Evolved" & independent_all$Shift != "Baseline"]
-s55_early_sites <- combined_results$n_sites[combined_results$Phase == "Early"]
-s55_early_md    <- combined_results$mean_degree[combined_results$Phase == "Early"]
-s55_yes_rows    <- combined_summary %>% filter(Ordering == "Yes")
+  dplyr::select(Shift, Phase, mean_degree) %>%
+  pivot_wider(names_from = Phase, values_from = mean_degree) %>%
+  summarise(n_ok = sum(`Aur-P1` > `Aur-P2`, na.rm = TRUE)) %>%
+  pull(n_ok)
+s55_p1_md   <- boundary_shifts_all$mean_degree[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
+s55_p2_md   <- boundary_shifts_all$mean_degree[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
+s55_p1_mod  <- boundary_shifts_all$modularity[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
+s55_p2_mod  <- boundary_shifts_all$modularity[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
+s55_p1_sites <- boundary_shifts_all$n_sites[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
+s55_p2_sites <- boundary_shifts_all$n_sites[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
 
 n0 <- function(x) formatC(as.numeric(x), digits = 0, format = "f")
 s55_closest <- function(boundary, sites) {
@@ -1107,29 +1033,22 @@ s55_closest <- function(boundary, sites) {
     ungroup() %>%
     dplyr::select(site_name, MedianBP, dist)
 }
-s55_pe_near <- s55_closest(39799, c("Hohle Fels", "Les Cottés"))
-s55_ee_near <- s55_closest(37799, c("Vindija Cave", "Hohle Fels"))
+s55_vindija  <- s55_closest(37799, "Vindija Cave")
+s55_blanchard <- s55_closest(37799, "Blanchard")
+s55_hohle    <- s55_closest(37799, "Hohle Fels")
 ```
 
 ### Diagnostic interpretation
 
-The Proto/Early boundary at 39799 BP is the more sensitive of the two: `r boundary_proximity$Objects[boundary_proximity$Boundary == "Proto/Early (39799 BP)" & boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Boundary == "Proto/Early (39799 BP)" & boundary_proximity$Window == "±1000 years"]` sites fall within ±1000 calibrated years, compared with `r boundary_proximity$Objects[boundary_proximity$Boundary == "Early/Evolved (37799 BP)" & boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Boundary == "Early/Evolved (37799 BP)" & boundary_proximity$Window == "±1000 years"]` sites near the Early/Evolved boundary at 37799 BP. The sites closest to the Proto/Early boundary are Hohle Fels (MedianBP `r n0(s55_pe_near$MedianBP[s55_pe_near$site_name == "Hohle Fels"])`, just `r n0(s55_pe_near$dist[s55_pe_near$site_name == "Hohle Fels"])` years below the threshold) and Les Cottés (`r n0(s55_pe_near$MedianBP[s55_pe_near$site_name == "Les Cottés"])`, `r n0(s55_pe_near$dist[s55_pe_near$site_name == "Les Cottés"])` years above). A downward shift of the Proto/Early boundary by as little as 500 years would reassign Hohle Fels from the Early to the Proto Aurignacian, while an upward shift of 1000 years would move Les Cottés, Mladeč, and Abri Pataud into the Early. The Early/Evolved boundary has fewer near-boundary objects, and the two closest sites (Vindija Cave at `r n0(s55_ee_near$MedianBP[s55_ee_near$site_name == "Vindija Cave"])` and Hohle Fels at `r n0(s55_ee_near$MedianBP[s55_ee_near$site_name == "Hohle Fels"])`) are both below the threshold, meaning they would need an upward shift to be reassigned.
+`r boundary_proximity$Objects[boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±1000 years"]` sites fall within ±1000 calibrated years of the boundary at 37799 BP, and `r boundary_proximity$Objects[boundary_proximity$Window == "±500 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±500 years"]` sites within ±500 years. The sites closest to the boundary are Hohle Fels (MedianBP `r n0(s55_hohle$MedianBP[s55_hohle$site_name == "Hohle Fels"])`, just `r n0(s55_hohle$dist[s55_hohle$site_name == "Hohle Fels"])` years below the threshold) and Vindija Cave (`r n0(s55_vindija$MedianBP[s55_vindija$site_name == "Vindija Cave"])`, `r n0(s55_vindija$dist[s55_vindija$site_name == "Vindija Cave"])` years below), while the closest site above the threshold is Blanchard (`r n0(s55_blanchard$MedianBP[s55_blanchard$site_name == "Blanchard"])`, `r n0(s55_blanchard$dist[s55_blanchard$site_name == "Blanchard"])` years above). Because only an upward shift can transfer sites into Aur-P2, and only a downward shift into Aur-P1, the reassignments are asymmetric: a downward shift of 500 years moves Vindija Cave from Aur-P2 to Aur-P1 (the only Aur-P2 site within reach), while an upward shift of 500 years moves Blanchard into Aur-P2 and an upward shift of 1000 years additionally moves Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt. Hohle Fels lies just below the boundary but is held in Aur-P1 by the technology-based override, so it does not change phase under any shift. The boundary-sensitive sites are therefore few and, apart from Cellier (28 objects) and Blanchard (18 objects), small.
 
 ### Independent-shift interpretation
 
-The independent-shift analysis tests each boundary in isolation while holding the other at its baseline value. Across the eight shifts tested (four per boundary), the Proto-Aurignacian mean degree ranges from `r range_str(s55_proto_md_ind, 2)` across shifts, the Early from `r range_str(s55_early_md_ind, 2)`, and the Evolved from `r range_str(s55_evolved_md_ind, 2)`. Modularity values are more variable: the Proto modularity ranges from `r n3(min(s55_proto_mod_ind))` to `r n3(max(s55_proto_mod_ind))` across shifts (baseline `r n3(independent_all$modularity[independent_all$Shift == "Baseline" & independent_all$Phase == "Proto"])`), reflecting site reassignments across boundaries. The Evolved modularity, by contrast, is stable at `r range_str(s55_evolved_mod_ind, 3)` across all shifts, indicating that the community structure in the later Aurignacian is not sensitive to boundary placement. Only `r s55_ind_ok` of the eight independent shifts preserve the Proto > Early > Evolved connectivity ordering.
-
-### Combined-shift interpretation
-
-The combined-shift analysis tests all 16 permutations of ±500 and ±1000 year shifts applied simultaneously to both boundaries. This is the most demanding test, because shifting the Proto/Early boundary upward (making the Proto phase younger) while shifting the Early/Evolved boundary downward (making the Evolved phase older) compresses the Early Aurignacian into a narrower time window, potentially starving it of objects and sites.
-
-Of the 16 combinations, only `r s55_comb_ok` preserve the Proto > Early > Evolved mean-degree ordering; both involve shifting the Proto/Early boundary downward by 500 years (extending the Proto phase) combined with a downward shift of the Early/Evolved boundary. In these cases the Proto retains high connectivity (`r s55_yes_rows$Proto_md[1]`°), the Early remains intermediate (`r s55_yes_rows$Early_md[1]`°), and the Evolved stays lowest (`r s55_yes_rows$Evolved_md[1]`°). The remaining `r 16 - s55_comb_ok` combinations break the ordering, usually because the Early Aurignacian is compressed to as few as `r min(s55_early_sites, na.rm = TRUE)` sites with mean degree as low as `r n2(min(s55_early_md, na.rm = TRUE))` — too sparse to sustain the gradient.
-
-The key diagnostic is that the Proto mean degree is highly sensitive to the Proto/Early boundary position (ranging from `r range_str(combined_results$mean_degree[combined_results$Phase == "Proto"], 2)` across combined shifts), while the Evolved mean degree is stable (always `r range_str(combined_results$mean_degree[combined_results$Phase == "Evolved"], 2)`°). This asymmetry confirms that the Early Aurignacian occupies a structurally intermediate position: it gains connectivity when Proto objects are reassigned downward and loses connectivity when its own objects are reassigned to the Evolved phase. The combined-shift results set a clear interpretive boundary: the three-phase gradient holds when each phase retains enough sites to remain structurally informative, but collapses precisely in the combinations that compress the Early Aurignacian to its fewest sites (`r min(s55_early_sites, na.rm = TRUE)` sites, versus up to `r max(s55_early_sites, na.rm = TRUE)` in the intact periodisation). No published periodisation proposes a window this narrow.
+The independent-shift analysis shifts the single P1/P2 boundary while holding the technology-based overrides fixed. Across the four shifts tested, the Aur-P1 mean degree ranges from `r range_str(s55_p1_md, 2)` and Aur-P2 from `r range_str(s55_p2_md, 2)`. The Aur-P1 > Aur-P2 connectivity ordering is preserved in all `r s55_order_ok` shifts: a downward shift adds Vindija Cave to Aur-P1, raising its mean degree to `r n2(max(s55_p1_md))` (82 edges) while shrinking Aur-P2 to `r min(s55_p2_sites)` sites (mean degree `r n2(min(s55_p2_md))`); an upward shift transfers sites the other way, with Aur-P1 at `r min(s55_p1_sites)` sites after the ±1000 year shift yet still averaging `r n2(min(s55_p1_md))`, above Aur-P2's `r n2(max(s55_p2_md))`. Modularity is stable: Aur-P1 ranges from `r n3(min(s55_p1_mod))` to `r n3(max(s55_p1_mod))` across shifts (baseline `r n3(boundary_shifts_all$modularity[boundary_shifts_all$Shift == "Baseline" & boundary_shifts_all$Phase == "Aur-P1"])`) and Aur-P2 from `r n3(min(s55_p2_mod))` to `r n3(max(s55_p2_mod))` (baseline `r n3(boundary_shifts_all$modularity[boundary_shifts_all$Shift == "Baseline" & boundary_shifts_all$Phase == "Aur-P2"])`), indicating that the community structure in both phases is not sensitive to boundary placement.
 
 ### Conclusion
 
-The three-phase periodisation is robust to single-boundary perturbation but fragile under simultaneous shifts of both boundaries. The Proto > Early > Evolved connectivity gradient holds under some independent shifts of either boundary, but only `r s55_comb_ok` of 16 combined shifts preserve it — those that extend the Proto phase while also compressing the Evolved phase. The critical vulnerability is the Early Aurignacian's small size: in the intact periodisation it retains up to `r max(s55_early_sites, na.rm = TRUE)` sites, but when both boundaries shift to compress it toward its minimum extent (`r min(s55_early_sites, na.rm = TRUE)` sites) the intermediate connectivity signal vanishes. However, no published periodisation proposes an Early Aurignacian window narrow enough to trigger this collapse. The main-text conclusions about declining social network density through the Aurignacian are therefore defensible under all single-boundary perturbations, and under combined shifts that maintain the Early phase at realistic durations.
+The two-phase results are robust to the placement of the single periodisation boundary. Shifting it by ±1000 calibrated years moves at most five sites between phases (Vindija Cave into Aur-P1; Blanchard, Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt into Aur-P2), and in every scenario Aur-P1 retains both more sites and a higher mean degree than Aur-P2. The main-text conclusion that Aur-P1 forms a more densely connected network than Aur-P2 is therefore not an artefact of the exact boundary value; the strength of the contrast shifts with the boundary, but its direction does not.
 
 ## S5.6 Continuous Threshold Sweep {#sec-s5-6}
 
@@ -1144,9 +1063,8 @@ The main text reports statistics at three discrete thresholds (0.1, 0.2, 0.3). T
 thresholds <- seq(0.05, 0.50, by = 0.05)
 
 phase_list <- list(
-  `Proto-Aurignacian` = proto_artifact_data,
-  `Early Aurignacian` = early_artifact_data,
-  `Evolved Aurignacian` = evolved_artifact_data
+  `Aur-P1` = aurp1_artifact_data,
+  `Aur-P2` = aurp2_artifact_data
 )
 
 sweep_results <- map_dfr(thresholds, function(th) {
@@ -1185,21 +1103,21 @@ cowplot::plot_grid(p1, p2, ncol = 2, labels = c("a", "b"))
 ```
 
 ```{r}
-# S5.6 prose helpers: ordering-preservation range and min-degree crossing
+# S5.6 prose helpers: ordering-preservation range and mean-degree ranges
 sweep_wide <- sweep_results %>%
   dplyr::select(Phase, Threshold, Mean_degree) %>%
   pivot_wider(names_from = Phase, values_from = Mean_degree)
-s56_ok_ths <- sweep_wide$Threshold[
-  sweep_wide$`Proto-Aurignacian` > sweep_wide$`Early Aurignacian` &
-    sweep_wide$`Early Aurignacian` > sweep_wide$`Evolved Aurignacian`]
+s56_ok_ths <- sweep_wide$Threshold[sweep_wide$`Aur-P1` > sweep_wide$`Aur-P2`]
 s56_ok_range <- range(s56_ok_ths)
-s56_md2_cross <- min(sweep_results$Threshold[
-  sweep_results$Phase != "Proto-Aurignacian" & sweep_results$Mean_degree < 2], na.rm = TRUE)
+s56_p1_md_range <- range(sweep_results$Mean_degree[sweep_results$Phase == "Aur-P1"])
+s56_p2_md_range <- range(sweep_results$Mean_degree[sweep_results$Phase == "Aur-P2"])
+s56_p1_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P1"], na.rm = TRUE)
+s56_p2_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P2"], na.rm = TRUE)
 ```
 
-The sweep reveals the threshold range over which the Proto > Early > Evolved mean-degree ordering holds. At very low thresholds (below `r n2(s56_ok_range[1])`), all phases become densely connected and the contrast diminishes. At high thresholds (above `r n2(s56_ok_range[2])`), the Early and Evolved Aurignacian networks fragment into isolated edges, making modularity unreliable. The baseline threshold of 0.2 sits in the middle of the stable region where all three phases have sufficient edges for meaningful comparison.
+The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree ordering holds. The two-phase contrast is monotonic and holds at every threshold in the swept range: Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across thresholds of 0.05–0.50, and the ordering is preserved throughout. At very low thresholds both networks are densely connected and the relative contrast compresses; at high thresholds both fragment as edges drop out, but Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses.
 
-**Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Proto > Early > Evolved mean-degree ordering is preserved across the range `r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])` — a span covering the majority of the informative threshold space. Below `r n2(s56_ok_range[1])`, all phases converge toward full connectivity (mean degree approaching n-1) and the ordering collapses. Above `r n2(s56_ok_range[2])`, the Early and Evolved Aurignacian networks lose so many edges that their statistics become unreliable (modularity swings wildly, mean degree drops below 2 at threshold `r n2(s56_md2_cross)`). The 0.2 threshold sits squarely in the stable plateau where the three-phase connectivity gradient is visible and the statistics are well-behaved. The modularity sweep shows a different pattern: modularity increases monotonically with threshold in all phases (as expected, since sparser networks concentrate edges within communities), but the relative ordering of phases by modularity is less stable than the mean-degree ordering. This reinforces the main-text emphasis on mean degree and edge density as the primary evidence for the connectivity gradient, with modularity treated as a secondary, supportive indicator.
+**Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Aur-P1 > Aur-P2 mean-degree ordering is preserved across the entire informative threshold range (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`). In contrast to a three-phase periodisation, in which the intermediate phase could be compressed into statistical collapse at high thresholds, the two-phase comparison is stable: Aur-P2, though small, never fragments below a mean degree of `r n2(min(s56_p2_md_range))`. The modularity sweep shows a parallel pattern: Aur-P1's modularity ranges from `r range_str(s56_p1_mod_range, 3)` across thresholds and consistently exceeds Aur-P2's (`r range_str(s56_p2_mod_range, 3)`) at every threshold, reinforcing the conclusion that the larger, earlier phase has a stronger community structure. The baseline threshold of 0.2 sits in the middle of this stable plateau, where both phases retain sufficient edges for meaningful comparison.
 
 ## S5.7 Bootstrap Confidence Intervals {#sec-s5-7}
 
@@ -1245,9 +1163,8 @@ run_bootstrap <- function(art_data, n_boot = 999) {
 }
 
 boot_results <- bind_rows(
-  run_bootstrap(proto_artifact_data) %>% mutate(Phase = "Proto-Aurignacian"),
-  run_bootstrap(early_artifact_data) %>% mutate(Phase = "Early Aurignacian"),
-  run_bootstrap(evolved_artifact_data) %>% mutate(Phase = "Evolved Aurignacian")
+  run_bootstrap(aurp1_artifact_data) %>% mutate(Phase = "Aur-P1"),
+  run_bootstrap(aurp2_artifact_data) %>% mutate(Phase = "Aur-P2")
 ) %>% dplyr::select(Phase, everything())
 
 kable(boot_results,
@@ -1265,42 +1182,40 @@ s57_phase <- function(ph) list(
   mod_low  = val(boot_results, "mod_lower", ph),
   mod_hi   = val(boot_results, "mod_upper", ph)
 )
-s57_p <- s57_phase("Proto-Aurignacian")
-s57_e <- s57_phase("Early Aurignacian")
-s57_v <- s57_phase("Evolved Aurignacian")
+s57_p <- s57_phase("Aur-P1")
+s57_v <- s57_phase("Aur-P2")
 s57_md_overlap <- !(s57_p$md_low > s57_v$md_hi || s57_v$md_low > s57_p$md_hi)
 s57_md_sentence <- if (s57_md_overlap) {
   paste0("Because the intervals overlap, the bootstrap does not formally separate the two phases ",
-         "by the strict non-overlap criterion; the Proto–Evolved contrast is supported at the ",
-         "point-estimate level (Proto ", n2(s57_p$md_pt), " vs Evolved ", n2(s57_v$md_pt),
+         "by the strict non-overlap criterion; the Aur-P1–Aur-P2 contrast is supported at the ",
+         "point-estimate level (Aur-P1 ", n2(s57_p$md_pt), " vs Aur-P2 ", n2(s57_v$md_pt),
          ") but is not statistically decisive.")
 } else {
-  paste0("Because the intervals do not overlap, the bootstrap confirms that the Proto–Evolved ",
+  paste0("Because the intervals do not overlap, the bootstrap confirms that the Aur-P1–Aur-P2 ",
          "connectivity contrast is not driven by a handful of influential sites.")
 }
 ```
 
 The confidence intervals quantify sampling uncertainty: narrow intervals indicate that the point estimate is stable across resamples, while wide intervals signal that individual sites exert disproportionate influence on the statistic. Non-overlapping intervals between phases indicate that the observed differences are unlikely to be artefacts of site sampling.
 
-**Implications for the main text.** The bootstrap CIs reveal which main-text comparisons are robust and which are uncertain. For mean degree, the Proto Aurignacian CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and the Evolved Aurignacian CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` The Early Aurignacian CI [`r n2(s57_e$md_low)`, `r n2(s57_e$md_hi)`] overlaps with both, which is expected given its intermediate position and smaller sample size (`r nrow(early_artifact_data)` sites). For modularity, all three CIs overlap substantially (Proto [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`], Early [`r n3(s57_e$mod_low)`, `r n3(s57_e$mod_hi)`], Evolved [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]), meaning the phase-by-phase differences in modularity are not statistically distinguishable given the current sample sizes. This reinforces the S5.3 finding that modularity should be treated cautiously: the main-text claim of "declining community structure" is supported by the point estimates but would not survive a formal test of modularity differences across phases. The mean degree contrast, by contrast, is robust in direction but not in statistical strength: the point estimates are clearly separated, yet the sampling uncertainty reflected in the bootstrap intervals is substantial.
+**Implications for the main text.** The bootstrap CIs reveal which main-text comparisons are robust and which are uncertain. For mean degree, the Aur-P1 CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and the Aur-P2 CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` For modularity, the two CIs overlap substantially (Aur-P1 [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`], Aur-P2 [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]), meaning the phase-by-phase difference in modularity is not statistically distinguishable given the current sample sizes. This reinforces the S5.3 finding that modularity should be treated cautiously: the point estimate is higher for Aur-P1 (0.363 vs 0.192), but the wide intervals — driven by Aur-P2's small sample (`r nrow(aurp2_artifact_data)` sites) — overlap. The mean-degree contrast, by contrast, is robust in direction: the point estimates are clearly separated (8.1 vs 4.6), yet the sampling uncertainty reflected in the bootstrap intervals means the two phases are not formally distinguished by the strict non-overlap criterion.
 
 ## S5.8 Multiple‑Testing Correction for Mantel Results {#sec-s5-8}
 
-The Mantel tests reported in @tbl-geodesic-mantel and the main text evaluate 6 hypotheses (3 phases × 2 distance measures). Without correction, the effective Type I error rate is inflated. Here we apply the Benjamini–Hochberg procedure to control the false discovery rate at α = 0.05.
+The Mantel tests reported in @tbl-geodesic-mantel and the main text evaluate 4 hypotheses (2 phases × 2 distance measures). Without correction, the effective Type I error rate is inflated. Here we apply the Benjamini–Hochberg procedure to control the false discovery rate at α = 0.05.
 
 ```{r}
 #| label: tbl-mantel-bh
-#| tbl-cap: "Mantel test p-values before and after Benjamini–Hochberg correction for multiple testing across 3 phases × 2 distance measures (6 tests total). Results with adjusted p < 0.05 are highlighted."
+#| tbl-cap: "Mantel test p-values before and after Benjamini–Hochberg correction for multiple testing across 2 phases × 2 distance measures (4 tests total). Results with adjusted p < 0.05 are highlighted."
 #| tbl-cap-location: bottom
 
 # Rerun all Mantel tests and collect results
 mantel_all <- bind_rows(
-  data.frame(Phase = "Proto-Aurignacian",   run_mantel_comp(proto_unique_data)),
-  data.frame(Phase = "Early Aurignacian",   run_mantel_comp(early_unique_data)),
-  data.frame(Phase = "Evolved Aurignacian", run_mantel_comp(evolved_unique_data))
+  data.frame(Phase = "Aur-P1", run_mantel_comp(aurp1_unique_data)),
+  data.frame(Phase = "Aur-P2", run_mantel_comp(aurp2_unique_data))
 )
 
-# Build vector of 6 raw p-values: Euclidean x3 then Geodesic x3
+# Build vector of 4 raw p-values: Euclidean x2 then Geodesic x2
 raw_p <- c(mantel_all$Euclidean_p, mantel_all$Geodesic_p)
 test_labels <- c(
   paste0("Euclidean – ", mantel_all$Phase),
@@ -1326,12 +1241,12 @@ kable(mantel_bh,
 ```
 
 ```{r}
-# S5.8 prose helpers: the raw result approaching nominal significance
-s58_sig_raw <- mantel_bh[mantel_bh$`Raw p` < 0.05, , drop = FALSE]
-s58_test  <- s58_sig_raw$Test[1]
-s58_R     <- s58_sig_raw$R[1]
-s58_rawp  <- s58_sig_raw$`Raw p`[1]
-s58_adjp  <- s58_sig_raw$`BH-adjusted p`[1]
+# S5.8 prose helpers: the closest-to-significance result
+s58_best <- mantel_bh %>% arrange(`Raw p`) %>% slice(1)
+s58_test  <- s58_best$Test[1]
+s58_R     <- s58_best$R[1]
+s58_rawp  <- s58_best$`Raw p`[1]
+s58_adjp  <- s58_best$`BH-adjusted p`[1]
 s58_n_sig <- sum(mantel_bh$Significant == "Yes")
 s58_after_text <- if (s58_n_sig == 0) {
   paste0("None of the ", nrow(mantel_bh), " tests reach significance after correction.")
@@ -1340,7 +1255,7 @@ s58_after_text <- if (s58_n_sig == 0) {
 }
 ```
 
-Of the `r nrow(mantel_bh)` tests, the only result to approach nominal significance (raw $p < 0.05$) is `r s58_test` ($R = `r n3(s58_R)`$, raw $p = `r n3(s58_rawp)`$). After Benjamini–Hochberg correction, this adjusts to $p = `r n3(s58_adjp)`$, well above the 0.05 threshold. `r s58_after_text` This qualifies the main-text interpretation: the Early Aurignacian spatial signal is suggestive but should not be cited as a robust finding without acknowledging the multiple-testing burden. The Proto- and Evolved-phase results, which are clearly non-significant both before and after correction, are unaffected.
+Of the `r nrow(mantel_bh)` tests, none approaches nominal significance: the smallest raw $p$-value is `r s58_test` ($R = `r n3(s58_R)`$, raw $p = `r n3(s58_rawp)`$), well above the 0.05 threshold. After Benjamini–Hochberg correction this adjusts to $p = `r n3(s58_adjp)`$. `r s58_after_text` This is consistent with the main-text interpretation: geographic distance does not account for sign distribution in either phase, and the largest correlations are weakly positive for Aur-P1 and weakly negative for Aur-P2. The absence of any spatial signal reinforces the conclusion that the restricted/broad structure within each phase reflects genuine co-occurrence of shared sign types across sites rather than spatial isolation.
 
 ## S5.9 Network-Size Normalised Comparison {#sec-s5-9}
 
@@ -1769,10 +1684,10 @@ figurine_types <- c("figurine zoomorph", "figurine anthropomorph",
 
 figurine_summary <- signbase_full_clean %>%
   filter(object_type %in% figurine_types) %>%
-  count(time_period, site_name, object_type) %>%
+  count(phase2, site_name, object_type) %>%
   pivot_wider(names_from = object_type, values_from = n, values_fill = 0) %>%
   mutate(Total = rowSums(across(where(is.numeric)))) %>%
-  arrange(time_period, desc(Total))
+  arrange(phase2, desc(Total))
 
 kable(figurine_summary,
       col.names = c("Phase", "Site",
@@ -1781,13 +1696,13 @@ kable(figurine_summary,
       digits = 0)
 ```
 
-@tbl-figurine-count shows that figurines are heavily concentrated at Vogelherd (51 objects), with minor representation at Hohle Fels (8), Geissenklösterle (3), Hohlenstein-Stadel (1), and La Ferrassie (1). All figurines fall within the Proto-Aurignacian phase. The analysis therefore tests whether the Proto-Aurignacian network structure — which reports the highest mean degree (4.93°) and hub structure — is driven by these 51 objects at a single site.
+@tbl-figurine-count shows that figurines are heavily concentrated at Vogelherd (50 objects), with minor representation at Hohle Fels (8), Geissenklösterle (3), Hohlenstein-Stadel (1), and La Ferrassie (1). All 63 figurines fall within Aur-P1. The analysis therefore tests whether the Aur-P1 network structure — which reports the higher mean degree (7.50) — is driven by these 50 objects at a single site.
 
 ## S7.3 Analysis 1: Exclude All Figurines
 
 ### Method
 
-We remove all objects where `object_type` contains "figurine" (64 objects total: 25 zoomorph, 10 undetermined, 5 anthropomorph, 24 possible figurine) from the full cleaned dataset, recompute site-level sign matrices by summing remaining objects per site, and rebuild networks at the baseline threshold of 0.2.
+We remove all objects where `object_type` contains "figurine" (63 objects total: 25 zoomorph, 10 undetermined, 5 anthropomorph, 23 possible figurine) from the full cleaned dataset, recompute site-level sign matrices by summing remaining objects per site, and rebuild networks at the baseline threshold of 0.2.
 
 ```{r}
 #| label: tbl-exclude-figurines
@@ -1796,55 +1711,51 @@ We remove all objects where `object_type` contains "figurine" (64 objects total:
 
 # Baseline stats (already computed)
 baseline_stats <- bind_rows(
-  network_stats(proto_artifact_data) %>% mutate(Phase = "Proto-Aurignacian"),
-  network_stats(early_artifact_data) %>% mutate(Phase = "Early Aurignacian"),
-  network_stats(evolved_artifact_data) %>% mutate(Phase = "Evolved Aurignacian")
+  network_stats(aurp1_artifact_data) %>% mutate(Phase = "Aur-P1"),
+  network_stats(aurp2_artifact_data) %>% mutate(Phase = "Aur-P2")
 ) %>%
   dplyr::select(Phase, n_sites, n_edges, density, mean_degree, transitivity, modularity) %>%
   mutate(Condition = "All objects")
+
+# Helper: rebuild phase data and compute network stats for a filtered dataset
+s7_phase_stats <- function(df, condition) {
+  map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
+    ph_df <- df %>% filter(phase2 == ph)
+    if (n_distinct(ph_df$site_name) < 2) return(NULL)
+    lat_long <- df %>% dplyr::select(site_name, longitude, latitude) %>%
+      distinct(site_name, .keep_all = TRUE)
+    ph_obj <- ph_df %>% group_by(site_name) %>% summarise(nobjects = n())
+    ph_unique <- ph_df %>%
+      group_by(site_name) %>%
+      mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
+      summarize(across(where(is.numeric), sum)) %>%
+      left_join(lat_long) %>%
+      left_join(ph_obj) %>%
+      mutate(time_period = ph)
+    ph_art <- extract_artifact(ph_unique)
+    ns <- network_stats(ph_art, threshold = 0.2)
+    data.frame(Phase = ph, n_sites = ns$n_sites, n_edges = ns$n_edges,
+               density = ns$density, mean_degree = ns$mean_degree,
+               transitivity = ns$transitivity, modularity = ns$modularity,
+               Condition = condition, stringsAsFactors = FALSE)
+  })
+}
 
 # Exclude figurines
 signbase_no_fig <- signbase_full_clean %>%
   filter(!object_type %in% figurine_types)
 
-lat_long_nofig <- signbase_no_fig %>%
-  dplyr::select(site_name, longitude, latitude) %>%
-  distinct(site_name, .keep_all = TRUE)
-
-no_fig_stats <- map_dfr(
-  list("Proto-Aurignacian" = "proto_aurignacian",
-       "Early Aurignacian" = "early_aurignacian",
-       "Evolved Aurignacian" = "evolved_aurignacian"),
-  function(ph) {
-    ph_df <- signbase_no_fig %>% filter(time_period == ph)
-    if (n_distinct(ph_df$site_name) < 2) return(NULL)
-    ph_obj <- ph_df %>% group_by(site_name) %>% summarise(nobjects = n())
-    ph_unique <- ph_df %>%
-      group_by(site_name) %>%
-      summarize(across(where(is.numeric), sum)) %>%
-      left_join(lat_long_nofig) %>%
-      left_join(ph_obj)
-    ph_art <- extract_artifact(ph_unique)
-    ns <- network_stats(ph_art, threshold = 0.2)
-    data.frame(Phase = names(which(c("Proto-Aurignacian" = "proto_aurignacian",
-                                     "Early Aurignacian" = "early_aurignacian",
-                                     "Evolved Aurignacian" = "evolved_aurignacian") == ph)),
-               n_sites = ns$n_sites, n_edges = ns$n_edges,
-               density = ns$density, mean_degree = ns$mean_degree,
-               transitivity = ns$transitivity, modularity = ns$modularity,
-               Condition = "Excluding figurines",
-               stringsAsFactors = FALSE)
-  })
+no_fig_stats <- s7_phase_stats(signbase_no_fig, "Excluding figurines")
 
 # Sites lost
-sites_before <- signbase_full_clean %>% count(time_period, site_name) %>%
-  group_by(time_period) %>% summarise(sites = n(), .groups = "drop")
-sites_after <- signbase_no_fig %>% count(time_period, site_name) %>%
-  group_by(time_period) %>% summarise(sites = n(), .groups = "drop")
+sites_before <- signbase_full_clean %>% count(phase2, site_name) %>%
+  group_by(phase2) %>% summarise(sites = n(), .groups = "drop")
+sites_after <- signbase_no_fig %>% count(phase2, site_name) %>%
+  group_by(phase2) %>% summarise(sites = n(), .groups = "drop")
 sites_lost <- sites_before %>%
-  left_join(sites_after, by = "time_period", suffix = c("_before", "_after")) %>%
+  left_join(sites_after, by = "phase2", suffix = c("_before", "_after")) %>%
   mutate(lost = sites_before - sites_after) %>%
-  mutate(Phase = str_to_title(str_replace_all(time_period, "_", " ")))
+  rename(Phase = phase2)
 
 excl_comparison <- bind_rows(baseline_stats, no_fig_stats)
 
@@ -1867,15 +1778,15 @@ kable(sites_lost %>% dplyr::select(Phase, sites_before, sites_after, lost),
 
 ### Interpretation
 
-Excluding all 63 figurines has a modest effect on the Proto-Aurignacian (mean degree drops from 4.93 to 4.80, a decrease of 2.7%; 37 edges become 36) and no effect on site membership (all 15 sites retained). The Evolved Aurignacian shows a comparable mean degree increase from 3.33 to 3.56 (+6.9%), while the Early Aurignacian gains an edge and increases from 3.56 to 3.78 (+6.2%). Modularity decreases across all phases (Proto: 0.387 → 0.359; Early: 0.227 → 0.200; Evolved: 0.343 → 0.307), indicating that figurines contribute to community cohesion but do not create the communities themselves.
+Excluding all 63 figurines has no effect on the Aur-P1 network: mean degree is unchanged (7.50 → 7.50), all 75 edges are retained, and no sites are lost (all 20 sites retained). Aur-P2, which contains no figurines, is unchanged by construction (mean degree 4.25, 17 edges, 8 sites). The only detectable effects are small declines in Aur-P1's transitivity (0.711 → 0.699) and modularity (0.332 → 0.324), indicating that figurines contribute modestly to community cohesion but do not create the communities themselves.
 
-Critically, the Proto-Aurignacian retains the highest mean degree (4.80) under figurine exclusion, preserving the main-text ordering Proto > Evolved > Early (4.80 > 3.56 > 3.78 is equivalent to Proto > Early > Evolved in the original, since the Early and Evolved values swap but both remain below Proto). The Proto network remains the densest and most connected regardless of figurine inclusion, confirming that the hub structure at La Ferrassie, Hohlenstein-Stadel, and Geissenklösterle is driven by non-figurine sign assemblages.
+Critically, Aur-P1 retains the higher mean degree (7.50) under figurine exclusion, preserving the main-text ordering Aur-P1 > Aur-P2 (7.50 > 4.25). The Aur-P1 network remains the more connected regardless of figurine inclusion, confirming that its structure is not contingent on figurine-bearing sign assemblages at Vogelherd.
 
 ## S7.4 Analysis 2: Exclude Vogelherd Figurines Only
 
 ### Method
 
-Rather than removing all figurines globally, this analysis removes only the 50 figurines from Vogelherd — the site where figurines are most concentrated — while retaining figurines at other sites. This tests whether the Proto-Aurignacian network structure is driven by a single outlier assemblage.
+Rather than removing all figurines globally, this analysis removes only the 50 figurines from Vogelherd — the site where figurines are most concentrated — while retaining figurines at other sites. This tests whether the Aur-P1 network structure is driven by a single outlier assemblage.
 
 ```{r}
 #| label: tbl-vogelherd-exclude
@@ -1885,46 +1796,19 @@ Rather than removing all figurines globally, this analysis removes only the 50 f
 signbase_no_vog <- signbase_full_clean %>%
   filter(!(site_name == "Vogelherd" & object_type %in% figurine_types))
 
-lat_long_no_vog <- signbase_no_vog %>%
-  dplyr::select(site_name, longitude, latitude) %>%
-  distinct(site_name, .keep_all = TRUE)
-
-no_vog_stats <- map_dfr(
-  list("Proto-Aurignacian" = "proto_aurignacian",
-       "Early Aurignacian" = "early_aurignacian",
-       "Evolved Aurignacian" = "evolved_aurignacian"),
-  function(ph) {
-    ph_df <- signbase_no_vog %>% filter(time_period == ph)
-    if (n_distinct(ph_df$site_name) < 2) return(NULL)
-    ph_obj <- ph_df %>% group_by(site_name) %>% summarise(nobjects = n())
-    ph_unique <- ph_df %>%
-      group_by(site_name) %>%
-      summarize(across(where(is.numeric), sum)) %>%
-      left_join(lat_long_no_vog) %>%
-      left_join(ph_obj)
-    ph_art <- extract_artifact(ph_unique)
-    ns <- network_stats(ph_art, threshold = 0.2)
-    data.frame(Phase = names(which(c("Proto-Aurignacian" = "proto_aurignacian",
-                                     "Early Aurignacian" = "early_aurignacian",
-                                     "Evolved Aurignacian" = "evolved_aurignacian") == ph)),
-               n_sites = ns$n_sites, n_edges = ns$n_edges,
-               density = ns$density, mean_degree = ns$mean_degree,
-               transitivity = ns$transitivity, modularity = ns$modularity,
-               Condition = "Excl. Vogelherd figurines",
-               stringsAsFactors = FALSE)
-  })
+no_vog_stats <- s7_phase_stats(signbase_no_vog, "Excl. Vogelherd figurines")
 
 # Vogelherd object counts
 vog_before <- signbase_full_clean %>%
   filter(site_name == "Vogelherd") %>%
-  count(time_period, name = "objects_before")
+  count(phase2, name = "objects_before")
 vog_after <- signbase_no_vog %>%
   filter(site_name == "Vogelherd") %>%
-  count(time_period, name = "objects_after")
+  count(phase2, name = "objects_after")
 vog_summary <- vog_before %>%
-  left_join(vog_after, by = "time_period") %>%
-  mutate(removed = objects_before - objects_after,
-         Phase = str_to_title(str_replace_all(time_period, "_", " ")))
+  left_join(vog_after, by = "phase2") %>%
+  mutate(removed = objects_before - objects_after) %>%
+  rename(Phase = phase2)
 
 vog_comparison <- bind_rows(baseline_stats, no_vog_stats)
 
@@ -1947,9 +1831,9 @@ kable(vog_summary %>% dplyr::select(Phase, objects_before, objects_after, remove
 
 ### Interpretation
 
-Removing only Vogelherd's figurines (50 objects: 160 → 114 in the Proto-Aurignacian; 13 → 9 in the Evolved) has a negligible effect on the Proto-Aurignacian: mean degree drops from 4.93 to 4.80 (−2.6%), one edge is lost (37 → 36), and modularity decreases from 0.387 to 0.378. The Early and Evolved Aurignacian show no change whatsoever (Early: 3.56 → 3.56, modularity 0.227 → 0.227; Evolved: 3.33 → 3.56, modularity 0.343 → 0.307), confirming that Vogelherd figurines do not contribute to network structure in these phases.
+Removing only Vogelherd's figurines (50 objects: 173 → 123 in Aur-P1) has a negligible effect on Aur-P1: mean degree drops from 7.50 to 7.40 (−1.3%), one edge is lost (75 → 74), and modularity decreases from 0.332 to 0.328. Aur-P2 shows no change whatsoever (mean degree 4.25 → 4.25, modularity 0.125 → 0.125), confirming that Vogelherd figurines do not contribute to network structure in the later phase.
 
-The effect of removing Vogelherd figurines alone (−2.6% in Proto) is nearly identical to removing all 63 figurines globally (−2.7%), indicating that the figurine effect is concentrated at Vogelherd and does not scale with the number of figurines removed. This rules out a category-wide effect: figurines at Hohle Fels (8), Geissenklösterle (3), Hohlenstein-Stadel (1), and La Ferrassie (1) do not alter the network structure. The broader-range group's connectivity is not contingent on Vogelherd's figurines.
+The effect of removing Vogelherd figurines alone (−1.3% in Aur-P1) is comparable to removing all 63 figurines globally (0%), and in both cases the network is essentially unchanged. The figurine effect therefore does not scale with the number of figurines removed; figurines at Hohle Fels (8), Geissenklösterle (3), Hohlenstein-Stadel (1), and La Ferrassie (1) do not alter the network structure, and Vogelherd's connectivity within Aur-P1 is carried by its 123 non-figurine objects.
 
 ## S7.5 Joint Comparison
 
@@ -1985,17 +1869,16 @@ The joint comparison in @tbl-objtype-joint shows that figurine exclusion has a m
 
 | Phase | Baseline mean° | No figurines | Δ | Vogelherd only | Δ |
 |-------|---------------|-------------|---|----------------|---|
-| Proto | 4.93 | 4.80 | −2.7% | 4.80 | −2.6% |
-| Early | 3.56 | 3.78 | +6.2% | 3.56 | 0% |
-| Evolved | 3.33 | 3.56 | +6.9% | 3.56 | +6.9% |
+| Aur-P1 | 7.50 | 7.50 | 0% | 7.40 | −1.3% |
+| Aur-P2 | 4.25 | 4.25 | 0% | 4.25 | 0% |
 
-**Outcome observed: Partial effect, no qualitative change.** The results correspond to a modified version of Outcome 1 (negligible effect) combined with elements of Outcome 3 (category-wide effect on modularity). Mean degree changes are below 7% across all phases and conditions. Modularity decreases by 7–12% when figurines are excluded (Proto: 0.387 → 0.359; Early: 0.227 → 0.200; Evolved: 0.343 → 0.307), indicating that figurines contribute to within-group cohesion but do not create the community structure.
+**Outcome observed: Negligible effect, no qualitative change.** Mean degree changes are at most −1.3% across both phases and all conditions, and excluding all figurines leaves Aur-P1's edge set completely unchanged (75 edges, mean degree 7.50). Modularity decreases slightly for Aur-P1 when figurines are excluded (0.332 → 0.324 excluding all; 0.332 → 0.328 excluding Vogelherd only) while Aur-P2 is unchanged (0.125), indicating that figurines contribute marginally to within-group cohesion but do not create the community structure.
 
-**Phase ordering is preserved.** The main-text connectivity gradient Proto > Early > Evolved (4.93 > 3.56 > 3.33) shifts to Proto > Early > Evolved (4.80 > 3.78 > 3.56) when all figurines are excluded — the Proto remains dominant, and the Early and Evolved swap order but both remain well below the Proto. Under Vogelherd-only exclusion, the ordering is Proto > Early = Evolved (4.80 > 3.56 = 3.56), which preserves the key finding that the Proto-Aurignacian was the most connected phase.
+**Phase ordering is preserved.** The main-text connectivity contrast Aur-P1 > Aur-P2 (7.50 > 4.25) is unchanged under both exclusion scenarios (7.50 > 4.25 excluding all figurines; 7.40 > 4.25 excluding Vogelherd figurines only), preserving the key finding that the early phase is the more connected.
 
-**The figurine effect is Vogelherd-specific, not category-wide.** Removing Vogelherd figurines alone (−2.6%) produces nearly the same effect as removing all 63 figurines globally (−2.7%). Figurines at Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, and La Ferrassie do not alter network structure. This indicates that Vogelherd's figurine assemblage is unusually rich — 50 of 63 figurines — and contributes disproportionately to sign-type counts, but its 114 remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
+**The figurine effect is small and Vogelherd-specific.** Removing Vogelherd figurines alone (−1.3%) produces a similar, if slightly larger, effect than removing all 63 figurines globally (0%). Figurines at Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, and La Ferrassie do not alter network structure. This indicates that although Vogelherd's figurine assemblage is unusually rich — 50 of 63 figurines — and contributes disproportionately to sign-type counts, its 123 remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
 
-**Conclusion.** The main-text findings are robust to figurine exclusion. The Proto-Aurignacian hub structure, the phase-ordering gradient (Proto > Early > Evolved), and the two-group community structure are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Proto: 0.387 → 0.359), suggesting that figurines contribute to community cohesion — consistent with Bentz and Dutkiewicz's (2026) argument that figurines carry high-information sign sequences — but the communities themselves are defined by shared sign types across all object types.
+**Conclusion.** The main-text findings are robust to figurine exclusion. The Aur-P1 > Aur-P2 connectivity contrast, the two-group community structure, and the site membership of both phases are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity within Aur-P1 is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Aur-P1: 0.332 → 0.324), suggesting that figurines contribute modestly to community cohesion — consistent with Bentz and Dutkiewicz's (2026) argument that figurines carry high-information sign sequences — but the communities themselves are defined by shared sign types across all object types.
 
 # S8. Site Reclassification Sensitivity Analysis {#sec-s8}
 
