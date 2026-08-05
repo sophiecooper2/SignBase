@@ -1,0 +1,334 @@
+---
+title: "Supplementary Material: Site Phase Assignments"
+subtitle: "Geometric signs as proxies for cultural connectivity during the Western Eurasian Aurignacian"
+author:
+  - Sophie Cooper:
+      institute: uw
+      orcid: xxx
+  - Aleah Rosner:
+      institute: uw
+      orcid: xxx
+  - Eva Oryn:
+      institute: uw
+      orcid: xxx
+  - Kenneth B. Vernon:
+      orcid: 0000-0003-0098-5092
+      institute:
+        - uu
+  - Ben Marwick:
+      correspondence: "yes"
+      email: bmarwick@uw.edu
+      orcid: 0000-0001-7879-4531
+      institute:
+        - uw
+institute:
+  - uw: Department of Anthropology, University of Washington, Seattle, USA
+  - uu: Scientific Computing and Computing Institute, University of Utah, Salt Lake City, USA
+title-block-published: "Last updated"
+date: now
+date-format: long
+format:
+  docx:
+    reference-doc: "../templates/template.docx"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Overview
+
+This supplement documents the rationale and procedure for assigning archaeological sites to Aurignacian phases. Phase assignments in the main analysis are based on specialist technological attributions from the published literature, not solely on radiocarbon dates. This supplement summarises the evidence for each reclassification and provides the complete site-level status table.
+
+## Data pipeline
+
+The following code loads the raw SignBase dataset, parses radiocarbon dates, calibrates them, and assigns objects to phases. Sites excluded from the main analysis are filtered out, and sites reassigned based on technological attribution are overrides in the `case_when()`.
+
+```{r}
+#| label: load-data
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(rcarbon)
+library(here)
+
+signbase_full <- read.csv(here("data/signBase_Version1.0.csv"), header = TRUE)
+
+signbase_full_clean <- signbase_full %>%
+  filter(site_name != "Willendorf",
+         site_name != "Riparo di Fontana Nuova",
+         site_name != "Muralovka",
+         site_name != "Shanidar Cave",
+         site_name != "Hayonim Cave",
+         site_name != "El Salitre",
+         site_name != "Grotte De La Princesse Pauline",
+         site_name != "Šandalja II") %>%
+  dplyr::select(-other, -rectangle) %>%
+  mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>%
+  mutate(latitude = ifelse(site_name == "Riparo Bombrini", 43.77083, latitude))
+```
+
+```{r}
+#| label: parse-dates
+signbase_years <- signbase_full_clean %>%
+  drop_na(date_bp_max_min) %>%
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>%
+  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>%
+  separate(date_bp_max_min,
+           sep = " - ",
+           c("date_bp_max", "date_bp_min"),
+           remove = FALSE) %>%
+  mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"),
+                              str_extract(date_bp_max, ".*?(?=\\/)"),
+                              date_bp_max)) %>%
+  mutate(date_bp_min = ifelse(str_detect(date_bp_min, "\\/"),
+                              str_extract(date_bp_min, ".*?(?=\\/)"),
+                              date_bp_min)) %>%
+  separate(date_bp_max,
+           sep = "±",
+           c("date_bp_max_age",
+             "date_bp_max_error")) %>%
+  separate(date_bp_min,
+           sep = "±",
+           c("date_bp_min_age",
+             "date_bp_min_error")) %>%
+  drop_na(date_bp_max_age,
+          date_bp_max_error) %>%
+  mutate(date_bp_max_age = parse_number(date_bp_max_age),
+         date_bp_max_error = parse_number(date_bp_max_error))
+
+signbase_years_cal <-
+  rcarbon::calibrate(signbase_years$date_bp_max_age,
+                     signbase_years$date_bp_max_error,
+                     verbose = FALSE) %>%
+  summary() %>%
+  tibble()
+
+signbase_years$MedianBP <- signbase_years_cal$MedianBP
+
+signbase_full_clean <- signbase_full_clean %>%
+  inner_join(signbase_years %>%
+              dplyr::select(object_id, MedianBP))
+```
+
+```{r}
+#| label: assign-phases
+# Date-based phase thresholds (conventional round numbers)
+# Proto-Aurignacian:  > 39,799 BP
+# Early Aurignacian:  37,799–39,799 BP
+# Evolved Aurignacian: 31,999–37,799 BP
+
+signbase_full_clean <- signbase_full_clean %>%
+  mutate(time_period = case_when(
+    # --- Exclusions (mixed assemblages) ---
+    site_name == "Spy"         ~ NA_character_,
+    site_name == "El Castillo" ~ NA_character_,
+    # --- Reclassifications based on technological attribution ---
+    site_name == "Hohle Fels"        ~ "early_aurignacian",
+    site_name == "Geissenklösterle"  ~ "early_aurignacian",
+    site_name == "Vogelherd"         ~ "early_aurignacian",
+    site_name == "La Ferrassie"      ~ "early_aurignacian",
+    site_name == "Abri Pataud"       ~ "early_aurignacian",
+    site_name == "Mladeč"            ~ "evolved_aurignacian",
+    # --- Override: Gatzarria Cjn2 is Proto-Aurignacian ---
+    site_name == "Gatzarria"         ~ "proto_aurignacian",
+    # --- Default: date-based assignment ---
+    MedianBP > 39799 ~ "proto_aurignacian",
+    MedianBP > 37799 ~ "early_aurignacian",
+    MedianBP > 31999 ~ "evolved_aurignacian"
+  )) %>%
+  filter(!is.na(time_period)) %>%
+  mutate(sign_total = rowSums(.[, 25:53])) %>%
+  filter(sign_total > 0)
+```
+
+```{r}
+#| label: summary-counts
+site_summary <- signbase_full_clean %>%
+  group_by(time_period) %>%
+  summarise(
+    sites = n_distinct(site_name),
+    objects = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(objects))
+
+site_summary
+```
+
+## Key literature findings
+
+### Hohle Fels → Early Aurignacian
+
+- Bataille & Conard 2018 (PLoS ONE): AH IV is a "techno-functional facies of the Swabian Aurignacian" with burin-core bladelet production; shares features with Early Aurignacian; challenges application of Western European typo-chronological system to Central Europe.
+- Bataille & Conard 2019 (Quartär): AH IIIa and IV share similar tool/core assemblages typical of Swabian Aurignacian.
+- Dinnis et al. 2019 (PPS): Hohle Fels IV shows "important similarities with the Western European Late Aurignacian"; radiocarbon dates of 33–30 ka uncal BP are not older than Western European Late Aurignacian.
+
+### Vogelherd → Early Aurignacian
+
+- Schürch & Conard 2026 (JPA): Reassesses cultural stratigraphy; AH IV–V are Aurignacian but with severe mixing (38 refit connections between layers); 15 radiocarbon dates span 42–34.5 ka cal BP; Gravettian also present.
+- Schürch et al. 2025 (PLoS ONE): Blade/bladelet production analysis; mixing documented but majority of artifacts are Aurignacian.
+- Conard & Bolus 2003, 2008: Original dating of Vogelherd Aurignacian to 41–35 ka cal BP.
+
+### Fumane → Protoaurignacian
+
+- Falcucci et al. 2017 (PLoS ONE): Protoaurignacian techno-typology persists throughout sequence at Fumane (A2-A1 through D3).
+- Falcucci et al. 2020 (JASS): "Features of the Protoaurignacian techno-typology are present throughout the stratigraphic sequence."
+- Falcucci 2018 (MGFu): "Protoaurignacian clearly persists throughout the stratigraphic sequence."
+
+### La Ferrassie → Early Aurignacian
+
+- Talamo et al. 2020: Technological attribution places La Ferrassie in the Early Aurignacian.
+
+### Abri Pataud → Early Aurignacian
+
+- Chiotti 2005: Technological analysis assigns Abri Pataud to the Early Aurignacian.
+- Higham et al. 2011: Radiocarbon dating supports Early Aurignacian placement.
+
+### Mladeč → Evolved Aurignacian
+
+- Oliva 2006: Technological and typological analysis assigns Mladeč to the Evolved Aurignacian.
+
+### Spy → Excluded
+
+- Flas et al. 2013: The Spy Aurignacian assemblage exhibits features of both Early and Late Aurignacian phases. Split-based osseous points suggest Early Aurignacian; small curved bladelets from nosed endscrapers, burins busqués, and Vachons burins suggest Late Aurignacian.
+- Flas 2015: The Aurignacian at Spy is a mixed assemblage containing a small Early Aurignacian component and several Late Aurignacian components. The earliest convincing Aurignacian date in the region is about 33,000–32,000 BP.
+- Semal et al. 2009: The Spy Neandertals date to ~36,000 BP, associated with the Lincombian-Ranisian-Jerzmanowician (LRJ). The LRJ and Aurignacian are mixed in the "deuxième niveau ossifère."
+- The site is heavily mixed: Multiple excavations (1885–1886, 1903–1904, 1952–1960s) with inconsistent methods. The "deuxième niveau ossifère" contains Mousterian, LRJ, and Aurignacian materials mixed together.
+
+### Gatzarria → Proto-Aurignacian
+
+- Barshay-Szmidt et al. 2012: Layer Cjn2 is a Proto-Aurignacian — "fits completely within the definition and characterization of the Proto-Aurignacian" with exclusive blade/bladelet production and Dufour bladelets (sub-type Dufour). Layer Cjn1 may be mixed with Cjn2 and Cbf (Classic Aurignacian). The back of the cave is mixed, but the front zone ("sampled set") is internally coherent; refitting confirms minimal vertical displacement.
+- Deschamps 2019: Confirms complex stratigraphy and mixing concerns, but notes Cjn2 is internally coherent in the anterior zone.
+
+### El Castillo → Excluded
+
+- Mixed/contaminated layers preclude reliable phase assignment.
+
+## Site status table
+
+All 72 sites in `signBase_Version1.0.csv`. Of these, 64 have sign data and enter the analysis; 15 objects from 13 sites have zero signs and are excluded upstream. After reclassification, 2 sites (Spy, El Castillo) are excluded due to mixing, leaving 62 retained sites.
+
+```{r}
+#| label: site-table
+#| echo: false
+site_table <- signbase_full_clean %>%
+  group_by(site_name, time_period) %>%
+  summarise(objects = n(), .groups = "drop") %>%
+  arrange(site_name)
+
+knitr::kable(site_table, col.names = c("Site", "Phase", "Objects"),
+             caption = "Sites and object counts after phase reclassification.")
+```
+
+### Reclassified to Early Aurignacian
+
+| Site | Objects | Original phase | New phase | Basis |
+|------|---------|---------------|-----------|-------|
+| Vogelherd | 173 | Proto | Early | Schürch & Conard 2026; Bataille & Conard 2018 |
+| Hohle Fels | 50 | Proto | Early | Bataille & Conard 2018; Dinnis et al. 2019 |
+| Geissenklösterle | 30 | Proto | Early | Bataille & Conard 2018 |
+| La Ferrassie | 22 | Proto | Early | Talamo et al. 2020 |
+| Abri Pataud | 3 | Proto | Early | Chiotti 2005; Higham et al. 2011 |
+
+### Reclassified to Evolved Aurignacian
+
+| Site | Objects | Original phase | New phase | Basis |
+|------|---------|---------------|-----------|-------|
+| Mladeč | 4 | Evolved | Evolved | Oliva 2006 |
+
+### Excluded due to mixing
+
+| Site | Objects | Original phase | New phase | Basis |
+|------|---------|---------------|-----------|-------|
+| Spy | 25 | Proto | Excluded | Mixed assemblage, no Proto-Aurignacian (Flas et al. 2013; Flas 2015; Semal et al. 2009) |
+| El Castillo | 3 | Proto | Excluded | Mixed/contaminated layers |
+
+### Proto-Aurignacian (technological attribution)
+
+| Site | Objects | Original phase | New phase | Basis |
+|------|---------|---------------|-----------|-------|
+| Gatzarria | 3 | Proto | Proto | Cjn2 Proto-Aurignacian (Barshay-Szmidt et al. 2012) |
+| Fumane | 1 | Proto | Proto | Protoaurignacian throughout sequence (Falcucci et al. 2017, 2020) |
+
+### Proto-Aurignacian (date-based assignment)
+
+| Site | Objects | Original phase | New phase | Basis |
+|------|---------|---------------|-----------|-------|
+| Hohlenstein-Stadel | 2 | Proto | Proto | MedianBP > 39,799 |
+| Pod Hradem | 1 | Proto | Proto | MedianBP > 39,799 |
+| Les Cottés | 2 | Proto | Proto | MedianBP > 39,799 |
+| Labeko Koba | 2 | Proto | Proto | MedianBP > 39,799 |
+
+### Early Aurignacian (date-based assignment, selected)
+
+| Site | Objects | Original phase | New phase | Basis |
+|------|---------|---------------|-----------|-------|
+| Cellier | 28 | Early | Early | MedianBP 37,799–39,799 |
+| Castanet | 21 | Early | Early | MedianBP 37,799–39,799 |
+| Blanchard | 18 | Early | Early | MedianBP 37,799–39,799 |
+| Grotte de Goyet | 12 | Early | Early | MedianBP 37,799–39,799 |
+| Trou Magrite | 12 | Early | Early | MedianBP 37,799–39,799 |
+| Gargas | 11 | Early | Early | MedianBP 37,799–39,799 |
+| Hayonim Cave | 9 | Early | Early | MedianBP 37,799–39,799 |
+| Grotte du Renne | 7 | Early | Early | MedianBP 37,799–39,799 |
+| Maisières-Canal | 5 | Early | Early | MedianBP 37,799–39,799 |
+| Abri de Laussel | 5 | Early | Early | MedianBP 37,799–39,799 |
+| Grotte De La Princesse Pauline | 4 | Early | Early | MedianBP 37,799–39,799 |
+| Grotte de la Verpillière I | 4 | Early | Early | MedianBP 37,799–39,799 |
+| Solutré | 4 | Early | Early | MedianBP 37,799–39,799 |
+| Bockstein-Törle | 3 | Early | Early | MedianBP 37,799–39,799 |
+| Brassempouy | 3 | Early | Early | MedianBP 37,799–39,799 |
+| Istállóskő Cave | 3 | Early | Early | MedianBP 37,799–39,799 |
+| Nová Dědina | 3 | Early | Early | MedianBP 37,799–39,799 |
+| Riparo Bombrini | 3 | Early | Early | MedianBP 37,799–39,799 |
+| Žlutava | 3 | Early | Early | MedianBP 37,799–39,799 |
+| Abri Lartet/Gorge d'Enfer | 2 | Early | Early | MedianBP 37,799–39,799 |
+| La Souquette | 2 | Early | Early | MedianBP 37,799–39,799 |
+| Le Trou Du Renard | 2 | Early | Early | MedianBP 37,799–39,799 |
+| Menton/Grottes du Grimaldi | 2 | Early | Early | MedianBP 37,799–39,799 |
+| Muralovka | 2 | Early | Early | MedianBP 37,799–39,799 |
+| Tuto de Camalhot | 2 | Early | Early | MedianBP 37,799–39,799 |
+| Abri du Poisson | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Aurignac | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Breitenbach | 1 | Early | Early | MedianBP 37,799–39,799 |
+| El Rascaño | 1 | Early | Early | MedianBP 37,799–39,799 |
+| El Salitre | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Göpfelsteinhöhle | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Grottes de Fonds-de-Forêt | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Hornos de la Pena | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Kvasice | 1 | Early | Early | MedianBP 37,799–39,799 |
+| La Viña | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Le Terme Pialat | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Les Rois | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Lhotka | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Otaslavice | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Peskő Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Riparo di Fontana Nuova | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Shanidar Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Shelter Birów IV | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Sirgenstein Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Slatinice | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Trou al'Wesse | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Vindija Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Wildscheuer | 1 | Early | Early | MedianBP 37,799–39,799 |
+| d'Engihoul | 1 | Early | Early | MedianBP 37,799–39,799 |
+| Šandalja II | 1 | Early | Early | MedianBP 37,799–39,799 |
+
+### No sign data (excluded upstream)
+
+| Site | Objects (total) | Objects (signs) | Reason |
+|------|-----------------|-----------------|--------|
+| Willendorf | 1 | 0 | Zero sign count |
+| Vogelherd | 2 | 0 | Zero sign count |
+| Maisières-Canal | 2 | 0 | Zero sign count |
+| Abri de Laussel | 1 | 0 | Zero sign count |
+| Blanchard | 1 | 0 | Zero sign count |
+| Castanet | 1 | 0 | Zero sign count |
+| Cellier | 1 | 0 | Zero sign count |
+| Fumane | 1 | 0 | Zero sign count |
+| Grotte de Goyet | 1 | 0 | Zero sign count |
+| Labeko Koba | 1 | 0 | Zero sign count |
+| Menton/Grottes du Grimaldi | 1 | 0 | Zero sign count |
+| Nová Dědina | 1 | 0 | Zero sign count |
+| Spy | 1 | 0 | Zero sign count |
