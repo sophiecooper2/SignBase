@@ -604,6 +604,7 @@ plot_diversity_fn <- function(input_df) {
   diversity_index <-
     tabula::heterogeneity(signs, method = "shannon")
 
+  set.seed(42)
   diversity_sim <- tabula::simulate(diversity_index,
                                     level = 0.95)
 
