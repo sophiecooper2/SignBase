@@ -201,7 +201,7 @@ concentrate <- function(x, group = NULL, max_iter = 100) {
 # Produce a seriation or network plot for one phase.
 produce_clusters <- function(artifact_data, artifact_data_unique,
                              method = "seriation",
-                             color_palette = c("#8DD3C7", "#FFFFB3"),
+                             color_palette = c("#E41A1C", "#377EB8"),
                              threshold = 0.2, metric = "jaccard") {
 
   artifact_data <- artifact_data %>%
@@ -424,7 +424,6 @@ build_stat <- function(stat) {
     switch(stat,
       density     = if (igraph::ecount(ig) > 0) igraph::edge_density(ig) else 0,
       modularity  = tryCatch({
-        set.seed(42)
         igraph::modularity(igraph::cluster_louvain(ig))
       }, error = function(e) NA),
       betweenness = if (igraph::ecount(ig) > 0) mean(igraph::betweenness(ig, weights = NA)) else 0,
@@ -460,7 +459,6 @@ stat_phase <- function(site_vectors, group_sizes) {
     adj <- 1 - jac; adj[adj < 0.2] <- 0; diag(adj) <- 0  # main-analysis threshold
     ig <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected", weighted = TRUE)
     dens  <- if (igraph::ecount(ig) > 0) igraph::edge_density(ig) else 0
-    set.seed(42)
     mod   <- tryCatch(igraph::modularity(igraph::cluster_louvain(ig)), error = function(e) NA)
     bet   <- if (igraph::ecount(ig) > 0) mean(igraph::betweenness(ig, weights = NA)) else 0
     ncomp <- if (igraph::ecount(ig) > 0) igraph::components(ig)$no else nrow(mat)

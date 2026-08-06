@@ -223,10 +223,10 @@ time_unique_data_full$time_period <- factor(time_unique_data_full$time_period,
 
 
 aurp1_site_count <- nrow(aurp1_unique_data)
-aurp1_obj_count <- nrow(aurp1_unique_data %>% distinct(id))
+aurp1_obj_count <- nrow(signbase_full_clean %>% filter(phase2 == "Aur-P1"))
 aurp1_sign_count <- ncol(aurp1_artifact_data)
 aurp2_site_count <- nrow(aurp2_unique_data)
-aurp2_obj_count <- nrow(aurp2_unique_data %>% distinct(id))
+aurp2_obj_count <- nrow(signbase_full_clean %>% filter(phase2 == "Aur-P2"))
 aurp2_sign_count <- ncol(aurp2_artifact_data)
 
 nvogel <- nrow(signbase_full_clean %>% 
@@ -257,7 +257,7 @@ In this study, we extend this previous work using geometric signs as identity ma
 
 ## Periodization of the Aurignacian
 
-The Aurignacian period (~43–30 ka BP) is largely characterized by material culture indicators such as carinated scrapers, blades and bladelets, and split-based bone and ivory tools [@Chu_Richter_2020]. Periodization of the Aurignacian is complicated by regional variation with phases starting and ending at different times [@dinnis2019thoughts; @falcucci2020breaking], and a lack of compositional integrity over time [@clark200917], with supposed index fossils persisting through multiple phases [@zilhao2024data]. While earlier work on the Aquitaine/Périgord sequences proposed as many as five phases [@bordes2006news], recent work generally rejects notions of sharply-bounded, universally-portable cultures separated by neat horizons in favour of heterogeneous representations of diagnostic traits across and within temporal classes of assemblages [@canessa2026unpacking]. For example, @Schmidt_Zimmermann_2019 divided the Aurignacian into two main phases, Aur-P1 (Proto/Early, 43–37 ka BP), and Aur-P2 (Evolved/Late, 37–32 ka BP), noting that the technological and chronological differences between the Proto and Early Aurignacian are difficult to distinguish . @Banks_dErrico_Zilhao_2013 used Bayesian modeling methods to estimate the timing of the transition between the Proto and Early Aurignacian, placing the Proto-Aurignacian at 41.5–39.9 ka BP, and the early Aurignacian at 39.8–37.8 ka BP. They found that the Proto-Aurignacian occurs during the Greenland Interstadials (GI) 9 and 10, periods of climatic amelioration, while the Early Aurignacian began with the Henrich Stadial, which is characterized by dry and arid conditions, and ends with GI 8. 
+The Aurignacian period (~43–30 ka BP) is largely characterized by material culture indicators such as carinated scrapers, blades and bladelets, and split-based bone and ivory tools [@Chu_Richter_2020]. Periodization of the Aurignacian is complicated by regional variation with phases starting and ending at different times [@Dinnis_et_al_2019; @falcucci2020breaking], and a lack of compositional integrity over time [@clark200917], with supposed index fossils persisting through multiple phases [@zilhao2024data]. While earlier work on the Aquitaine/Périgord sequences proposed as many as five phases [@bordes2006news], recent work generally rejects notions of sharply-bounded, universally-portable cultures separated by neat horizons in favour of heterogeneous representations of diagnostic traits across and within temporal classes of assemblages [@canessa2026unpacking]. For example, @Schmidt_Zimmermann_2019 divided the Aurignacian into two main phases, Aur-P1 (Proto/Early, 43–37 ka BP), and Aur-P2 (Evolved/Late, 37–32 ka BP), noting that the technological and chronological differences between the Proto and Early Aurignacian are difficult to distinguish . @Banks_dErrico_Zilhao_2013 used Bayesian modeling methods to estimate the timing of the transition between the Proto and Early Aurignacian, placing the Proto-Aurignacian at 41.5–39.9 ka BP, and the early Aurignacian at 39.8–37.8 ka BP. They found that the Proto-Aurignacian occurs during the Greenland Interstadials (GI) 9 and 10, periods of climatic amelioration, while the Early Aurignacian began with the Henrich Stadial, which is characterized by dry and arid conditions, and ends with GI 8. 
 
 We adopt the two-phase framework (Aur-P1/Aur-P2) of @Schmidt_Zimmermann_2019 and @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021 as a first-order chronological scaffold, acknowledging that phases are analytical conveniences rather than discrete cultural entities [@canessa2026unpacking; @clark200917]. The chronological and technological distinctness of the Proto- and Early Aurignacian is difficult to sustain [@Schmidt_Zimmermann_2019], and some analyses suggest these represent coexisting facies rather than successive phases [@Falcucci_Peresani_2017]. We therefore pool the Proto and Early Aurignac into Aur-P1 (43–37 ka BP) and treat the Evolved/Late Aurignac as Aur-P2 (37–32 ka BP), following the two-phase scheme of @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021. This merger is also chronologically warranted: South-west German sites whose lithic technology is assigned to the Early Aurignacian commonly overlap in calibrated age with Mediterranean assemblages attributed to the Proto-Aurignacian, so the Proto/Early boundary functions as a coeval boundary rather than a continental succession (e.g. @Bataille_Conard_2019; @Schmidt_Zimmermann_2019; @Falcucci_Peresani_2017). 
 
@@ -521,7 +521,7 @@ PerMANOVA quantifies the level of variation between groups versus the level of v
 
 ```{r fig.height= 8, fig.width= 13}
 #| label: fig-seriation
-#| fig-cap: "Seriation reveals recurrent group structure across Upper Palaeolithic phases. Presence–absence matrices of geometric sign types reordered using Brower-Kile seriation algorithm for (A) Aur-P1 and (B) Aur-P2 phases. Rows represent sites and columns represent sign types. Blocks of co-occurring signs indicate culturally coherent groupings. Despite chronological turnover in specific sign types, two broad classes of assemblages—restricted-range and broad-range—recur across both phases, suggesting persistent structuring in symbolic signaling practices. Restricted group is in yellow, broader group is in green."
+#| fig-cap: "Seriation reveals recurrent group structure across Upper Palaeolithic phases. Presence–absence matrices of geometric sign types reordered using Brower-Kile seriation algorithm for (A) Aur-P1 and (B) Aur-P2 phases. Rows represent sites and columns represent sign types. Blocks of co-occurring signs indicate culturally coherent groupings. Despite chronological turnover in specific sign types, two broad classes of assemblages—restricted-range and broad-range—recur across both phases, suggesting persistent structuring in symbolic signaling practices. Restricted group is in red, broader group is in blue."
 
 seriation_aurp1 <- produce_clusters(aurp1_artifact_data, 
                                       aurp1_unique_data, 
@@ -652,7 +652,7 @@ res$p_adjust[res$p_adjust == 0] <- 1 / nperm
 
 ```{r fig.height= 5.5, fig.width= 8}
 #| label: fig-neighbor-net-stats
-#| fig-cap: "Networks statistics for the two phases. The vertical black lines are the null 95% confidence interval, the colored dot is the observed statistic value (orange = p<0.05, blue = not significantly different from a within-phase random distribution). The horizontal brackets at the top of each panel show p-values of pairwise randomisation tests for significant differences in network statistics between phases."
+#| fig-cap: "Network statistics for the two phases. The vertical black lines are the null 95% confidence interval, the observed statistic value is shown as a solid black circle (BH-adjusted p < 0.05) or a hollow circle (not significantly different from a within-phase random distribution). The horizontal brackets at the top of each panel show p-values of pairwise randomisation tests for significant differences in network statistics between phases."
 
 net_stats <- rbind(
   `Aur-P1` = network_stats(aurp1_artifact_data),
@@ -693,7 +693,8 @@ tab <- do.call(rbind, lapply(seq_along(stats), function(s) {
                p_upper = mean(n >= obs[g, s]))
   }))
 }))
-tab$significant <- tab$p_upper < 0.05
+tab$p_upper_adj <- p.adjust(tab$p_upper, method = "BH")
+tab$significant <- tab$p_upper_adj < 0.05
 tab$statistic <- factor(tab$statistic, levels = stats)
 tab$phase <- factor(tab$phase, levels = phases)
 
@@ -704,7 +705,8 @@ library(ggrepel)
 
 # bracket y positions: stack above per-panel max observed/CI
 top <- tab %>% group_by(statistic) %>% summarise(top = max(observed, ci_hi, na.rm = TRUE))
-brack <- res %>% left_join(top, by = "statistic") %>% group_by(statistic) %>%
+brack <- res %>% left_join(top, by = "statistic") %>% 
+  group_by(statistic) %>%
   mutate(level = seq_len(n())) %>% ungroup() %>%
   mutate(y.pos = top + 0.15 * level,
          tip = 0.05,
@@ -726,17 +728,16 @@ seg <- do.call(rbind, lapply(seq_len(nrow(brack)), function(i) {
 txt <- brack %>% dplyr::select(statistic, xmin, xmax, y.pos, label) %>%
   mutate(x = (xmin + xmax) / 2, y = y.pos + 0.04)
 
-stat_lab <- c(density = "Edge density", modularity = "Modularity (Louvain)",
-              betweenness = "Mean betweenness", components = "Connected components")
-
-
-network_stats_p <- 
-ggplot(tab, aes(x = phase)) +
+network_stats_p <- ggplot(tab, aes(x = phase)) +
+    facet_wrap(~ statistic, 
+             scales = "free_y", 
+             ncol = 2,
+             labeller = labeller(statistic = stat_lab)) +
   geom_linerange(aes(ymin = ci_lo, 
                      ymax = ci_hi)) +
   geom_point(aes(y = observed, 
-                 color = significant), 
-             size = 3.5) +
+                 shape = significant), 
+             size = 3.5, colour = "black") +
   geom_segment(data = seg, 
               aes(x = x, 
                   xend = xend, 
@@ -756,13 +757,9 @@ geom_label_repel(data = txt, aes(x = x, y = y, label = label),
                 segment.color = NA,                  # no leader lines
                 max.overlaps = 100,
                 xlim = c(1, 2), ylim = c(1, 1.8))  + 
-  scale_color_manual(values = c("TRUE" = "#D55E00", "FALSE" = "#0072B2"),
-                     labels = c("FALSE" = "p \u2265 0.05", "TRUE" = "p < 0.05"),
+  scale_shape_manual(values = c("TRUE" = 19, "FALSE" = 1),
+                     labels = c("FALSE" = "adjusted p \u2265 0.05", "TRUE" = "adjusted p < 0.05"),
                      name = "Within-phase randomisation test:") +
-  facet_wrap(~ statistic, 
-             scales = "free_y", 
-             ncol = 2,
-             labeller = labeller(statistic = stat_lab)) +
   labs(x = NULL, y = "Observed value vs. null distribution") +
   theme_minimal(base_size = 12) +
   theme(panel.grid.minor = element_blank(),
@@ -827,8 +824,8 @@ ggplot(Europe) +
         strip.text = element_text(size = 10, colour = "white"),
         legend.position = "bottom")  +
   scale_color_manual(name = "Group", 
-                     values = c("Restricted range" = "#FFFFB3", 
-                                "Broader range"    = "#8DD3C7")) +
+                     values = c("Restricted range" = "#E41A1C", 
+                                "Broader range"    = "#377EB8")) +
   scale_shape_manual(name = "Group",
                      values = c("Restricted range" = 17, 
                                 "Broader range"    = 19))
@@ -993,7 +990,7 @@ wilcox_excess_p <- round(wilcox_excess_group$p.value, 3)
 
 One way to potentially identify aggregation sites is by measuring sign diversity. Sites with a higher than expected sign diversity index may represent diverse groups coming together at a single location. However, a limitation of this approach is that while higher diversity may reflect aggregation, it may also result from sample size, recovery history, research intensity, preservation, and site function. @fig-div-plot plots the expected Shannon-Weaver diversity index for a given sample size against the actual diversity index per site computed per site from counts of objects per sign type, within each phase. The expected distribution was generated by multinomial resampling from the phase-pooled per-sign-type totals, at each sample size from 1 to the maximum count, with 1000 replicates [@Frerebeau_2025; @Kintigh_1984]. The sign-type pool — the number of distinct geometric signs recovered in each phase — was `r aurp1_sign_pool` in Aur-P1 and `r aurp2_sign_pool` in Aur-P2.
 
-When each site's observed diversity is compared with the expectation for its sample size, `r aurp1_above_mean` of `r round(aurp1_site_count, 3)` Aur-P1 sites and `r aurp2_above_mean` of `r round(aurp2_site_count, 3)` Aur-P2 sites exceed their expected diversity (the mean simulated diversity for the equivalent count of sign types). Notably, most of these sites are not shown as having connections between groups in @fig-neighbor-net. The relative diversity does not track the phase-level pool size (Aur-P1 mean excess `r aurp1_mean_rel_div`, Aur-P2 mean excess `r aurp2_mean_rel_div`), so the sites' relative diversity fluctuates independently of the sign-type pool. This suggests a distinction between shorter-term information exchange (e.g. the highly interconnected sites in @fig-neighbor-net) and longer-term residential movement for aggregation (e.g. the sites with higher than expected diversity in @fig-div-plot). Supporting this distinction, diversity excess (as an indicator of aggregation candidates) showed a significant negative correlation with network degree (ρ = `r excess_degree_rho`, p = `r excess_degree_p`), indicating that aggregation candidates are less connected rather than merely decoupled from network hubs. The correlation with betweenness was not significant (ρ = `r excess_betw_rho`, p = `r excess_betw_p`). Object count was positively correlated with degree centrality (degree: ρ = `r n_degree_rho`, p = `r n_degree_p`), indicating that hubs tend to be among the better-sampled sites. The elevated diversity identifying aggregation candidates did not differ significantly between the restricted and broad-range groups (Wilcoxon W = `r wilcox_excess_W`, p = `r wilcox_excess_p`), so this metric does not by itself track the restricted/broad grouping.
+When each site's observed diversity is compared with the expectation for its sample size, `r aurp1_above_mean` of `r round(aurp1_site_count, 3)` Aur-P1 sites and `r aurp2_above_mean` of `r round(aurp2_site_count, 3)` Aur-P2 sites exceed their expected diversity (the mean simulated diversity for the equivalent count of sign types). Notably, most of these sites are not shown as having connections between groups in @fig-neighbor-net. The relative diversity does not track the phase-level pool size (Aur-P1 mean excess `r aurp1_mean_rel_div`, Aur-P2 mean excess `r aurp2_mean_rel_div`), so the sites' relative diversity fluctuates independently of the sign-type pool. This suggests a distinction between shorter-term information exchange (e.g. the highly interconnected sites in @fig-neighbor-net) and longer-term residential movement for aggregation (e.g. the sites with higher than expected diversity in @fig-div-plot). Supporting this distinction, diversity excess (as an indicator of aggregation candidates) showed a marginally significant negative correlation with network degree (ρ = `r excess_degree_rho`, p = `r excess_degree_p`), indicating that aggregation candidates are less connected rather than merely decoupled from network hubs. The correlation with betweenness was not significant (ρ = `r excess_betw_rho`, p = `r excess_betw_p`). Object count was positively correlated with degree centrality (degree: ρ = `r n_degree_rho`, p = `r n_degree_p`), indicating that hubs tend to be among the better-sampled sites. The elevated diversity identifying aggregation candidates differed significantly between the restricted and broad-range groups (Wilcoxon W = `r wilcox_excess_W`, p = `r wilcox_excess_p`), so this metric does track the restricted/broad grouping.
 
 ```{r fig.height= 7, fig.width=10}
 #| label: fig-div-plot
