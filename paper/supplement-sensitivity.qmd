@@ -381,121 +381,103 @@ Consistent with the main-text Mantel tests (which report no significant geograph
 
 ## S4.1 Rationale
 
-The main analysis adopts a three-phase Aurignacian framework: Proto-Aurignacian (43.0–39.8 ka BP), Early Aurignacian (39.8–37.8 ka BP), and Evolved Aurignacian (37.8–32.0 ka BP). This periodisation is conventional in Western European archaeology but not universally accepted. To test whether the network-level findings depend on how the Aurignacian is subdivided, we compare the three-phase scheme against two alternatives: a **2-phase framework** that merges Proto and Early into a single Early Dispersal phase (43.0–37.8 ka BP) versus Evolved/Late Aurignacian (37.8–32.0 ka BP), following Shao et al. (2021); and a **4-phase framework** that splits the Evolved Aurignacian into an Evolved phase (37.8–35.0 ka BP) and a Late phase (35.0–32.0 ka BP), following the four-phase Aurignacian taxonomy of Teyssandier & Zilhão (2018), with the Evolved–Late boundary at 35 ka BP calibrated. All schemes are evaluated at the main-text threshold of 0.2 using Jaccard similarity.
+The main analysis adopts the two-phase Aur-P1/Aur-P2 framework of Shao et al. (2021), which merges the Proto- and Early Aurignacian into a single early phase (Aur-P1, 43–37 ka BP) and treats the Evolved/Late Aurignacian as a single late phase (Aur-P2, 37–32 ka BP), with site membership assigned on technological grounds (S8). Because this scheme is coarser than the classic three-phase periodisation of Western European archaeology, this section tests whether the two-phase results are robust to how the sequence is subdivided. We decompose the two-phase baseline into its technology-assigned components — the relict Proto-Aurignacian, the Early Aurignacian, and the Evolved Aurignacian (Aur-P2) — and additionally split the Evolved Aurignacian into Evolved and Late sub-phases following the four-phase taxonomy of Teyssandier & Zilhão (2018), with the Evolved–Late boundary at 35 ka BP calibrated. All schemes are evaluated at the main-text threshold of 0.2 using Jaccard similarity.
 
 ```{r}
-#| label: tbl-three-phase-ref
-#| tbl-cap: "Reference: network statistics under the three-phase periodisation used in the main text (threshold = 0.2). Reproduced from @tbl-sens-stats for direct comparison with the two-phase and four-phase schemes below."
+#| label: tbl-two-phase-ref
+#| tbl-cap: "Reference: network statistics under the two-phase periodisation used in the main text (threshold = 0.2). Aur-P1 = Proto + Early; Aur-P2 = Evolved."
 #| tbl-cap-location: bottom
 
-three_phase_ref <- bind_rows(
-  "Proto-Aurignacian (43–39.8 ka BP)"   = network_stats(proto_artifact_data, threshold = 0.2),
-  "Early Aurignacian (39.8–37.8 ka BP)" = network_stats(early_artifact_data, threshold = 0.2),
-  "Evolved Aurignacian (37.8–32 ka BP)" = network_stats(evolved_artifact_data, threshold = 0.2),
+two_phase_ref <- bind_rows(
+  "Aur-P1 (Proto + Early)" = network_stats(aurp1_artifact_data, threshold = 0.2),
+  "Aur-P2 (Evolved)"       = network_stats(aurp2_artifact_data, threshold = 0.2),
   .id = "Phase"
 ) %>%
-  dplyr::select(Phase, n_edges, density, n_isolates, mean_degree, transitivity, modularity, n_communities)
+  dplyr::select(Phase, n_sites, n_edges, density, mean_degree, transitivity, modularity)
 
-kable(three_phase_ref,
-      col.names = c("Phase", "Edges", "Density", "Isolates", "Mean degree", "Transitivity", "Modularity", "Communities"),
+kable(two_phase_ref,
+      col.names = c("Phase", "Sites", "Edges", "Density", "Mean degree", "Transitivity", "Modularity"),
       digits = 3)
 ```
 
 ```{r}
-#| label: tbl-periodisation-stats
-#| tbl-cap: "Network statistics under the two-phase periodisation scheme (Proto/Early combined vs. Evolved) at threshold = 0.2."
+#| label: tbl-three-phase-tech
+#| tbl-cap: "Network statistics for the technology-assigned components of the two-phase baseline (Proto-Aurignacian, Early Aurignacian, Evolved Aurignacian) at threshold = 0.2. Aur-P1 = Proto + Early; Aur-P2 = Evolved."
 #| tbl-cap-location: bottom
 
-proto_early_df <- signbase_full_clean %>%
-  filter(time_period %in% c("proto_aurignacian", "early_aurignacian")) %>%
-  mutate(longitude = as.character(longitude), latitude = as.character(latitude))
+# Rebuild per-component artifact data from the technology-based assignment
+make_tech_art <- function(df) {
+  latlng <- df %>% dplyr::select(site_name, longitude, latitude) %>% distinct(site_name, .keep_all = TRUE)
+  obj_num <- df %>% group_by(site_name) %>% summarise(nobjects = n())
+  unique_df <- df %>%
+    mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
+    group_by(site_name) %>% summarize(across(where(is.numeric), sum)) %>%
+    left_join(latlng) %>% left_join(obj_num)
+  extract_artifact(unique_df)
+}
 
-proto_early_obj <- proto_early_df %>% group_by(site_name) %>% summarise(nobjects = n())
-proto_early_unique <- proto_early_df %>%
-  group_by(site_name) %>%
-  summarize(across(where(is.numeric), sum)) %>%
-  left_join(lat_long_df) %>%
-  left_join(proto_early_obj)
+tech_proto_art   <- make_tech_art(signbase_full_clean %>% filter(time_period2 == "proto_aurignacian"))
+tech_early_art   <- make_tech_art(signbase_full_clean %>% filter(time_period2 == "early_aurignacian"))
+tech_evolved_art <- make_tech_art(signbase_full_clean %>% filter(time_period2 == "evolved_aurignacian"))
 
-proto_early_artifact <- extract_artifact(proto_early_unique)
-
-two_phase_stats <- bind_rows(
-  "Proto/Early Combined (43–37.8 ka BP)" = network_stats(proto_early_artifact, threshold = 0.2),
-  "Evolved Aurignacian (37.8–32 ka BP)"   = network_stats(evolved_artifact_data, threshold = 0.2),
+three_phase_tech <- bind_rows(
+  "Proto-Aurignacian (Aur-P1)"  = network_stats(tech_proto_art, threshold = 0.2),
+  "Early Aurignacian (Aur-P1)"  = network_stats(tech_early_art, threshold = 0.2),
+  "Evolved Aurignacian (Aur-P2)" = network_stats(tech_evolved_art, threshold = 0.2),
   .id = "Phase"
 ) %>%
-  dplyr::select(Phase, n_edges, density, n_isolates, mean_degree, transitivity, modularity, n_communities)
+  dplyr::select(Phase, n_sites, n_edges, density, mean_degree, transitivity, modularity)
 
-kable(two_phase_stats,
-      col.names = c("Phase", "Edges", "Density", "Isolates", "Mean degree", "Transitivity", "Modularity", "Communities"),
+kable(three_phase_tech,
+      col.names = c("Phase", "Sites", "Edges", "Density", "Mean degree", "Transitivity", "Modularity"),
       digits = 3)
 ```
 
 ## S4.2 Interpretation
 
-The three-phase, two-phase, and four-phase periodisations yield consistent conclusions about the broad structure of Aurignacian social connectivity, while differing in the resolution at which that structure is visible.
+The two-phase, three-phase, and four-phase periodisations yield consistent conclusions about the broad structure of Aurignacian social connectivity, while clarifying which components carry the two-phase results.
 
-**Connectivity contrast is robust to aggregation.** Under the three-phase scheme, the Proto-Aurignacian (mean degree = `r n2(pval(three_phase_ref, "mean_degree", "Proto"))`, `r pval(three_phase_ref, "n_edges", "Proto")` edges) and Early Aurignacian (mean degree = `r n2(pval(three_phase_ref, "mean_degree", "Early"))`, `r pval(three_phase_ref, "n_edges", "Early")` edges) each show substantially higher connectivity than the Evolved Aurignacian (mean degree = `r n2(pval(three_phase_ref, "mean_degree", "Evolved"))`, `r pval(three_phase_ref, "n_edges", "Evolved")` edges). When Proto and Early are merged into a single early phase, the combined network has `r pval(two_phase_stats, "n_edges", "Combined")` edges and a mean degree of `r n2(pval(two_phase_stats, "mean_degree", "Combined"))` — more than double the Evolved phase's `r n2(pval(three_phase_ref, "mean_degree", "Evolved"))`. The early/late connectivity gap is therefore not an artefact of how the boundary between Proto and Early is drawn; it persists regardless of whether those phases are analysed separately or together.
+**Aur-P1's connectivity advantage is carried by its technology-assigned Early component.** Decomposing the two-phase baseline into its technology-assigned components shows that the Early Aurignacian (mean degree = `r n2(pval(three_phase_tech, "mean_degree", "Early"))`, `r pval(three_phase_tech, "n_edges", "Early")` edges across `r pval(three_phase_tech, "n_sites", "Early")` sites) is the most connected component, exceeding even Aur-P2 (`r n2(pval(three_phase_tech, "mean_degree", "Evolved"))`, `r pval(three_phase_tech, "n_edges", "Evolved")` edges). The relict Proto-Aurignacian — the component that survives after technology-based reassignment moved the well-sampled Swabian and Périgord sites to the Early Aurignacian (S8) — is the least connected of the three (mean degree `r n2(pval(three_phase_tech, "mean_degree", "Proto"))` across `r pval(three_phase_tech, "n_sites", "Proto")` sites and `r pval(three_phase_tech, "n_edges", "Proto")` edges). This decomposition confirms the reframing that motivates the two-phase scheme: the reclassified Proto sample is too small and too weakly connected to support its own network-level claims, so the "densest Proto-Aurignacian" reading of earlier analyses is abandoned. The merged Aur-P1 mean degree (`r n2(pval(two_phase_ref, "mean_degree", "Aur-P1"))`) is driven by the Early component, not by a spurious average of two strong phases.
 
-**Density equalises under aggregation, but this is a mathematical artefact.** The two-phase scheme produces near-identical graph densities for the early (`r pval(two_phase_stats, "density", "Combined")`) and late (`r pval(two_phase_stats, "density", "Evolved")`) phases. This convergence occurs because merging two moderately connected phases into one large phase inflates the edge count while also inflating the number of possible edges, resulting in a density that masks the true connectivity difference. The mean degree — which is not normalised by network size — reveals the disparity more clearly: the merged early phase has nearly three times as many connections per site as the Evolved phase.
+**The early/late contrast is not an artefact of merging.** Even without the Proto component, the Early Aurignacian alone (mean degree `r n2(pval(three_phase_tech, "mean_degree", "Early"))`) exceeds Aur-P2 (`r n2(pval(three_phase_tech, "mean_degree", "Evolved"))`), so the two-phase Aur-P1 > Aur-P2 result does not depend on the Proto/Early boundary being drawn one way or the other. The connectivity gap between the early and late Aurignacian persists whether the early sequence is analysed as a single phase or as its separate Proto and Early components.
 
-**Community structure is preserved.** Modularity under the two-phase scheme is `r pval(two_phase_stats, "modularity", "Combined")` for the combined early phase and `r pval(two_phase_stats, "modularity", "Evolved")` for the Evolved phase. These values are comparable to the three-phase modularity values (Proto `r pval(three_phase_ref, "modularity", "Proto")`, Early `r pval(three_phase_ref, "modularity", "Early")`, Evolved `r pval(three_phase_ref, "modularity", "Evolved")`), indicating that the community structure detected by Louvain partitioning is not an artefact of the specific phase boundaries used. The Evolved Aurignacian in particular maintains strong modularity (`r pval(two_phase_stats, "modularity", "Evolved")`) under both schemes, confirming that its internal structure is genuinely distinct from the earlier phases.
-
-**The two-phase scheme conceals internal differentiation in the early Aurignacian.** The three-phase breakdown reveals that the Proto-Aurignacian is the most connected phase (mean degree `r n2(pval(three_phase_ref, "mean_degree", "Proto"))`), while the Early Aurignacian is intermediate (`r n2(pval(three_phase_ref, "mean_degree", "Early"))`). Merging these phases into a single block obscures this gradient. If the transition from Proto to Early reflects a genuine shift in social network organisation — for example, related to the population expansion during Heinrich Stadial 4 — the two-phase scheme cannot detect it. The three-phase scheme is therefore preferred for analyses that seek to track change through time, while the two-phase scheme is sufficient for demonstrating the broad early/late contrast.
+**Community structure is consistent with the two-phase scheme.** Modularity is highest in the Early component (`r pval(three_phase_tech, "modularity", "Early")`), moderate in the Evolved (`r pval(three_phase_tech, "modularity", "Evolved")`), and weakest in the relict Proto (`r pval(three_phase_tech, "modularity", "Proto")`). This mirrors the two-phase result in which Aur-P1's community structure is better developed than Aur-P2's (S5.3), and it indicates that the modularity of the merged early phase is not an artefact of the particular boundary chosen.
 
 ```{r}
 #| label: tbl-four-phase-periodisation
-#| tbl-cap: "Network statistics under the four-phase periodisation scheme (Proto, Early, Evolved, Late Aurignacian) at threshold = 0.2. The Evolved/Late split follows the four-phase Aurignacian taxonomy of Teyssandier & Zilhão (2018), with the boundary at 35 ka BP calibrated."
+#| tbl-cap: "Network statistics under the four-phase periodisation (Proto, Early, Evolved, Late Aurignacian) at threshold = 0.2. The Evolved/Late split of Aur-P2 follows the four-phase Aurignacian taxonomy of Teyssandier & Zilhão (2018), with the boundary at 35 ka BP calibrated."
 #| tbl-cap-location: bottom
 
-# Four-phase split: Proto (39.8–43 ka BP), Early (37.8–39.8 ka BP), Evolved (35–37.8 ka BP), Late (32–35 ka BP)
-evolved_df <- signbase_full_clean %>%
-  filter(time_period == "evolved_aurignacian",
-         MedianBP > 35000) %>%
-  mutate(longitude = as.character(longitude), latitude = as.character(latitude))
-
-late_df <- signbase_full_clean %>%
-  filter(time_period == "evolved_aurignacian",
-         MedianBP <= 35000) %>%
-  mutate(longitude = as.character(longitude), latitude = as.character(latitude))
+# Four-phase split: Proto/Early as in the three-phase decomposition; the
+# Evolved Aurignacian (Aur-P2) split into Evolved (37.8-35 ka BP) and Late
+# (35-32 ka BP) at 35 ka BP.
+tech_evolved_df <- signbase_full_clean %>% filter(time_period2 == "evolved_aurignacian")
+evolved_sub_df <- tech_evolved_df %>% filter(MedianBP > 35000)
+late_sub_df   <- tech_evolved_df %>% filter(MedianBP <= 35000)
 
 four_phase_stats <- list()
-four_phase_stats[["Proto-Aurignacian (43–39.8 ka BP)"]] <- network_stats(proto_artifact_data, threshold = 0.2)
-four_phase_stats[["Early Aurignacian (39.8–37.8 ka BP)"]] <- network_stats(early_artifact_data, threshold = 0.2)
+four_phase_stats[["Proto-Aurignacian (Aur-P1)"]] <- network_stats(tech_proto_art, threshold = 0.2)
+four_phase_stats[["Early Aurignacian (Aur-P1)"]] <- network_stats(tech_early_art, threshold = 0.2)
 
-if (nrow(evolved_df) >= 2) {
-  ev_obj <- evolved_df %>% group_by(site_name) %>% summarise(nobjects = n())
-  ev_unique <- evolved_df %>%
-    group_by(site_name) %>%
-    summarize(across(where(is.numeric), sum)) %>%
-    left_join(lat_long_df) %>%
-    left_join(ev_obj)
-  ev_artifact <- extract_artifact(ev_unique)
-  four_phase_stats[["Evolved Aurignacian (37.8–35 ka BP)"]] <- network_stats(ev_artifact, threshold = 0.2)
+if (nrow(evolved_sub_df) >= 2) {
+  four_phase_stats[["Evolved Aurignacian (37.8-35 ka BP)"]] <- network_stats(make_tech_art(evolved_sub_df), threshold = 0.2)
 }
 
-if (nrow(late_df) >= 2) {
-  lt_obj <- late_df %>% group_by(site_name) %>% summarise(nobjects = n())
-  lt_unique <- late_df %>%
-    group_by(site_name) %>%
-    summarize(across(where(is.numeric), sum)) %>%
-    left_join(lat_long_df) %>%
-    left_join(lt_obj)
-  lt_artifact <- extract_artifact(lt_unique)
-  four_phase_stats[["Late Aurignacian (35–32 ka BP)"]] <- network_stats(lt_artifact, threshold = 0.2)
+if (nrow(late_sub_df) >= 2) {
+  four_phase_stats[["Late Aurignacian (35-32 ka BP)"]] <- network_stats(make_tech_art(late_sub_df), threshold = 0.2)
 }
 
 four_phase_df <- bind_rows(four_phase_stats, .id = "Phase") %>%
-  dplyr::select(Phase, n_sites, n_edges, density, n_isolates, mean_degree, transitivity, modularity, n_communities)
+  dplyr::select(Phase, n_sites, n_edges, density, mean_degree, transitivity, modularity)
 
 kable(four_phase_df,
-      col.names = c("Phase", "Sites", "Edges", "Density", "Isolates", "Mean degree", "Transitivity", "Modularity", "Communities"),
+      col.names = c("Phase", "Sites", "Edges", "Density", "Mean degree", "Transitivity", "Modularity"),
       digits = 3)
 ```
 
 ### Four-phase interpretation
 
-The four-phase Aurignacian taxonomy of Teyssandier & Zilhão (2018) distinguishes Proto, Early (Aurignacian I), Evolved (Aurignacian II), and Late (Aurignacian III-IV) phases. The Early–Evolved transition has been dated to 37.0–36.5 ka BP by Banks et al. (2013a, b), and the Late Aurignacian is associated with the terminal phase of the technocomplex before the onset of the Gravettian. Splitting the Evolved Aurignacian at 35 ka BP into Evolved and Late sub-phases tests whether the connectivity decline observed in the main text is gradual or stepwise. The Evolved Aurignacian (37.8–35 ka BP) retains moderate connectivity with `r pval(four_phase_df, "n_edges", "Evolved")` edges and a mean degree of `r n2(pval(four_phase_df, "mean_degree", "Evolved"))` across `r pval(four_phase_df, "n_sites", "Evolved")` sites, while the Late Aurignacian (35–32 ka BP) is severely data-limited: with only `r pval(four_phase_df, "n_sites", "Late")` sites and a single edge, its network statistics (mean degree `r n2(pval(four_phase_df, "mean_degree", "Late"))`, modularity `r pval(four_phase_df, "modularity", "Late")`) are unreliable. The near-absence of connectivity in the Late Aurignacian is consistent with the broader pattern of declining social network density through time, but the sample is too small to determine whether the transition from Evolved to Late represents a further step-down or a continuation of an already low level. The three-phase scheme remains the most informative for the main analysis, as it avoids fragmenting the Evolved Aurignacian into sub-phases whose small sample sizes preclude robust statistical inference.
+The four-phase Aurignacian taxonomy of Teyssandier & Zilhão (2018) distinguishes Proto, Early (Aurignacian I), Evolved (Aurignacian II), and Late (Aurignacian III-IV) phases. The Early–Evolved transition has been dated to 37.0–36.5 ka BP by Banks et al. (2013a, b), and the Late Aurignacian is associated with the terminal phase of the technocomplex before the onset of the Gravettian. Splitting the Evolved Aurignacian (Aur-P2) at 35 ka BP into Evolved and Late sub-phases tests whether Aur-P2's connectivity is internally differentiated. The Evolved Aurignacian (37.8–35 ka BP) retains moderate connectivity with `r pval(four_phase_df, "n_edges", "Evolved")` edges and a mean degree of `r n2(pval(four_phase_df, "mean_degree", "Evolved"))` across `r pval(four_phase_df, "n_sites", "Evolved")` sites, while the Late Aurignacian (35–32 ka BP) is severely data-limited: with only `r pval(four_phase_df, "n_sites", "Late")` sites and no edges at threshold 0.2, its network statistics (mean degree 0, modularity undefined) are unreliable. The near-absence of connectivity in the Late Aurignacian is consistent with the weaker, less resolved structure of Aur-P2 reported in the main text, but the sample is too small to determine whether the Evolved–Late transition represents a step-down or a continuation of an already low level. The two-phase scheme remains the most informative for the main analysis, as it avoids fragmenting Aur-P2 into sub-phases whose small sample sizes preclude robust statistical inference.
 
 # S5. Automated Group Recovery and Circularity Validation {#sec-s5}
 
@@ -1884,101 +1866,72 @@ The joint comparison in @tbl-objtype-joint shows that figurine exclusion has a m
 
 ## S8.1 Rationale
 
-The main analysis assigns each site to an Aurignacian phase based on calibrated radiocarbon dates. However, several recent specialist reassessments demonstrate that radiocarbon dates alone are insufficient for phase attribution, and that the archaeological content of layers should take precedence:
+The main analysis assigns each site to a phase (Aur-P1/Aur-P2) using specialist technological attributions from the published literature, supplemented by calibrated radiocarbon dates, as detailed in the "Site Phase Assignments" supplementary item. Recent specialist reassessments demonstrate that radiocarbon dates alone are insufficient for phase attribution, and that the archaeological content of layers should take precedence:
 
-- **Abri Pataud**: The lithic technology in levels 14–9 (carinated scraper bladelet cores, dual reduction systems) is diagnostic of the Early Aurignacian, not the Proto-Aurignacian, despite basal dates of ~41,200–39,500 cal BP that fall within the Proto-Aurignacian range [@Chiotti_2005; @Chiotti_Cretin_2011; @Higham_Abri_Pataud_2011]. The site is classified as Aurignacian I (Early) in the Périgord sequence.
-- **La Ferrassie**: The Aurignacian at La Ferrassie begins in Layer 7, directly overlying the Châtelperronian (Layer 6). Talamo et al. (2020) classify this as Early Aurignacian based on carinated scrapers and wide Aurignacian blades. No split-base bone points (Proto-Aurignacian diagnostic) were found [@Delporte_et_al_1977; @Talamo_La_Ferrassie_2020]. Layer 7b has mixed Early/Recent Aurignacian components.
-- **Mladeč**: The ~20 lithic artifacts include only one carinated end scraper. The 40 bone points with massive bases ("Mladeč-type") lack split bases and occur stratigraphically above split-based points at other Central European sites, placing them in the Evolved Aurignacian [@Oliva_2006]. Direct dates of ~31 ka ¹⁴C BP (~35–36 cal BP) are too young for Proto-Aurignacian [@Wild_et_al_2005].
+- **Abri Pataud**: The lithic technology in levels 14–9 (carinated scraper bladelet cores, dual reduction systems) is diagnostic of the Early Aurignacian (Aur-P1), not the Proto-Aurignacian, despite basal dates of ~41,200–39,500 cal BP that fall within the Proto-Aurignacian range [@Chiotti_2005; @Chiotti_Cretin_2011; @Higham_Abri_Pataud_2011]. The site is classified as Aurignacian I (Early) in the Périgord sequence.
+- **La Ferrassie**: The Aurignacian at La Ferrassie begins in Layer 7, directly overlying the Châtelperronian (Layer 6). Talamo et al. (2020) classify this as Early Aurignacian (Aur-P1) based on carinated scrapers and wide Aurignacian blades. No split-base bone points (Proto-Aurignacian diagnostic) were found [@Delporte_et_al_1977; @Talamo_La_Ferrassie_2020]. Layer 7b has mixed Early/Recent Aurignacian components.
+- **Mladeč**: The ~20 lithic artifacts include only one carinated end scraper. The 40 bone points with massive bases ("Mladeč-type") lack split bases and occur stratigraphically above split-based points at other Central European sites, placing them in the Evolved Aurignacian (Aur-P2) [@Oliva_2006]. Direct dates of ~31 ka ¹⁴C BP (~35–36 cal BP) are too young for Proto-Aurignacian [@Wild_et_al_2005].
 - **Vogelherd**: Riek's 1931 excavation removed 500 m³ in 12 weeks with no screening, using large horizontal spits that did not follow geological horizons. Documented mixing includes 38 refit connections between Aurignacian layers IV and V, Neolithic burials disturbing the southwestern area, and ~2–3% of tools in the Aurignacian layers potentially deriving from other periods [@Schurch_Conard_2026].
 
-This section tests two scenarios: (A) reclassifying Abri Pataud and La Ferrassie to the Early Aurignacian and Mladeč to the Evolved Aurignacian, following specialist technological attributions; and (B) additionally excluding Vogelherd entirely, given its documented stratigraphic mixing.
+Because these attributions are load-bearing for the two-phase framework, this section tests the sensitivity of the network results to (A) reverting to the purely date-based assignment used in earlier analyses — each object assigned to a phase by its calibrated date alone — and (B) excluding Vogelherd entirely, given its documented stratigraphic mixing.
 
 ```{r}
-# ── Analysis A: Reclassify sites to technologically correct phases ──────────
-reclass_sites <- c("Abri Pataud", "La Ferrassie", "Mladeč")
+# ── Analysis A: revert to purely date-based assignment ─────────────────────
+# Reassign each object purely by its calibrated date (technology overrides
+# removed); the Spy/El Castillo exclusions from the baseline are retained.
+signbase_date <- signbase_full_clean %>%
+  mutate(time_period2 = time_period,
+         phase2 = ifelse(time_period %in% c("proto_aurignacian", "early_aurignacian"),
+                         "Aur-P1", "Aur-P2"))
 
-signbase_reclass <- signbase_full_clean %>%
-  mutate(time_period = case_when(
-    site_name == "Abri Pataud" ~ "early_aurignacian",
-    site_name == "La Ferrassie" ~ "early_aurignacian",
-    site_name == "Mladeč" ~ "evolved_aurignacian",
-    TRUE ~ time_period
-  ))
-
-lat_long_reclass <- signbase_reclass %>%
+lat_long_date <- signbase_date %>%
   dplyr::select(site_name, longitude, latitude) %>%
   distinct(site_name, .keep_all = TRUE)
 
-proto_reclass   <- make_phase_data("proto_aurignacian", signbase_reclass, lat_long_reclass)
-early_reclass   <- make_phase_data("early_aurignacian", signbase_reclass, lat_long_reclass)
-evolved_reclass <- make_phase_data("evolved_aurignacian", signbase_reclass, lat_long_reclass)
+aurp1_date <- make_phase2_data("Aur-P1", signbase_date, lat_long_date)
+aurp2_date <- make_phase2_data("Aur-P2", signbase_date, lat_long_date)
 
-proto_art_r   <- extract_artifact(proto_reclass)
-early_art_r   <- extract_artifact(early_reclass)
-evolved_art_r <- extract_artifact(evolved_reclass)
-
-reclass_stats <- bind_rows(
-  network_stats(proto_art_r, threshold = 0.2) %>% mutate(Phase = "Proto-Aurignacian"),
-  network_stats(early_art_r, threshold = 0.2) %>% mutate(Phase = "Early Aurignacian"),
-  network_stats(evolved_art_r, threshold = 0.2) %>% mutate(Phase = "Evolved Aurignacian")
+date_stats <- bind_rows(
+  network_stats(extract_artifact(aurp1_date), threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
+  network_stats(extract_artifact(aurp2_date), threshold = 0.2) %>% mutate(Phase = "Aur-P2")
 ) %>%
-  mutate(Condition = "Reclassified") %>%
-  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
+  mutate(Condition = "Date-based") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree,
+                transitivity, modularity)
 
-# ── Analysis B: Additionally exclude Vogelherd ──────────────────────────────
-exclude_sites <- c("Abri Pataud", "La Ferrassie", "Mladeč", "Vogelherd")
-
-signbase_exclude <- signbase_full_clean %>%
-  filter(!site_name %in% exclude_sites)
-
-lat_long_exclude <- signbase_exclude %>%
+# ── Analysis B: exclude Vogelherd entirely ─────────────────────────────────
+signbase_novog <- signbase_full_clean %>% filter(site_name != "Vogelherd")
+lat_long_nv <- signbase_novog %>%
   dplyr::select(site_name, longitude, latitude) %>%
   distinct(site_name, .keep_all = TRUE)
 
-proto_excl   <- make_phase_data("proto_aurignacian", signbase_exclude, lat_long_exclude)
-early_excl   <- make_phase_data("early_aurignacian", signbase_exclude, lat_long_exclude)
-evolved_excl <- make_phase_data("evolved_aurignacian", signbase_exclude, lat_long_exclude)
+aurp1_nv <- make_phase2_data("Aur-P1", signbase_novog, lat_long_nv)
+aurp2_nv <- make_phase2_data("Aur-P2", signbase_novog, lat_long_nv)
 
-proto_art_e   <- extract_artifact(proto_excl)
-early_art_e   <- extract_artifact(early_excl)
-evolved_art_e <- extract_artifact(evolved_excl)
-
-excl_stats <- bind_rows(
-  { ns <- network_stats(proto_art_e, threshold = 0.2); data.frame(Phase = "Proto-Aurignacian", n_sites = ns$n_sites, n_edges = ns$n_edges, density = ns$density, mean_degree = ns$mean_degree, transitivity = ns$transitivity, modularity = ns$modularity) },
-  { ns <- network_stats(early_art_e, threshold = 0.2); data.frame(Phase = "Early Aurignacian", n_sites = ns$n_sites, n_edges = ns$n_edges, density = ns$density, mean_degree = ns$mean_degree, transitivity = ns$transitivity, modularity = ns$modularity) },
-  { ns <- network_stats(evolved_art_e, threshold = 0.2); data.frame(Phase = "Evolved Aurignacian", n_sites = ns$n_sites, n_edges = ns$n_edges, density = ns$density, mean_degree = ns$mean_degree, transitivity = ns$transitivity, modularity = ns$modularity) }
+no_vog_stats <- bind_rows(
+  network_stats(extract_artifact(aurp1_nv), threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
+  network_stats(extract_artifact(aurp2_nv), threshold = 0.2) %>% mutate(Phase = "Aur-P2")
 ) %>%
-  mutate(Condition = "Excl. reclassified + Vogelherd") %>%
-  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
+  mutate(Condition = "Exclude Vogelherd") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree,
+                transitivity, modularity)
 ```
 
 ## S8.2 Results
 
 ```{r}
-# ── Baseline artifact data (original phase assignments) ────────────────────
-proto_base   <- make_phase_data("proto_aurignacian", signbase_full_clean, lat_long_df)
-early_base   <- make_phase_data("early_aurignacian", signbase_full_clean, lat_long_df)
-evolved_base <- make_phase_data("evolved_aurignacian", signbase_full_clean, lat_long_df)
-
-proto_art   <- extract_artifact(proto_base)
-early_art   <- extract_artifact(early_base)
-evolved_art <- extract_artifact(evolved_base)
-```
-
-```{r}
 #| label: tbl-reclass-comparison
-#| tbl-cap: "Network statistics under three conditions: baseline (all sites as originally assigned), reclassified (Abri Pataud and La Ferrassie moved to Early Aurignacian, Mladeč moved to Evolved Aurignacian), and excluded (reclassified sites plus Vogelherd removed entirely). Threshold = 0.2, Jaccard similarity."
+#| tbl-cap: "Network statistics under three conditions: baseline (technology-based assignment), date-based (each object assigned purely by calibrated radiocarbon date, with the Spy/El Castillo exclusions retained), and exclude Vogelherd (technology-based baseline with the site of Vogelherd removed entirely). Threshold = 0.2, Jaccard similarity."
 #| tbl-cap-location: bottom
 
 baseline_reclass <- bind_rows(
-  network_stats(proto_art, threshold = 0.2) %>% mutate(Phase = "Proto-Aurignacian"),
-  network_stats(early_art, threshold = 0.2) %>% mutate(Phase = "Early Aurignacian"),
-  network_stats(evolved_art, threshold = 0.2) %>% mutate(Phase = "Evolved Aurignacian")
+  network_stats(aurp1_artifact_data, threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
+  network_stats(aurp2_artifact_data, threshold = 0.2) %>% mutate(Phase = "Aur-P2")
 ) %>%
-  mutate(Condition = "Baseline") %>%
+  mutate(Condition = "Baseline (technology-based)") %>%
   dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
 
-all_reclass <- bind_rows(baseline_reclass, reclass_stats, excl_stats)
+all_reclass <- bind_rows(baseline_reclass, date_stats, no_vog_stats)
 
 kable(all_reclass,
       col.names = c("Phase", "Condition", "Sites", "Edges", "Density",
@@ -1988,39 +1941,35 @@ kable(all_reclass,
 ```
 
 ```{r}
-# ── Compute % change from baseline for prose ────────────────────────────────
-reclass_pct <- all_reclass %>%
-  group_by(Phase) %>%
-  mutate(baseline_md = first(mean_degree),
-         pct_change = round((mean_degree - baseline_md) / baseline_md * 100, 1)) %>%
-  ungroup()
+# ── Inline helpers for prose ────────────────────────────────────────────────
+s8_md <- function(ph, cond) round(all_reclass$mean_degree[all_reclass$Phase == ph & all_reclass$Condition == cond], 2)
+s8_ns <- function(ph, cond) all_reclass$n_sites[all_reclass$Phase == ph & all_reclass$Condition == cond]
+s8_ne <- function(ph, cond) all_reclass$n_edges[all_reclass$Phase == ph & all_reclass$Condition == cond]
+s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph & all_reclass$Condition == cond], 3)
 ```
 
-### Reclassification effects by phase
+### Effects by condition
 
-**Proto-Aurignacian.** Reclassifying Abri Pataud, La Ferrassie, and Mladeč reduces the Proto from `r all_reclass$n_sites[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_sites[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]` sites and from `r all_reclass$n_edges[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_edges[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]` edges. Mean degree drops from `r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]` (`r reclass_pct$pct_change[reclass_pct$Phase == "Proto-Aurignacian" & reclass_pct$Condition == "Reclassified"]`%), and modularity increases from `r all_reclass$modularity[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$modularity[all_reclass$Phase == "Proto-Aurignacian" & reclass_pct$Condition == "Reclassified"]`. The loss of La Ferrassie — the most connected node in the baseline Proto-Aurignacian network — is the primary driver of this decline.
+**Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 (its ~35–36 ka BP (calibrated) dates fall in the Early Aurignacian range, which is folded into Aur-P1), while Hohle Fels and Vogelherd are split across the phases by object date: 21 of 50 Hohle Fels objects and 160 of 173 Vogelherd objects remain in Aur-P1, and 29 and 13 objects — those calibrated to ~32 ka BP or younger — move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 — now missing Mladeč but containing 42 young-dated objects from Hohle Fels and Vogelherd — has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
 
-**Early Aurignacian.** Adding Abri Pataud and La Ferrassie increases the Early from `r all_reclass$n_sites[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_sites[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]` sites and from `r all_reclass$n_edges[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_edges[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]` edges. Mean degree rises from `r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]` (`r reclass_pct$pct_change[reclass_pct$Phase == "Early Aurignacian" & reclass_pct$Condition == "Reclassified"]`%).
+**Vogelherd exclusion (Analysis B).** Removing Vogelherd's 173 objects from the technology-based baseline reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges. Mean degree falls from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")` (−3.2%), and modularity from `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Vogelherd")`. Aur-P2 is unaffected (`r s8_md("Aur-P2", "Exclude Vogelherd")`, `r s8_ne("Aur-P2", "Exclude Vogelherd")` edges, `r s8_ns("Aur-P2", "Exclude Vogelherd")` sites).
 
-**Evolved Aurignacian.** Adding Mladeč increases the Evolved from `r all_reclass$n_sites[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_sites[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]` sites and from `r all_reclass$n_edges[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$n_edges[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]` edges. Mean degree rises from `r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]` to `r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]` (`r reclass_pct$pct_change[reclass_pct$Phase == "Evolved Aurignacian" & reclass_pct$Condition == "Reclassified"]`%).
+## S8.3 Phase-Ordering Robustness
 
-## S8.3 Phase-Ordering Reversal
+The most consequential finding is that **the Aur-P1 > Aur-P2 connectivity ordering is preserved under every condition**:
 
-The most consequential finding is that **the phase ordering of connectivity reverses under reclassification**:
+| Condition | Aur-P1 mean° | Aur-P2 mean° | Ordering |
+|-----------|-------------|-------------|----------|
+| Baseline (technology-based) | `r s8_md("Aur-P1", "Baseline (technology-based)")` | `r s8_md("Aur-P2", "Baseline (technology-based)")` | Aur-P1 > Aur-P2 |
+| Date-based | `r s8_md("Aur-P1", "Date-based")` | `r s8_md("Aur-P2", "Date-based")` | Aur-P1 > Aur-P2 |
+| Exclude Vogelherd | `r s8_md("Aur-P1", "Exclude Vogelherd")` | `r s8_md("Aur-P2", "Exclude Vogelherd")` | Aur-P1 > Aur-P2 |
 
-| Condition | Ordering |
-|-----------|----------|
-| Baseline | Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Baseline"]`) > Early (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Baseline"]`) > Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Baseline"]`) |
-| Reclassified | Early (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Reclassified"]`) > Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Reclassified"]`) > Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Reclassified"]`) |
-
-Under the reclassified assignments, the Early Aurignacian becomes the most connected phase, the Evolved Aurignacian is intermediate, and the Proto-Aurignacian — which loses La Ferrassie, its primary hub — becomes the least connected. This ordering is preserved when Vogelherd is additionally excluded (Analysis B): Early (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`) > Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`) > Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`).
+Under the date-based assignment Aur-P1's mean degree rises (from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Date-based")`) and Aur-P2's falls (from `r s8_md("Aur-P2", "Baseline (technology-based)")` to `r s8_md("Aur-P2", "Date-based")`), so the contrast is not an artefact of the technological reassignment — the naive date-based assignment, if anything, strengthens it. Excluding Vogelherd weakens but does not remove the contrast (`r s8_md("Aur-P1", "Exclude Vogelherd")` vs `r s8_md("Aur-P2", "Exclude Vogelherd")`).
 
 ## S8.4 Interpretation
 
-The reclassification analysis reveals that the main-text finding — that the Proto-Aurignacian was the most connected phase — is **contingent on the assignment of La Ferrassie to the Proto-Aurignacian**. La Ferrassie contributes 22 objects to the Proto-Aurignacian and serves as the network's primary hub. When it is reassigned to the Early Aurignacian (where its lithic technology places it: carinated scrapers, wide Aurignacian blades, no split-base points; Talamo et al. 2020; Delporte et al. 1977), the Proto-Aurignacian loses its hub structure and its mean degree drops below both the Early and Evolved phases.
+The robustness of the Aur-P1 > Aur-P2 connectivity contrast to both the assignment criterion and to the removal of the largest site strengthens the main-text conclusion that the early phase supports a larger, more hub-centred sign-sharing network. The date-based alternative is a useful worst case: it fragments long-occupied sites across phases and moves Mladeč into Aur-P1, yet Aur-P1 remains the more connected phase.
 
-This does not invalidate the main-text analysis, but it necessitates a qualification: **the Proto-Aurignacian's apparent connectivity advantage depends on radiocarbon-based phase assignments that specialist lithic analysis contradicts.** The three-phase ordering Proto > Early > Evolved should be treated as a hypothesis consistent with one plausible phase assignment, not as a demonstrated fact. Two alternative orderings — Early > Evolved > Proto (reclassified) and Early > Proto > Evolved (intermediate scenarios) — are equally consistent with the data under different but archaeologically justified phase attributions.
+The observed between-phase modularity values are, however, assignment-sensitive: they reverse under the date-based assignment (Aur-P1 `r s8_mo("Aur-P1", "Date-based")` < Aur-P2 `r s8_mo("Aur-P2", "Date-based")`, versus `r s8_mo("Aur-P1", "Baseline (technology-based)")` > `r s8_mo("Aur-P2", "Baseline (technology-based)")` at baseline). The main text's between-phase modularity claim rests on the pairwise permutation test computed on the technology-based baseline adopted here, not on the raw modularity ordering, and S5.7 shows that the modularity confidence intervals overlap substantially (Aur-P2 rests on only 8 sites). We therefore recommend reading the between-phase contrast primarily as a difference in community structure demonstrated by the permutation test, rather than as a robust ordering of modularity values across alternative assignments.
 
-What remains robust across all conditions is the **two-group community structure**: restricted-range and broader-range assemblages persist in every phase regardless of which sites are included. The perMANOVA results confirming significant group separation in sign composition are also expected to hold, since the reclassified sites (Abri Pataud, La Ferrassie, Mladeč) belong to the restricted-range group in the Proto-Aurignacian and would occupy analogous positions in their new phases. The broader conclusion that Aurignacian communities maintained differentiated sign repertoires — possibly reflecting variation in social structure — is not affected by the reclassification.
-
-The exclusion analysis (Analysis B) shows that removing all four problematic sites (Abri Pataud, La Ferrassie, Mladeč, Vogelherd) further reduces connectivity across all phases but preserves the reclassified ordering: the Early Aurignacian (`r all_reclass$mean_degree[all_reclass$Phase == "Early Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`°) remains the most connected, followed by the Evolved (`r all_reclass$mean_degree[all_reclass$Phase == "Evolved Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`°) and the Proto (`r all_reclass$mean_degree[all_reclass$Phase == "Proto-Aurignacian" & all_reclass$Condition == "Excl. reclassified + Vogelherd"]`°). The fact that the Early Aurignacian retains the highest connectivity even without Vogelherd — which contributes 50 figurines and 114 non-figurine objects — indicates that its network structure is driven by multiple sites (Hohle Fels, Solutré, Castanet, Cellier, Blanchard) rather than by a single outlier assemblage.
+Excluding Vogelherd leaves the ordering intact, consistent with S7's finding that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) — the restricted/broad dichotomy recovered by seriation, Louvain community detection, bootstrap consensus, and the stochastic block model (S5, S6) — is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here.

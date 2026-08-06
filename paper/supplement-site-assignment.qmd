@@ -49,6 +49,7 @@ The following code loads the raw SignBase dataset, parses radiocarbon dates, cal
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(readr)
 library(rcarbon)
 library(here)
 
@@ -117,6 +118,8 @@ signbase_full_clean <- signbase_full_clean %>%
 # Proto-Aurignacian:  > 39,799 BP
 # Early Aurignacian:  37,799–39,799 BP
 # Evolved Aurignacian: 31,999–37,799 BP
+# These three-phase labels are then collapsed to the two-phase (Aur-P1/Aur-P2)
+# scheme used in the main analysis: Aur-P1 = Proto + Early, Aur-P2 = Evolved/Late.
 
 signbase_full_clean <- signbase_full_clean %>%
   mutate(time_period = case_when(
@@ -138,6 +141,8 @@ signbase_full_clean <- signbase_full_clean %>%
     MedianBP > 31999 ~ "evolved_aurignacian"
   )) %>%
   filter(!is.na(time_period)) %>%
+  mutate(phase2 = ifelse(time_period %in% c("proto_aurignacian", "early_aurignacian"),
+                         "Aur-P1", "Aur-P2")) %>%
   mutate(sign_total = rowSums(.[, 25:53])) %>%
   filter(sign_total > 0)
 ```
@@ -145,7 +150,7 @@ signbase_full_clean <- signbase_full_clean %>%
 ```{r}
 #| label: summary-counts
 site_summary <- signbase_full_clean %>%
-  group_by(time_period) %>%
+  group_by(phase2) %>%
   summarise(
     sites = n_distinct(site_name),
     objects = n(),
@@ -154,6 +159,82 @@ site_summary <- signbase_full_clean %>%
   arrange(desc(objects))
 
 site_summary
+```
+
+```{r}
+#| label: site-basis
+# Literature-rationale text ONLY: the site names and object counts come from
+# the pipeline above; only the "Basis" citation strings are recorded by hand.
+# Any site not listed here is date-assigned (the default case_when branch).
+site_basis <- data.frame(
+  site_name = c("Hohle Fels", "Geissenklösterle", "Vogelherd", "La Ferrassie",
+                "Abri Pataud", "Gatzarria", "Mladeč"),
+  assignment = "technology",
+  basis = c(
+    "Early Aurignacian (Bataille & Conard 2018; Dinnis et al. 2019)",
+    "Early Aurignacian (Bataille & Conard 2018)",
+    "Early Aurignacian (Schürch & Conard 2026; Bataille & Conard 2018)",
+    "Early Aurignacian (Talamo et al. 2020)",
+    "Early Aurignacian (Chiotti 2005; Higham et al. 2011)",
+    "Proto-Aurignacian, layer Cjn2 (Barshay-Szmidt et al. 2012)",
+    "Evolved Aurignacian (Oliva 2006)"
+  )
+)
+
+excluded_basis <- data.frame(
+  site_name = c("Spy", "El Castillo"),
+  assignment = "excluded",
+  basis = c(
+    "Mixed assemblage, no single Proto-Aurignacian attribution (Flas et al. 2013; Flas 2015; Semal et al. 2009)",
+    "Mixed/contaminated layers preclude reliable assignment"
+  )
+)
+
+# Object counts per retained site, tagged by assignment basis
+site_objects <- signbase_full_clean %>%
+  group_by(site_name, phase2) %>%
+  summarise(objects = n(), median_bp = median(MedianBP), .groups = "drop") %>%
+  left_join(site_basis, by = "site_name") %>%
+  mutate(assignment = ifelse(is.na(assignment), "date", assignment))
+
+# Date-assigned sites get the threshold string generated from their own MedianBP
+site_objects <- site_objects %>%
+  mutate(basis = ifelse(
+    assignment == "date",
+    case_when(
+      median_bp > 39799 ~ "MedianBP > 39,799",
+      median_bp > 37799 ~ "MedianBP 37,799\u201339,799",
+      TRUE               ~ "MedianBP 31,999\u201337,799"
+    ),
+    basis
+  )) %>%
+  mutate(basis = ifelse(
+    site_name == "Fumane",
+    "MedianBP > 39,799 (Protoaurignacian throughout sequence; Falcucci et al. 2017, 2020)",
+    basis
+  ))
+
+knitr::kable(site_objects, caption = "Retained sites with object counts and assignment basis.")
+```
+
+```{r}
+#| label: numeric-summary
+# Inline-prose numbers computed from the pipeline (never hard-coded).
+zero_sign_objects <- signbase_full %>%
+  mutate(sign_total = rowSums(.[, 25:53])) %>%
+  filter(sign_total == 0)
+
+n_zero_objects <- nrow(zero_sign_objects)
+n_zero_sites  <- n_distinct(zero_sign_objects$site_name)
+
+n_retained_sites    <- n_distinct(signbase_full_clean$site_name)
+n_retained_objects  <- nrow(signbase_full_clean)
+n_retained_countries <- n_distinct(signbase_full_clean$country)
+
+n_p1_sites   <- site_summary[["sites"]][site_summary$phase2 == "Aur-P1"]
+n_p1_objects <- site_summary[["objects"]][site_summary$phase2 == "Aur-P1"]
+n_p2_sites   <- site_summary[["sites"]][site_summary$phase2 == "Aur-P2"]
+n_p2_objects <- site_summary[["objects"]][site_summary$phase2 == "Aur-P2"]
 ```
 
 ## Key literature findings
@@ -166,9 +247,9 @@ site_summary
 
 ### Vogelherd → Early Aurignacian
 
-- Schürch & Conard 2026 (JPA): Reassesses cultural stratigraphy; AH IV–V are Aurignacian but with severe mixing (38 refit connections between layers); 15 radiocarbon dates span 42–34.5 ka cal BP; Gravettian also present.
+- Schürch & Conard 2026 (JPA): Reassesses cultural stratigraphy; AH IV–V are Aurignacian but with severe mixing (38 refit connections between layers); 15 radiocarbon dates span 42–34.5 ka BP (calibrated); Gravettian also present.
 - Schürch et al. 2025 (PLoS ONE): Blade/bladelet production analysis; mixing documented but majority of artifacts are Aurignacian.
-- Conard & Bolus 2003, 2008: Original dating of Vogelherd Aurignacian to 41–35 ka cal BP.
+- Conard & Bolus 2003, 2008: Original dating of Vogelherd Aurignacian to 41–35 ka BP (calibrated).
 
 ### Fumane → Protoaurignacian
 
@@ -207,128 +288,128 @@ site_summary
 
 ## Site status table
 
-All 72 sites in `signBase_Version1.0.csv`. Of these, 64 have sign data and enter the analysis; 15 objects from 13 sites have zero signs and are excluded upstream. After reclassification, 2 sites (Spy, El Castillo) are excluded due to mixing, leaving 62 retained sites.
+`signBase_Version1.0.csv` contains **`r nrow(signbase_full)` objects distributed across `r n_distinct(signbase_full$site_name)` sites**. `r n_zero_objects` objects from `r n_zero_sites` sites carry no geometric signs and are excluded upstream. A further eight sites are removed from the sample before phase assignment (Willendorf; Muralovka, Shanidar Cave and Hayonim Cave for geographic isolation; El Salitre for lack of a reliable chronological context; Riparo di Fontana Nuova and Grotte De La Princesse Pauline, and Šandalja II as later or peripheral). After phase reclassification and the exclusion of the two mixed-assemblage sites Spy and El Castillo, the analysed sample retains **`r n_retained_sites` sites carrying `r n_retained_objects` objects across `r n_retained_countries` countries**: Aur-P1 (Proto/Early) has `r n_p1_sites` sites and `r n_p1_objects` objects, Aur-P2 (Evolved/Late) has `r n_p2_sites` sites and `r n_p2_objects` objects.
 
 ```{r}
 #| label: site-table
 #| echo: false
 site_table <- signbase_full_clean %>%
-  group_by(site_name, time_period) %>%
+  group_by(site_name, phase2) %>%
   summarise(objects = n(), .groups = "drop") %>%
   arrange(site_name)
 
 knitr::kable(site_table, col.names = c("Site", "Phase", "Objects"),
-             caption = "Sites and object counts after phase reclassification.")
+             caption = "Sites and object counts after phase reclassification (Aur-P1 = Proto/Early, Aur-P2 = Evolved/Late).")
 ```
 
-### Reclassified to Early Aurignacian
+### Aur-P1 (Proto/Early) — technology-based assignment
 
-| Site | Objects | Original phase | New phase | Basis |
-|------|---------|---------------|-----------|-------|
-| Vogelherd | 173 | Proto | Early | Schürch & Conard 2026; Bataille & Conard 2018 |
-| Hohle Fels | 50 | Proto | Early | Bataille & Conard 2018; Dinnis et al. 2019 |
-| Geissenklösterle | 30 | Proto | Early | Bataille & Conard 2018 |
-| La Ferrassie | 22 | Proto | Early | Talamo et al. 2020 |
-| Abri Pataud | 3 | Proto | Early | Chiotti 2005; Higham et al. 2011 |
+Sites placed in Aur-P1 on the basis of specialist technological attributions rather than radiocarbon dates alone.
 
-### Reclassified to Evolved Aurignacian
+```{r}
+#| label: tbl-tech-aurp1
+#| echo: false
+tech_p1 <- site_objects %>%
+  filter(assignment == "technology", phase2 == "Aur-P1") %>%
+  arrange(desc(objects)) %>%
+  select(site_name, objects, basis)
 
-| Site | Objects | Original phase | New phase | Basis |
-|------|---------|---------------|-----------|-------|
-| Mladeč | 4 | Evolved | Evolved | Oliva 2006 |
+knitr::kable(tech_p1, col.names = c("Site", "Objects", "Basis"),
+             caption = "Aur-P1 sites assigned by technology rather than radiocarbon date.")
+```
+
+### Aur-P2 (Evolved/Late) — technology-based assignment
+
+```{r}
+#| label: tbl-tech-aurp2
+#| echo: false
+tech_p2 <- site_objects %>%
+  filter(assignment == "technology", phase2 == "Aur-P2") %>%
+  select(site_name, objects, basis)
+
+knitr::kable(tech_p2, col.names = c("Site", "Objects", "Basis"),
+             caption = "Aur-P2 sites assigned by technology rather than radiocarbon date.")
+```
 
 ### Excluded due to mixing
 
-| Site | Objects | Original phase | New phase | Basis |
-|------|---------|---------------|-----------|-------|
-| Spy | 25 | Proto | Excluded | Mixed assemblage, no Proto-Aurignacian (Flas et al. 2013; Flas 2015; Semal et al. 2009) |
-| El Castillo | 3 | Proto | Excluded | Mixed/contaminated layers |
+```{r}
+#| label: tbl-excluded
+#| echo: false
+excluded_table <- signbase_full %>%
+  mutate(sign_total = rowSums(.[, 25:53])) %>%
+  filter(site_name %in% excluded_basis$site_name, sign_total > 0) %>%
+  group_by(site_name) %>%
+  summarise(objects = n(), .groups = "drop") %>%
+  left_join(excluded_basis, by = "site_name") %>%
+  select(site_name, objects, basis)
 
-### Proto-Aurignacian (technological attribution)
+knitr::kable(excluded_table, col.names = c("Site", "Objects", "Basis"),
+             caption = "Sites excluded from the analysis because of mixed/contaminated assemblages.")
+```
 
-| Site | Objects | Original phase | New phase | Basis |
-|------|---------|---------------|-----------|-------|
-| Gatzarria | 3 | Proto | Proto | Cjn2 Proto-Aurignacian (Barshay-Szmidt et al. 2012) |
-| Fumane | 1 | Proto | Proto | Protoaurignacian throughout sequence (Falcucci et al. 2017, 2020) |
+### Aur-P1 (Proto/Early) — date-based assignment
 
-### Proto-Aurignacian (date-based assignment)
+Sites assigned by the calibrated date thresholds in the `assign-phases` chunk (default case), which fall in Aur-P1 once the Proto/Early distinction is collapsed. Sites listed here are unchanged from a date-only assignment.
 
-| Site | Objects | Original phase | New phase | Basis |
-|------|---------|---------------|-----------|-------|
-| Hohlenstein-Stadel | 2 | Proto | Proto | MedianBP > 39,799 |
-| Pod Hradem | 1 | Proto | Proto | MedianBP > 39,799 |
-| Les Cottés | 2 | Proto | Proto | MedianBP > 39,799 |
-| Labeko Koba | 2 | Proto | Proto | MedianBP > 39,799 |
+```{r}
+#| label: tbl-date-aurp1
+#| echo: false
+date_p1 <- site_objects %>%
+  filter(assignment == "date", phase2 == "Aur-P1") %>%
+  arrange(desc(objects)) %>%
+  select(site_name, objects, basis)
 
-### Early Aurignacian (date-based assignment, selected)
+knitr::kable(date_p1, col.names = c("Site", "Objects", "Basis"),
+             caption = "Aur-P1 sites assigned by their calibrated radiocarbon date.")
+```
 
-| Site | Objects | Original phase | New phase | Basis |
-|------|---------|---------------|-----------|-------|
-| Cellier | 28 | Early | Early | MedianBP 37,799–39,799 |
-| Castanet | 21 | Early | Early | MedianBP 37,799–39,799 |
-| Blanchard | 18 | Early | Early | MedianBP 37,799–39,799 |
-| Grotte de Goyet | 12 | Early | Early | MedianBP 37,799–39,799 |
-| Trou Magrite | 12 | Early | Early | MedianBP 37,799–39,799 |
-| Gargas | 11 | Early | Early | MedianBP 37,799–39,799 |
-| Hayonim Cave | 9 | Early | Early | MedianBP 37,799–39,799 |
-| Grotte du Renne | 7 | Early | Early | MedianBP 37,799–39,799 |
-| Maisières-Canal | 5 | Early | Early | MedianBP 37,799–39,799 |
-| Abri de Laussel | 5 | Early | Early | MedianBP 37,799–39,799 |
-| Grotte De La Princesse Pauline | 4 | Early | Early | MedianBP 37,799–39,799 |
-| Grotte de la Verpillière I | 4 | Early | Early | MedianBP 37,799–39,799 |
-| Solutré | 4 | Early | Early | MedianBP 37,799–39,799 |
-| Bockstein-Törle | 3 | Early | Early | MedianBP 37,799–39,799 |
-| Brassempouy | 3 | Early | Early | MedianBP 37,799–39,799 |
-| Istállóskő Cave | 3 | Early | Early | MedianBP 37,799–39,799 |
-| Nová Dědina | 3 | Early | Early | MedianBP 37,799–39,799 |
-| Riparo Bombrini | 3 | Early | Early | MedianBP 37,799–39,799 |
-| Žlutava | 3 | Early | Early | MedianBP 37,799–39,799 |
-| Abri Lartet/Gorge d'Enfer | 2 | Early | Early | MedianBP 37,799–39,799 |
-| La Souquette | 2 | Early | Early | MedianBP 37,799–39,799 |
-| Le Trou Du Renard | 2 | Early | Early | MedianBP 37,799–39,799 |
-| Menton/Grottes du Grimaldi | 2 | Early | Early | MedianBP 37,799–39,799 |
-| Muralovka | 2 | Early | Early | MedianBP 37,799–39,799 |
-| Tuto de Camalhot | 2 | Early | Early | MedianBP 37,799–39,799 |
-| Abri du Poisson | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Aurignac | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Breitenbach | 1 | Early | Early | MedianBP 37,799–39,799 |
-| El Rascaño | 1 | Early | Early | MedianBP 37,799–39,799 |
-| El Salitre | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Göpfelsteinhöhle | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Grottes de Fonds-de-Forêt | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Hornos de la Pena | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Kvasice | 1 | Early | Early | MedianBP 37,799–39,799 |
-| La Viña | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Le Terme Pialat | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Les Rois | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Lhotka | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Otaslavice | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Peskő Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Riparo di Fontana Nuova | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Shanidar Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Shelter Birów IV | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Sirgenstein Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Slatinice | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Trou al'Wesse | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Vindija Cave | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Wildscheuer | 1 | Early | Early | MedianBP 37,799–39,799 |
-| d'Engihoul | 1 | Early | Early | MedianBP 37,799–39,799 |
-| Šandalja II | 1 | Early | Early | MedianBP 37,799–39,799 |
+### Aur-P2 (Evolved/Late) — date-based assignment
 
-### No sign data (excluded upstream)
+```{r}
+#| label: tbl-date-aurp2
+#| echo: false
+date_p2 <- site_objects %>%
+  filter(assignment == "date", phase2 == "Aur-P2") %>%
+  arrange(desc(objects)) %>%
+  select(site_name, objects, basis)
 
-| Site | Objects (total) | Objects (signs) | Reason |
-|------|-----------------|-----------------|--------|
-| Willendorf | 1 | 0 | Zero sign count |
-| Vogelherd | 2 | 0 | Zero sign count |
-| Maisières-Canal | 2 | 0 | Zero sign count |
-| Abri de Laussel | 1 | 0 | Zero sign count |
-| Blanchard | 1 | 0 | Zero sign count |
-| Castanet | 1 | 0 | Zero sign count |
-| Cellier | 1 | 0 | Zero sign count |
-| Fumane | 1 | 0 | Zero sign count |
-| Grotte de Goyet | 1 | 0 | Zero sign count |
-| Labeko Koba | 1 | 0 | Zero sign count |
-| Menton/Grottes du Grimaldi | 1 | 0 | Zero sign count |
-| Nová Dědina | 1 | 0 | Zero sign count |
-| Spy | 1 | 0 | Zero sign count |
+knitr::kable(date_p2, col.names = c("Site", "Objects", "Basis"),
+             caption = "Aur-P2 sites assigned by their calibrated radiocarbon date.")
+```
+
+### Objects without geometric signs
+
+These are **individual objects**, not sites: 15 objects from 13 sites carry no geometric signs and are removed upstream by the `sign_total > 0` filter. A site's signed objects remain in the analysis only if the site also passes the date-parsing/calibration step (27 sites drop out there) and phase assignment.
+
+```{r}
+#| label: tbl-zero-sign
+#| echo: false
+zero_sign_summary <- signbase_full %>%
+  mutate(sign_total = rowSums(.[, 25:53])) %>%
+  group_by(site_name) %>%
+  summarise(
+    objects_without_signs = sum(sign_total == 0),
+    signed_objects = sum(sign_total > 0),
+    .groups = "drop"
+  ) %>%
+  filter(objects_without_signs > 0) %>%
+  arrange(desc(objects_without_signs)) %>%
+  mutate(
+    in_analysis = ifelse(site_name %in% signbase_full_clean$site_name,
+                         "Yes",
+                         ifelse(site_name %in% c("Spy", "El Castillo"),
+                                "No (excluded for mixing)",
+                                ifelse(site_name %in% c("Willendorf", "Riparo di Fontana Nuova", "Muralovka",
+                                                       "Shanidar Cave", "Hayonim Cave", "El Salitre",
+                                                       "Grotte De La Princesse Pauline", "Šandalja II"),
+                                       "No (excluded before phase assignment)",
+                                       "No (date parsing)")))
+  )
+
+knitr::kable(zero_sign_summary,
+             col.names = c("Site", "Objects without signs", "Signed objects", "In analysis?"),
+             caption = "Sites contributing objects without geometric signs, and whether the site remains in the analysis.")
+```
+
+Only **Willendorf** and **Spy** drop out entirely; the remaining "No" sites are lost at the date-parsing/calibration step rather than because of the zero-sign filter.

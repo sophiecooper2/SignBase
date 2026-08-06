@@ -1,5 +1,5 @@
 # functions.R
-# Single source of truth for all functions used by paper.qmd and supplement.qmd.
+# Single source of truth for all functions used by paper.qmd and the supplements.
 # Sourced from both documents; do not duplicate function definitions elsewhere.
 
 # ── Package loading ──────────────────────────────────────────────────────────
@@ -127,11 +127,13 @@ mplot <- function(x, ..., fill_colour = "black", title = NULL,
     scale_x_continuous(
       breaks = 1:ncol(x),
       labels = col_labels,
-      position = "top"
+      position = "top",
+      expand = c(0, 0)
     ) +
     scale_y_continuous(
       breaks = 1:nrow(x),
-      labels = row_labels
+      labels = row_labels,
+      expand = c(0, 0)
     ) +
     theme(
       axis.text = element_text(size = rel(1)),
@@ -139,7 +141,7 @@ mplot <- function(x, ..., fill_colour = "black", title = NULL,
       legend.position = "none",
       plot.title = element_text(hjust = 1,
                                 margin = margin(b = 2)),
-      plot.margin = margin(t = 0, r = 4, b = 2, l = 4)
+      plot.margin = margin(t = 0, r = 4, b = 0, l = 4)
     ) +
     labs(x = "", y = "") +
     rotate_x_text(angle = 90, hjust = 0, vjust = 0.5)
@@ -717,3 +719,36 @@ run_betadisper <- function(phase_df, groups) {
 # Ensure ggplot2::autoplot() dispatches to autoplot.DiversityIndex even when the
 # function is defined in a sourced script rather than the global environment.
 registerS3method("autoplot", "DiversityIndex", autoplot.DiversityIndex)
+
+# ── Paper-specific helpers ──────────────────────────────────────────────────────
+# Build per-phase (Aur-P1/Aur-P2) site-level data from the object-level table.
+# Uses the `phase2` column created during data cleaning.
+# `signbase_full_clean` and `lat_long_df` are expected to exist in the calling
+# environment (created in the document setup chunks).
+make_phase2_data <- function(phase2_val, signbase_full_clean, lat_long_df) {
+  df <- signbase_full_clean %>%
+    filter(phase2 == phase2_val) %>%
+    mutate(longitude = as.character(longitude),
+           latitude  = as.character(latitude))
+  obj_num <- df %>%
+    group_by(site_name) %>%
+    summarise(nobjects = n())
+  df %>%
+    group_by(site_name) %>%
+    summarize(across(where(is.numeric), sum)) %>%
+    left_join(lat_long_df) %>%
+    left_join(obj_num) %>%
+    mutate(time_period = phase2_val)
+}
+
+# Mantel test for sign similarity vs geographic distance for a subset of sites.
+# `sites`: character vector of site names (row names in Smat and geom_full).
+# `Smat`: full site × sign matrix (binary or count).
+# `geom_full`: sf object with geometry column matching Smat row order.
+# Returns Mantel R statistic.
+mantel_R_phase <- function(sites, Smat, geom_full) {
+  i <- match(sites, rownames(Smat))
+  jac <- vegan::vegdist(Smat[i, , drop = FALSE], "jaccard", binary = TRUE)
+  gd  <- as.dist(sf::st_distance(geom_full[i, ]) / 1000)
+  vegan::mantel(gd, jac, permutations = 0)$statistic
+}
