@@ -218,13 +218,14 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
     jac <- vegdist(artifact_data, method = metric, binary = TRUE)
   }
   dm <- as.matrix(jac)
+  group_sizes <- NULL
 
   if (method == "seriation") {
     artifact_matrix <- as.matrix(artifact_data)
     rownames(artifact_matrix) <- rownames(artifact_data)
 
     group <- artifact_data_unique$group
-    unique_group <- unique(group)
+    unique_group <- sort(unique(group))
     row_colors <- setNames(color_palette, unique_group)
     result <- concentrate(artifact_matrix, group = group)
     concentrated_matrix <- result$matrix
