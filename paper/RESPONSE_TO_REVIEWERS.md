@@ -1,25 +1,29 @@
+---
+format: docx
+---
+
 # Response to Reviewers
 
-**Manuscript:** "Geometric signs as proxies for cultural connectivity during the Western Eurasian Aurignacian"
-**Journal:** PLOS ONE
-**Date:** 2026-08-05
+Manuscript: "Geometric signs as proxies for cultural connectivity during the Western Eurasian Aurignacian"
+Journal: PLOS ONE
+Date: 2026-08-05
 
-We thank the handling editor and both reviewers for their careful reading and constructive comments. We have treated the archaeological concerns raised by Reviewer 2 — and the editor's and Dr. Peresani's guidance on those same points — as the primary basis for the revision, and we address every comment below. For each item we quote the original request and then describe the change made and where it appears in the revised manuscript or its supplements.
+We thank the handling editor, both reviewers, and Dr Peresani for their careful reading and constructive comments. We have treated the archaeological concerns raised by Reviewer 2, and the editor's and Dr. Peresani's guidance on those same points, as the primary basis for the revision, and we address every comment below. For each item we quote the original request and then describe the change made and where it appears in the revised manuscript or its supplements.
 
 ## Summary of major revisions
 
-1. **Two-phase framework.** Replaced the four-phase scheme (including the erroneous "Transitional" phase) with the two-phase Aur-P1/Aur-P2 baseline of Shao et al. (2021): Aur-P1 = Proto + Early (43–37 ka BP), Aur-P2 = Evolved + Late (37–32 ka BP).
-2. **Technology-based site assignment.** Sites are assigned to phases from specialist technological attributions in the published literature, not from radiocarbon dates alone; Spy and El Castillo are excluded as too mixed to phase, and Gatzarria is retained in the Proto-Aurignacian with justification.
-3. **Corrected Table 1 markers.** The material-culture markers for the Aurignacian and for the Early and Evolved phases were corrected per Reviewer 2.
-4. **Moderated claims.** The title, Abstract, and Conclusions were rewritten to the editor's cautious formulations; strong terms ("we demonstrate", "reveals peak inter-group connectivity", aggregation claims) were replaced.
-5. **New sensitivity analyses.** Alternative thresholds (0.1/0.3), alternative metrics (Sørensen–Dice, Simpson), a continuous threshold sweep, bootstrap CIs, a figurine-exclusion test (Vogelherd), and a date-based reclassification alternative were added.
-6. **Reproducibility.** The supplements now carry the processed data, excluded-site list, per-site phase assignments, matrices, and all R code; the site-assignment supplement is generated directly from the pipeline.
+1. Two-phase framework: Replaced the four-phase scheme (including the erroneous "Transitional" phase) with the two-phase Aur-P1/Aur-P2 baseline of Shao et al. (2021): Aur-P1 = Proto + Early (43–37 ka BP), Aur-P2 = Evolved + Late (37–32 ka BP).
+2. Technology-based site assignment: Sites are assigned to phases from specialist technological attributions in the published literature, not from radiocarbon dates alone; Spy and El Castillo are excluded as too mixed to phase, and Gatzarria is retained in the Proto-Aurignacian with justification.
+3. Corrected Table 1 markers: The material-culture markers for the Aurignacian and for the Early and Evolved phases were corrected per Reviewer 2.
+4. Moderated claims: The title, Abstract, and Conclusions were rewritten to the editor's cautious formulations; strong terms ("we demonstrate", "reveals peak inter-group connectivity", aggregation claims) were replaced.
+5. New sensitivity analyses: Alternative thresholds (0.1/0.3), alternative metrics (Sørensen–Dice, Simpson), a continuous threshold sweep, bootstrap CIs, a figurine-exclusion test (Vogelherd), and a date-based reclassification alternative were added.
+6. Reproducibility: The supplements now carry the processed data, excluded-site list, per-site phase assignments, matrices, and all R code; the site-assignment supplement is generated directly from the pipeline.
 
 ---
 
 ## Editor comments
 
-Where one editorial paragraph raised several distinct requests, we split it into separate items (E-numbers, matching `CLAUDE.md`) so that every point is addressed. Quotes are verbatim from the editor's letter.
+Where one editorial paragraph raised several distinct requests, we split it into separate items so that every point is addressed. Quotes are verbatim from the editor's letter.
 
 ### E1 — Moderate over-strong claims
 
@@ -27,13 +31,13 @@ Where one editorial paragraph raised several distinct requests, we split it into
 
 BM: We moderated four specific over-strong claims in the manuscript so that findings are presented as cautious inferences from geometric-sign distributions rather than as direct evidence of social structures:
 
-1. **Abstract (line 46):** "hub-centred network" → "**network centred on key sites**" (removes the strong "hub" framing).
+1. Abstract: "hub-centred network" → "network centred on key sites" (removes the strong "hub" framing).
 
-2. **Figure 4 caption (line 786, the group-map figure):** it now reads "Geographic distribution of **sign-use groups (Restricted-range and Broader range)** in the two Aurignacian phases…" — the caption uses the descriptive "sign-use groups" label instead of the interpretive "cultural groups" claim (Figure 1's caption, line 346, never used "cultural groups"; the earlier wording was on the group-map figure, which is Figure 4).
+2. Figure 4 caption (the group-map figure): it now reads "Geographic distribution of sign-use groups (Restricted-range and Broader range) in the two Aurignacian phases…" — the caption uses the descriptive "sign-use groups" label instead of the interpretive "cultural groups" claim (Figure 1's caption, line 346, never used "cultural groups"; the earlier wording was on the group-map figure, which is Figure 4).
 
-3. **Results §Group Dynamics (line 901):** "each phase can be divided into two main **cultural groups**" → "each phase can be divided into two main **sign-use groups**" (the Results now describe the seriation output with the same descriptive label).
+3. Results - Group Dynamics: "each phase can be divided into two main cultural groups" → "each phase can be divided into two main sign-use groups" (the Results now describe the seriation output with the same descriptive label).
 
-4. **Discussion limitations (line 1113):** "interpreting the **social organisation patterns** discussed above" → "interpreting the **inferred social organisation patterns** discussed above" (explicitly marks the social-organisation interpretation as inferential).
+4. Discussion limitations: "interpreting the social organisation patterns discussed above" → "interpreting the inferred social organisation patterns discussed above" (explicitly marks the social-organisation interpretation as inferential).
 
 No remaining sentence presents aggregation, social organisation, or inter-group connectivity as demonstrated by the analyses. 
 
