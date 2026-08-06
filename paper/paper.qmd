@@ -680,7 +680,7 @@ obs  <- stat_phase(all_mat, sizes)
 null <- aperm(replicate(nperm, 
                         stat_phase(all_mat[sample(nrow(all_mat)), ], sizes),
                         simplify = "array"),
-              c(2, 3, 1))  
+              c(2, 1, 3))  
 
 phases <- c("Aur-P1", "Aur-P2")
 
@@ -690,11 +690,11 @@ tab <- do.call(rbind, lapply(seq_along(stats), function(s) {
     data.frame(statistic = stats[s], phase = phases[g],
                observed = obs[g, s], null_mean = mean(n),
                ci_lo = quantile(n, 0.025), ci_hi = quantile(n, 0.975),
-               p_upper = mean(n >= obs[g, s]))
+               p_two = pmin(1, 2 * min(mean(n >= obs[g, s]), mean(n <= obs[g, s]))))
   }))
 }))
-tab$p_upper_adj <- p.adjust(tab$p_upper, method = "BH")
-tab$significant <- tab$p_upper_adj < 0.05
+tab$p_two_adj <- p.adjust(tab$p_two, method = "BH")
+tab$significant <- tab$p_two_adj < 0.05
 tab$statistic <- factor(tab$statistic, levels = stats)
 tab$phase <- factor(tab$phase, levels = phases)
 
@@ -777,7 +777,7 @@ The results of the network analysis support the restricted-broad groupings ident
 
 In Aur-P2 the two-group structure is again recovered, with a broad-range group (Trou Magrite, Bockstein-Törle, Hohle Fels) and a restricted-range group (Les Rois, Sirgenstein Cave, La Viña, Mladeč, Gargas, Vindija Cave). Inter-group connectivity remains evident, but the network is far smaller, reflecting the reduced sample of this phase.
 
-@fig-neighbor-net-stats shows the results of permutation tests (n = `r sci_md(nperm)`) assessing whether the observed statistics differ from a random distribution within each phase, and pairwise randomisation tests comparing the two phases. Within-phase, edge density does not significantly differ from random in either phase. Modularity is moderate in Aur-P1 (0.3-0.4), consistent with the restricted/broad community structure [@newman2004finding], and the null-benchmarked and size-normalised (Erdős–Rényi) comparisons in our Supplementary Material item "Sensitivity Analyses" S5.9 evaluate this structure net of network size. Pairwise permutation tests with Benjamini–Hochberg correction show that the phases do not differ significantly in any of the tested network statistics — edge density (p = `r res$p[res$statistic == "density"]`), modularity (p = `r res$p[res$statistic == "modularity"]`), betweenness (p = `r res$p[res$statistic == "betweenness"]`), or component count (p = `r res$p[res$statistic == "components"]`). The Aur-P1–Aur-P2 contrast is therefore primarily one of network scale rather than a statistically distinguishable community structure.
+@fig-neighbor-net-stats shows the results of permutation tests (n = `r sci_md(nperm)`) assessing whether the observed statistics differ from a random distribution within each phase, and pairwise randomisation tests comparing the two phases. Within-phase, Aur-P2 edge density is significantly higher than expected under random site assignment (p < 0.001), while Aur-P1 edge density does not differ from the within-phase null. Aur-P1's modularity and betweenness are likewise significantly higher than expected (p < 0.001), consistent with the restricted/broad community structure [@newman2004finding], whereas Aur-P2's modularity and betweenness, and both phases' component counts, do not differ from the null. The null-benchmarked and size-normalised (Erdős–Rényi) comparisons in our Supplementary Material item "Sensitivity Analyses" S5.9 evaluate this structure net of network size. Pairwise permutation tests with Benjamini–Hochberg correction show that the phases do not differ significantly in any of the tested network statistics — edge density (p = `r res$p[res$statistic == "density"]`), modularity (p = `r res$p[res$statistic == "modularity"]`), betweenness (p = `r res$p[res$statistic == "betweenness"]`), or component count (p = `r res$p[res$statistic == "components"]`). The Aur-P1–Aur-P2 contrast is therefore primarily one of network scale rather than a statistically distinguishable community structure.
 
 ```{r fig.height= 8, fig.width=10}
 #| label: fig-group-map
