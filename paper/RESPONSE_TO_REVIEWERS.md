@@ -71,7 +71,7 @@ BM: We added a full sensitivity programme for the 0.2 threshold. The supplements
 
 > "In my opinion, the perMANOVA results should be interpreted more cautiously. The analysis appears to test differences between restricted-range and broad-range groups within phases, rather than changes between phases themselves. Moreover, because these groups are defined using the same sign data that are then tested statistically, the risk of circularity should be addressed. The authors should also report whether differences in dispersion between groups were assessed."
 
-BM: The Results now state explicitly that the perMANOVA tests whether the restricted-range and broad-range groups *within* each phase differ in sign composition — not whether the phases differ from each other. To address circularity, we validate the manual restricted/broad groups against data-driven Louvain community detection and report the agreement (ARI 0.787/0.798/0.581 for Aur-P1 across thresholds; Supplement S5.1), and we test the two-group structure against a stochastic block model that was never shown the seriation solution (S6), which recovers the restricted/broad split for all but one Aur-P1 site and selects a single block in the small Aur-P2 sample. Dispersion was assessed: betadisper results are reported in the main text (Aur-P1 p = 0.115, Aur-P2 p = 0.771), and we present the contrast as a difference in group centroids (composition) rather than a difference in dispersion. The main text explicitly flags the shared-data circularity risk and explains how the independent validations address it.
+BM: The Results now state explicitly that the perMANOVA tests whether the restricted-range and broad-range groups *within* each phase differ in sign composition — not whether the phases differ from each other. To address circularity, we validate the manual restricted/broad groups against data-driven Louvain community detection and report the agreement (ARI 0.787/0.798/0.581 for Aur-P1 across thresholds; Supplement S5.1), and we test the two-group structure against a stochastic block model that was never shown the seriation solution (S6), which recovers the restricted/broad split for all but one Aur-P1 site and selects a single block in the small Aur-P2 sample. Dispersion was assessed: betadisper results are reported in the main text (Aur-P1 p = 0.124, Aur-P2 p = 0.771), and we present the contrast as a difference in group centroids (composition) rather than a difference in dispersion. The main text explicitly flags the shared-data circularity risk and explains how the independent validations address it.
 
 ### E8 — Reproducibility (data, exclusions, assignments, matrices, code)
 
@@ -95,7 +95,7 @@ BM: Figure 2 was re-generated as a two-phase figure (Aur-P1 panel A, Aur-P2 pane
 
 > "In addition, the revised manuscript should be checked carefully for technical consistency. The chronological terminology should be standardised throughout, particularly the use of 'ka BP', 'k BP', 'cal BP' and 'BP', since the analyses rely on calibrated age ranges and phase assignments."
 
-BM: We standardised the chronological terminology so that calibrated values are reported with a single, consistent unit across the manuscript and both supplements. The body text uses "ka BP" for calibrated ages throughout (43–37 ka, 37–32 ka, and related values), and we are aligning the table headers that used "k cal BP" to the same convention. 
+BM: We standardised the chronological terminology so that calibrated values are reported with a single, consistent unit across the manuscript and both supplements. The body text uses "ka BP" for calibrated ages throughout (43–37 ka, 37–32 ka, and related values), and we have aligned the table headers that used "k cal BP" to the same convention. 
 
 ### E12 — Seriation procedure (Brower–Kile vs correspondence analysis)
 
@@ -143,7 +143,7 @@ BM: We repositioned the site labels in Figure 3 using label repulsion so that na
 
 > "Figure 4 should be made graphically consistent with Figure 1. The authors should use the same mapping style, symbols and colour scheme where possible, and add a scale bar to the map panels. The site labels should also be checked for legibility."
 
-BM: We rebuilt Figure 4 using the same mapping style, symbols, and colour scheme as Figure 1, added a scale bar to its map panels, and checked the site labels for legibility. (The Figure 4 caption's Table reference was corrected under E9.)
+BM: We rebuilt Figure 5 (the second map, the figure numbering changed from 4 to 5 during revisions) using the same mapping style, symbols, and colour scheme as Figure 1, added a scale bar to its map panels, and checked the site labels for legibility. (The Figure 5 caption's Table reference was corrected under E9.)
 
 ### E20 — Figure 5/6 (diversity vs sample size): explanation and moderation
 
@@ -173,7 +173,7 @@ BM: Throughout the revised manuscript we mark conclusions that are directly supp
 
 > "In particular, they must either justify or revise the chronological and cultural framework used to structure the dataset, correct the archaeological markers and site assignments where necessary, and rerun the analyses if any changes to phase attribution or site inclusion affect the dataset."
 
-BM: We revised the framework (removing "Transitional"; adopting Aur-P1/Aur-P2), corrected the Table 1 markers (R2e–g), corrected the site assignments (R2h, R2i, P4), and reran every analysis on the resulting dataset (28 sites / 409 objects; Aur-P1 20 sites / 346 objects; Aur-P2 9 sites / 63 objects). We also ran the analyses under two additional conditions so that the conclusions do not depend on a single attribution decision: a date-based reclassification alternative (S8) and an analysis excluding Vogelherd (S7/S8 Analysis B). The main results are robust under all three conditions.
+BM: We revised the framework (removing "Transitional"; adopting Aur-P1/Aur-P2), corrected the Table 1 markers (R2e–g), corrected the site assignments (R2h, R2i, P4), and reran every analysis on the resulting dataset (29 sites / 409 objects; Aur-P1 20 sites / 346 objects; Aur-P2 9 sites / 63 objects). We also ran the analyses under two additional conditions so that the conclusions do not depend on a single attribution decision: a date-based reclassification alternative (S8) and an analysis excluding Vogelherd (S7/S8 Analysis B). The main results are robust under all three conditions.
 
 ---
 
