@@ -127,7 +127,15 @@ signbase_full_clean <- signbase_full_clean %>%
     site_name == "Spy"         ~ NA_character_,
     site_name == "El Castillo" ~ NA_character_,
     # --- Reclassifications based on technological attribution ---
-    site_name == "Hohle Fels"        ~ "early_aurignacian",
+    # Hohle Fels is assigned at the layer level: the lower Aurignacian horizons
+    # (AH Vb, Vab, Vaa, Va) are Early Aurignacian (Aur-P1), while the upper
+    # horizons (AH IV, IIIb, IIIa and the II-series) are Evolved/Late
+    # Aurignacian (Aur-P2), following Dinnis et al. (2019) and Bataille &
+    # Conard (2018). The single object from the mixed layer IIIa-V spans the
+    # whole sequence and is excluded.
+    site_name == "Hohle Fels" & layer %in% c("Va", "Vaa", "Vab", "Vb") ~ "early_aurignacian",
+    site_name == "Hohle Fels" & layer %in% c("IV", "IIIa", "IIIb", "Iid", "Iida", "Iie") ~ "evolved_aurignacian",
+    site_name == "Hohle Fels" & layer == "IIIa-V" ~ NA_character_,
     site_name == "Geissenklösterle"  ~ "early_aurignacian",
     site_name == "Vogelherd"         ~ "early_aurignacian",
     site_name == "La Ferrassie"      ~ "early_aurignacian",
@@ -171,7 +179,7 @@ site_basis <- data.frame(
                 "Abri Pataud", "Gatzarria", "Mladeč"),
   assignment = "technology",
   basis = c(
-    "Early Aurignacian (Bataille & Conard 2018; Dinnis et al. 2019)",
+    "Layer-level split: AH V Early Aurignacian (Aur-P1); AH IV, III and II-series Evolved/Late Aurignacian (Aur-P2) (Bataille & Conard 2018, 2019; Dinnis et al. 2019)",
     "Early Aurignacian (Bataille & Conard 2018)",
     "Early Aurignacian (Schürch & Conard 2026; Bataille & Conard 2018)",
     "Early Aurignacian (Talamo et al. 2020)",
@@ -239,13 +247,24 @@ n_p2_objects <- site_summary[["objects"]][site_summary$phase2 == "Aur-P2"]
 
 ## Key literature findings
 
-### Hohle Fels → Early Aurignacian
+### Hohle Fels → layer-level assignment (AH V Early; AH IV, III, II-series Evolved)
 
-- Bataille & Conard 2018 (PLoS ONE): AH IV is a "techno-functional facies of the Swabian Aurignacian" with burin-core bladelet production; shares features with Early Aurignacian; challenges application of Western European typo-chronological system to Central Europe.
-- Bataille & Conard 2019 (Quartär): AH IIIa and IV share similar tool/core assemblages typical of Swabian Aurignacian.
-- Dinnis et al. 2019 (PPS): Hohle Fels IV shows "important similarities with the Western European Late Aurignacian"; radiocarbon dates of 33–30 ka uncal BP are not older than Western European Late Aurignacian.
+Hohle Fels is the only site in the dataset whose internal sequence warrants splitting the phase assignment at the layer level rather than treating the whole site as a single phase.
 
-### Vogelherd → Early Aurignacian
+- Bataille & Conard 2018 (PLoS ONE): AH IV is a "techno-functional facies of the Swabian Aurignacian" with burin-core bladelet production; it shares features with the Early Aurignacian but is compositionally distinct from the underlying AH V assemblage, challenging the straightforward application of the Western European typo-chronological system to Central Europe.
+- Bataille & Conard 2019 (Quartär): AH IIIa and IV share similar tool/core assemblages typical of the Swabian Aurignacian, forming a coherent upper unit that contrasts with AH V.
+- Dinnis et al. 2019 (PPS): Hohle Fels IV shows "important similarities with the Western European Late Aurignacian"; its radiocarbon dates of 33–30 ka uncal BP are not older than those of the Western European Late Aurignacian. This is the direct basis for placing AH IV and the overlying III and II-series layers in Aur-P2 (Evolved/Late).
+- AH V (Va, Vaa, Vab, Vb) is the earlier Aurignacian unit at Hohle Fels and is retained in Aur-P1 (Early Aurignacian); its calibrated median dates (~39.7–43.3 ka BP) are consistent with that placement.
+- The single object recorded from the mixed layer "IIIa-V" spans the whole Aurignacian sequence and is therefore excluded from the analysis, in line with the treatment of the mixed-assemblage sites Spy and El Castillo.
+
+### Geissenklösterle → Early Aurignacian (Aur-P1)
+
+- Bataille & Conard 2018 (PLoS ONE): The Geissenklösterle Aurignacian (AH III and II) is assigned to the Early Aurignacian on technological grounds.
+- Both Geissenklösterle layers remain in Aur-P1: the calibrated median dates of the SignBase radiocarbon determinations for AH II (~40.7 ka BP) and AH III (~42.7 ka BP) fall within the Aur-P1 range, so the technology- and date-based assignments agree for this site. A minority reassessment (Zilhão 2013) places AH III later (~33–35 ka BP), but this conflicts with the site's own radiocarbon chronology and is not adopted here; the weight of the technological and stratigraphic evidence keeps both layers in Aur-P1.
+
+### Vogelherd → Early Aurignacian (Aur-P1, site-level)
+
+Vogelherd is kept as a single site-level Aur-P1 unit rather than split by layer: unlike Hohle Fels, its documented mixing is *between* the Aurignacian and other technocomplexes (Gravettian, Magdalenian), not between Aur-P1 and Aur-P2 Aurignacian facies, so no layer-level phase boundary can be drawn from the published reassessments. The mixing concern is instead addressed directly in Supplement S8 Analysis B (exclusion of Vogelherd).
 
 - Schürch & Conard 2026 (JPA): Reassesses cultural stratigraphy; AH IV–V are Aurignacian but with severe mixing (38 refit connections between layers); 15 radiocarbon dates span 42–34.5 ka BP (calibrated); Gravettian also present.
 - Schürch et al. 2025 (PLoS ONE): Blade/bladelet production analysis; mixing documented but majority of artifacts are Aurignacian.

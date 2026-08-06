@@ -231,6 +231,9 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
     reordered_group <- result$group
     group_colors <- row_colors[reordered_group]
 
+    # Calculate group sizes for reporting
+    group_sizes <- table(reordered_group)
+
     final_plot <- mplot(concentrated_matrix,
                         palette_colors = group_colors)
   }
@@ -267,7 +270,7 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
             panel.background = element_rect(fill = "white")) +
       ggpubr::border(color = "black", size = 0.5)
   }
-  return(final_plot)
+  return(list(plot = final_plot, group_sizes = group_sizes))
 }
 
 # ── Network statistics & tests ────────────────────────────────────────────────
