@@ -765,7 +765,7 @@ The results of the network analysis support the restricted-broad groupings ident
 
 In Aur-P2 the two-group structure is again recovered, with a broad-range group (Trou Magrite, Bockstein-Törle) and a restricted-range group (Les Rois, Sirgenstein Cave, La Viña, Mladeč, Gargas, Vindija Cave). Inter-group connectivity remains evident, but the network is far smaller, reflecting the reduced sample of this phase.
 
-@fig-neighbor-net-stats shows the results of permutation tests (n = `r paste0("10", "\u2074")`) assessing whether the observed statistics differ from a random distribution within each phase, and pairwise randomisation tests comparing the two phases. Within-phase, edge density does not significantly differ from random in either phase. Modularity is moderate in Aur-P1 (0.3-0.4), consistent with the restricted/broad community structure [@newman2004finding], and the null-benchmarked and size-normalised (Erdős–Rényi) comparisons in our Supplementary Material item "Sensitivity Analyses" S5.9 evaluate this structure net of network size. Pairwise permutation tests with Benjamini–Hochberg correction show that the phases do not differ significantly in edge density (p = `r res$p[res$statistic == "density"]`), betweenness (p = `r res$p[res$statistic == "betweenness"]`), or component count (p = `r res$p[res$statistic == "components"]`), but differ significantly in modularity (adjusted p < 0.001), indicating that the Aur-P1 and Aur-P2 networks differ in their community structure rather than in their overall density.
+@fig-neighbor-net-stats shows the results of permutation tests (n = `r sci_md(nperm)`) assessing whether the observed statistics differ from a random distribution within each phase, and pairwise randomisation tests comparing the two phases. Within-phase, edge density does not significantly differ from random in either phase. Modularity is moderate in Aur-P1 (0.3-0.4), consistent with the restricted/broad community structure [@newman2004finding], and the null-benchmarked and size-normalised (Erdős–Rényi) comparisons in our Supplementary Material item "Sensitivity Analyses" S5.9 evaluate this structure net of network size. Pairwise permutation tests with Benjamini–Hochberg correction show that the phases do not differ significantly in edge density (p = `r res$p[res$statistic == "density"]`), betweenness (p = `r res$p[res$statistic == "betweenness"]`), or component count (p = `r res$p[res$statistic == "components"]`), but differ significantly in modularity (adjusted p < 0.001), indicating that the Aur-P1 and Aur-P2 networks differ in their community structure rather than in their overall density.
 
 ```{r fig.height= 8, fig.width=10}
 #| label: fig-group-map
@@ -1052,24 +1052,17 @@ coords_full <- time_unique_data_full %>%
   mutate(longitude = as.numeric(longitude), latitude = as.numeric(latitude))
 geom_full <- sf::st_as_sf(coords_full, coords = c("longitude", "latitude"), crs = 4326)
 
-mantel_R_phase <- function(sites) {
-  i <- match(sites, rownames(Smat))
-  jac <- vegan::vegdist(Smat[i, , drop = FALSE], "jaccard", binary = TRUE)
-  gd  <- as.dist(sf::st_distance(geom_full[i, ]) / 1000)
-  vegan::mantel(gd, jac, permutations = 0)$statistic
-}
-
 aurp1_sites <- rownames(aurp1_artifact_data)
 aurp2_sites <- rownames(aurp2_artifact_data)
 all_sites   <- rownames(Smat)
 
-R1_sites <- mantel_R_phase(aurp1_sites)
-R2_sites <- mantel_R_phase(aurp2_sites)
+R1_sites <- mantel_R_phase(aurp1_sites, Smat, geom_full)
+R2_sites <- mantel_R_phase(aurp2_sites, Smat, geom_full)
 D_obs    <- R1_sites - R2_sites
 set.seed(42)
 D_null <- replicate(1000, {
   idx <- sample(seq_along(all_sites), length(aurp1_sites))
-  mantel_R_phase(all_sites[idx]) - mantel_R_phase(all_sites[-idx])
+  mantel_R_phase(all_sites[idx], Smat, geom_full) - mantel_R_phase(all_sites[-idx], Smat, geom_full)
 })
 D_null <- D_null[!is.na(D_null)]
 mantel_diff_p <- (sum(abs(D_null) >= abs(D_obs)) + 1) / (length(D_null) + 1)

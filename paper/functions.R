@@ -752,3 +752,22 @@ mantel_R_phase <- function(sites, Smat, geom_full) {
   gd  <- as.dist(sf::st_distance(geom_full[i, ]) / 1000)
   vegan::mantel(gd, jac, permutations = 0)$statistic
 }
+
+# Format a number as scientific-notation markdown with a superscript exponent
+# (e.g. 10000 -> "10^4^" -> 10⁴), bypassing knitr's numeric inline hook that
+# otherwise leaks a literal "10^{4}" into the docx.
+sci_md <- function(x, digits = 2) {
+  x <- as.numeric(x)
+  if (is.na(x)) return(NA_character_)
+  if (x == 0) return("0")
+  s <- formatC(x, format = "e", digits = digits)
+  s <- sub("e\\+", "e", s)
+  parts <- strsplit(s, "e")[[1]]
+  mantissa <- parts[1]
+  exponent <- as.character(as.numeric(parts[2]))
+  if (mantissa == paste0("1.", paste(rep("0", digits), collapse = ""))) {
+    paste0("10^", exponent, "^")
+  } else {
+    paste0(mantissa, " \u00d7 10^", exponent, "^")
+  }
+}
