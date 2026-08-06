@@ -314,7 +314,7 @@ set.seed(42)
     n_isolates    = sum(comp$csize == 1),
     mean_degree   = round(mean(igraph::degree(ig)), 2),
     mean_strength = round(mean(igraph::strength(ig)), 2),
-    mean_between  = round(mean(igraph::betweenness(ig)), 2),
+    mean_between  = round(mean(igraph::betweenness(ig, weights = NA)), 2),
     transitivity  = round(igraph::transitivity(ig), 3),
     mean_path     = round(mean_dist, 2),
     n_communities = length(unique(igraph::membership(comm))),
@@ -347,7 +347,7 @@ node_centrality <- function(artifact_data, threshold = 0.2) {
     site_name = igraph::V(ig)$name,
     degree    = igraph::degree(ig),
     strength  = igraph::strength(ig),
-    betweenness = igraph::betweenness(ig),
+    betweenness = igraph::betweenness(ig, weights = NA),
     eigenvector = eig,
     stringsAsFactors = FALSE
   )
@@ -374,7 +374,7 @@ centrality_from_signs <- function(df, threshold = 0.2) {
     site_name = igraph::V(ig)$name,
     degree    = igraph::degree(ig),
     strength  = igraph::strength(ig),
-    betweenness = igraph::betweenness(ig),
+    betweenness = igraph::betweenness(ig, weights = NA),
     eigenvector = eig,
     stringsAsFactors = FALSE
   )
