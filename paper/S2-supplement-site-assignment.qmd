@@ -27,13 +27,22 @@ institute:
 title-block-published: "Last updated"
 date: now
 date-format: long
-format:
+format: 
   docx:
-    reference-doc: "../templates/template.docx"
+    reference-doc: "../templates/template.docx" # Insert path for the DOCX file
 execute:
-  echo: true
+  echo: false
   warning: false
   message: false
+  comment: "#>"
+  fig-path: "../figures/"
+  fig-dpi: 1000
+filters:
+  - ../templates/scholarly-metadata.lua
+  - ../templates/author-info-blocks.lua
+  - ../templates/pagebreak.lua
+bibliography: references.bib
+csl: "../templates/elsevier-vancouver.csl" # Insert path for the bib-style
 ---
 
 ## Overview
@@ -179,13 +188,13 @@ site_basis <- data.frame(
                 "Abri Pataud", "Gatzarria", "Mladeč"),
   assignment = "technology",
   basis = c(
-    "Layer-level split: AH V Early Aurignacian (Aur-P1); AH IV, III and II-series Evolved/Late Aurignacian (Aur-P2) (Bataille & Conard 2018, 2019; Dinnis et al. 2019)",
-    "Early Aurignacian (Bataille & Conard 2018)",
-    "Early Aurignacian (Schürch & Conard 2026; Bataille & Conard 2018)",
-    "Early Aurignacian (Talamo et al. 2020)",
-    "Early Aurignacian (Chiotti 2005; Higham et al. 2011)",
-    "Proto-Aurignacian, layer Cjn2 (Barshay-Szmidt et al. 2012)",
-    "Evolved Aurignacian (Oliva 2006)"
+    "Layer-level split: AH V Early Aurignacian (Aur-P1); AH IV, III and II-series Evolved/Late Aurignacian (Aur-P2) [@Bataille_Conard_2018; @Bataille_Conard_2019; @Dinnis_et_al_2019]",
+    "Early Aurignacian [@Bataille_Conard_2018]",
+    "Early Aurignacian [@Schurch_Conard_2026_reassess; @Bataille_Conard_2018]",
+    "Early Aurignacian [@Talamo_La_Ferrassie_2020]",
+    "Early Aurignacian [@Chiotti_2005; @Higham_Abri_Pataud_2011]",
+    "Proto-Aurignacian, layer Cjn2 [@Barshay_Szmidt_2012]",
+    "Evolved Aurignacian [@Oliva_2006]"
   )
 )
 
@@ -193,7 +202,7 @@ excluded_basis <- data.frame(
   site_name = c("Spy", "El Castillo"),
   assignment = "excluded",
   basis = c(
-    "Mixed assemblage, no single Proto-Aurignacian attribution (Flas et al. 2013; Flas 2015; Semal et al. 2009)",
+    "Mixed assemblage, no single Proto-Aurignacian attribution [@Flas_et_al_2013; @Flas_2015; @Semal_2009]",
     "Mixed/contaminated layers preclude reliable assignment"
   )
 )
@@ -218,7 +227,7 @@ site_objects <- site_objects %>%
   )) %>%
   mutate(basis = ifelse(
     site_name == "Fumane",
-    "MedianBP > 39,799 (Protoaurignacian throughout sequence; Falcucci et al. 2017, 2020)",
+    "MedianBP > 39,799 (Protoaurignacian throughout sequence [@Falcucci_Peresani_2017; @falcucci2020breaking])",
     basis
   ))
 
@@ -251,55 +260,54 @@ n_p2_objects <- site_summary[["objects"]][site_summary$phase2 == "Aur-P2"]
 
 Hohle Fels is the only site in the dataset whose internal sequence warrants splitting the phase assignment at the layer level rather than treating the whole site as a single phase.
 
-- Bataille & Conard 2018 (PLoS ONE): AH IV is a "techno-functional facies of the Swabian Aurignacian" with burin-core bladelet production; it shares features with the Early Aurignacian but is compositionally distinct from the underlying AH V assemblage, challenging the straightforward application of the Western European typo-chronological system to Central Europe.
-- Bataille & Conard 2019 (Quartär): AH IIIa and IV share similar tool/core assemblages typical of the Swabian Aurignacian, forming a coherent upper unit that contrasts with AH V.
-- Dinnis et al. 2019 (PPS): Hohle Fels IV shows "important similarities with the Western European Late Aurignacian"; its radiocarbon dates of 33–30 ka uncal BP are not older than those of the Western European Late Aurignacian. This is the direct basis for placing AH IV and the overlying III and II-series layers in Aur-P2 (Evolved/Late).
+- @Bataille_Conard_2018 : AH IV is a "techno-functional facies of the Swabian Aurignacian" with burin-core bladelet production; it shares features with the Early Aurignacian but is compositionally distinct from the underlying AH V assemblage, challenging the straightforward application of the Western European typo-chronological system to Central Europe.
+- @Bataille_Conard_2019 : AH IIIa and IV share similar tool/core assemblages typical of the Swabian Aurignacian, forming a coherent upper unit that contrasts with AH V.
+- @Dinnis_et_al_2019 : Hohle Fels IV shows "important similarities with the Western European Late Aurignacian"; its radiocarbon dates of 33–30 ka uncal BP are not older than those of the Western European Late Aurignacian. This is the direct basis for placing AH IV and the overlying III and II-series layers in Aur-P2 (Evolved/Late).
 - AH V (Va, Vaa, Vab, Vb) is the earlier Aurignacian unit at Hohle Fels and is retained in Aur-P1 (Early Aurignacian); its calibrated median dates (~39.7–43.3 ka BP) are consistent with that placement.
 - The single object recorded from the mixed layer "IIIa-V" spans the whole Aurignacian sequence and is therefore excluded from the analysis, in line with the treatment of the mixed-assemblage sites Spy and El Castillo.
 
 ### Geissenklösterle → Early Aurignacian (Aur-P1)
 
-- Bataille & Conard 2018 (PLoS ONE): The Geissenklösterle Aurignacian (AH III and II) is assigned to the Early Aurignacian on technological grounds.
-- Both Geissenklösterle layers remain in Aur-P1: the calibrated median dates of the SignBase radiocarbon determinations for AH II (~40.7 ka BP) and AH III (~42.7 ka BP) fall within the Aur-P1 range, so the technology- and date-based assignments agree for this site. A minority reassessment (Zilhão 2013) places AH III later (~33–35 ka BP), but this conflicts with the site's own radiocarbon chronology and is not adopted here; the weight of the technological and stratigraphic evidence keeps both layers in Aur-P1.
+- @Bataille_Conard_2018 : The Geissenklösterle Aurignacian (AH III and II) is assigned to the Early Aurignacian on technological grounds.
+- Both Geissenklösterle layers remain in Aur-P1: the calibrated median dates of the SignBase radiocarbon determinations for AH II (~40.7 ka BP) and AH III (~42.7 ka BP) fall within the Aur-P1 range, so the technology- and date-based assignments agree for this site. A reassessment [places AH III later (~33–35 ka BP) [@zilhao2003aurignacian], but this conflicts with the site's own radiocarbon chronology and is not adopted here; the weight of the technological and stratigraphic evidence keeps both layers in Aur-P1.
 
 ### Vogelherd → Early Aurignacian (Aur-P1, site-level)
 
 Vogelherd is kept as a single site-level Aur-P1 unit rather than split by layer: unlike Hohle Fels, its documented mixing is *between* the Aurignacian and other technocomplexes (Gravettian, Magdalenian), not between Aur-P1 and Aur-P2 Aurignacian facies, so no layer-level phase boundary can be drawn from the published reassessments. The mixing concern is instead addressed directly in Supplement S8 Analysis B (exclusion of Vogelherd).
 
-- Schürch & Conard 2026 (JPA): Reassesses cultural stratigraphy; AH IV–V are Aurignacian but with severe mixing (38 refit connections between layers); 15 radiocarbon dates span 42–34.5 ka BP (calibrated); Gravettian also present.
-- Schürch et al. 2025 (PLoS ONE): Blade/bladelet production analysis; mixing documented but majority of artifacts are Aurignacian.
-- Conard & Bolus 2003, 2008: Original dating of Vogelherd Aurignacian to 41–35 ka BP (calibrated).
+- @Schurch_Conard_2026_reassess : Reassesses cultural stratigraphy; AH IV–V are Aurignacian but with severe mixing (38 refit connections between layers); 15 radiocarbon dates span 42–34.5 ka BP (calibrated); Gravettian also present.
+- @Schurch_et_al_2025_bladelet : Blade/bladelet production analysis; mixing documented but majority of artifacts are Aurignacian.
+- Original dating of Vogelherd Aurignacian to 41–35 ka BP (calibrated).
 
 ### Fumane → Protoaurignacian
 
-- Falcucci et al. 2017 (PLoS ONE): Protoaurignacian techno-typology persists throughout sequence at Fumane (A2-A1 through D3).
-- Falcucci et al. 2020 (JASS): "Features of the Protoaurignacian techno-typology are present throughout the stratigraphic sequence."
-- Falcucci 2018 (MGFu): "Protoaurignacian clearly persists throughout the stratigraphic sequence."
+- @Falcucci_Peresani_2017 : Protoaurignacian techno-typology persists throughout sequence at Fumane (A2-A1 through D3).
+- @falcucci2020breaking : "Features of the Protoaurignacian techno-typology are present throughout the stratigraphic sequence."
 
 ### La Ferrassie → Early Aurignacian
 
-- Talamo et al. 2020: Technological attribution places La Ferrassie in the Early Aurignacian.
+- @Talamo_La_Ferrassie_2020 : Technological attribution places La Ferrassie in the Early Aurignacian.
 
 ### Abri Pataud → Early Aurignacian
 
-- Chiotti 2005: Technological analysis assigns Abri Pataud to the Early Aurignacian.
-- Higham et al. 2011: Radiocarbon dating supports Early Aurignacian placement.
+- @Chiotti_2005 : Technological analysis assigns Abri Pataud to the Early Aurignacian.
+- @Higham_Abri_Pataud_2011 : Radiocarbon dating supports Early Aurignacian placement.
 
 ### Mladeč → Evolved Aurignacian
 
-- Oliva 2006: Technological and typological analysis assigns Mladeč to the Evolved Aurignacian.
+- @Oliva_2006 : Technological and typological analysis assigns Mladeč to the Evolved Aurignacian.
 
 ### Spy → Excluded
 
-- Flas et al. 2013: The Spy Aurignacian assemblage exhibits features of both Early and Late Aurignacian phases. Split-based osseous points suggest Early Aurignacian; small curved bladelets from nosed endscrapers, burins busqués, and Vachons burins suggest Late Aurignacian.
-- Flas 2015: The Aurignacian at Spy is a mixed assemblage containing a small Early Aurignacian component and several Late Aurignacian components. The earliest convincing Aurignacian date in the region is about 33,000–32,000 BP.
-- Semal et al. 2009: The Spy Neandertals date to ~36,000 BP, associated with the Lincombian-Ranisian-Jerzmanowician (LRJ). The LRJ and Aurignacian are mixed in the "deuxième niveau ossifère."
+- @Flas_et_al_2013 : The Spy Aurignacian assemblage exhibits features of both Early and Late Aurignacian phases. Split-based osseous points suggest Early Aurignacian; small curved bladelets from nosed endscrapers, burins busqués, and Vachons burins suggest Late Aurignacian.
+- @Flas_2015 : The Aurignacian at Spy is a mixed assemblage containing a small Early Aurignacian component and several Late Aurignacian components. The earliest convincing Aurignacian date in the region is about 33,000–32,000 BP.
+- @Semal_2009 : The Spy Neandertals date to ~36,000 BP, associated with the Lincombian-Ranisian-Jerzmanowician (LRJ). The LRJ and Aurignacian are mixed in the "deuxième niveau ossifère."
 - The site is heavily mixed: Multiple excavations (1885–1886, 1903–1904, 1952–1960s) with inconsistent methods. The "deuxième niveau ossifère" contains Mousterian, LRJ, and Aurignacian materials mixed together.
 
 ### Gatzarria → Proto-Aurignacian
 
-- Barshay-Szmidt et al. 2012: Layer Cjn2 is a Proto-Aurignacian — "fits completely within the definition and characterization of the Proto-Aurignacian" with exclusive blade/bladelet production and Dufour bladelets (sub-type Dufour). Layer Cjn1 may be mixed with Cjn2 and Cbf (Classic Aurignacian). The back of the cave is mixed, but the front zone ("sampled set") is internally coherent; refitting confirms minimal vertical displacement.
-- Deschamps 2019: Confirms complex stratigraphy and mixing concerns, but notes Cjn2 is internally coherent in the anterior zone.
+- @Barshay_Szmidt_2012 : Layer Cjn2 is a Proto-Aurignacian — "fits completely within the definition and characterization of the Proto-Aurignacian" with exclusive blade/bladelet production and Dufour bladelets (sub-type Dufour). Layer Cjn1 may be mixed with Cjn2 and Cbf (Classic Aurignacian). The back of the cave is mixed, but the front zone ("sampled set") is internally coherent; refitting confirms minimal vertical displacement.
+- @Deschamps_2019 : Confirms complex stratigraphy and mixing concerns, but notes Cjn2 is internally coherent in the anterior zone.
 
 ### El Castillo → Excluded
 
@@ -432,3 +440,7 @@ knitr::kable(zero_sign_summary,
 ```
 
 Only **Willendorf** and **Spy** drop out entirely; the remaining "No" sites are lost at the date-parsing/calibration step rather than because of the zero-sign filter.
+
+## References cited
+
+
