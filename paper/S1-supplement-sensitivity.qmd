@@ -1662,7 +1662,7 @@ Taken together, S6 provides three converging but graded lines of evidence for th
 
 ## S7.1 Rationale
 
-@Bentz_Dutkiewicz_2025 demonstrate that ivory figurines in the Swabian Aurignacian carry sign sequences with higher information density than tools. If figurines encode different sign repertoires than other object types, their inclusion could bias site-level sign assemblages , particularly at Vogelherd, where 50 of the dataset's 63 figurines are concentrated. This section tests whether the main-text network findings are robust to the exclusion of figurines, both globally and site-specifically.
+@Bentz_Dutkiewicz_2026 demonstrate that ivory figurines in the Swabian Aurignacian carry sign sequences with higher information density than tools. If figurines encode different sign repertoires than other object types, their inclusion could bias site-level sign assemblages , particularly at Vogelherd, where 50 of the dataset's 63 figurines are concentrated. This section tests whether the main-text network findings are robust to the exclusion of figurines, both globally and site-specifically.
 
 ## S7.2 Figurine Distribution in the Dataset
 
@@ -1870,7 +1870,7 @@ The joint comparison in @tbl-objtype-joint shows that figurine exclusion has a m
 
 **The figurine effect is small and Vogelherd-specific.** Removing Vogelherd figurines alone (−1.3%) produces the same effect as removing all 63 figurines globally (−1.3%). Figurines at Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, and La Ferrassie do not alter network structure. This indicates that although Vogelherd's figurine assemblage is unusually rich , 50 of 63 figurines , and contributes disproportionately to sign-type counts, its 123 remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
 
-**Conclusion.** The main-text findings are robust to figurine exclusion. The Aur-P1 > Aur-P2 connectivity contrast, the two-group community structure, and the site membership of both phases are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity within Aur-P1 is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Aur-P1: 0.336 → 0.318), suggesting that figurines contribute modestly to community cohesion , consistent with @Bentz_Dutkiewicz_2025 argument that figurines carry high-information sign sequences , but the communities themselves are defined by shared sign types across all object types.
+**Conclusion.** The main-text findings are robust to figurine exclusion. The Aur-P1 > Aur-P2 connectivity contrast, the two-group community structure, and the site membership of both phases are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity within Aur-P1 is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Aur-P1: 0.336 → 0.318), suggesting that figurines contribute modestly to community cohesion , consistent with @Bentz_Dutkiewicz_2026 argument that figurines carry high-information sign sequences, but the communities themselves are defined by shared sign types across all object types.
 
 # S8. Site Reclassification Sensitivity Analysis {#sec-s8}
 
