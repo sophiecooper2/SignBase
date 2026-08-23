@@ -175,7 +175,7 @@ site_summary <- signbase_full_clean %>%
   ) %>%
   arrange(desc(objects))
 
-site_summary
+# site_summary
 ```
 
 ```{r}
