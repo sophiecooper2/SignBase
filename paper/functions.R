@@ -744,6 +744,89 @@ make_phase2_data <- function(phase2_val, signbase_full_clean, lat_long_df) {
     mutate(time_period = phase2_val)
 }
 
+# ── Canonical manual group assignment (restricted = 1, broad = 2) ────────────────
+# Single source of truth for paper.qmd, S1 (S5/S6), and S2.
+manual_groups <- list(
+  "Aur-P1" = c("Abri Pataud" = 1, "Fumane" = 1, "Pod Hradem" = 1,
+               "Riparo Bombrini" = 1, "Grottes de Fonds-de-Forêt" = 1,
+               "Labeko Koba" = 1, "Hohlenstein-Stadel" = 1, "Gatzarria" = 1,
+               "Grotte de la Verpillière I" = 1,
+               "Geissenklösterle" = 2, "Hohle Fels" = 2, "Vogelherd" = 2,
+               "Cellier" = 2, "Blanchard" = 2, "La Ferrassie" = 2,
+               "Castanet" = 2, "Solutré" = 2, "Grotte du Renne" = 2,
+               "Les Cottés" = 2, "Trou al'Wesse" = 2),
+  "Aur-P2" = c("Les Rois" = 1, "Sirgenstein Cave" = 1, "La Viña" = 1,
+               "Mladeč" = 1, "Gargas" = 1, "Vindija Cave" = 1,
+               "Trou Magrite" = 2, "Bockstein-Törle" = 2, "Hohle Fels" = 2))
+
+# Attach the manual restricted(1)/broad(2) group to a phase data frame by site_name.
+add_manual_group <- function(df, phase) {
+  g <- manual_groups[[phase]]
+  df %>% mutate(group = as.character(g[df$site_name]))
+}
+
+# ── Bootstrap consensus co-clustering (S1 S6.2) ──────────────────────────────────
+# Bootstrap consensus co-clustering into k blocks, from a site x sign matrix.
+s6_boot_consensus <- function(mat, n_boot = 1000, k = 2) {
+  x <- as.matrix(mat); x[x > 0] <- 1
+  sites <- rownames(x); n <- nrow(x)
+  co <- matrix(0, n, n, dimnames = list(sites, sites))
+  cnt <- matrix(0, n, n, dimnames = list(sites, sites))
+  assign <- matrix(0L, n, n_boot, dimnames = list(sites, NULL))
+  for (bk in seq_len(n_boot)) {
+    set.seed(bk)
+    idx <- sample(n, replace = TRUE)
+    b <- x[idx, , drop = FALSE]; rownames(b) <- paste0("r", seq_len(n))
+    cl <- cutree(hclust(vegan::vegdist(b, "jaccard", binary = TRUE), method = "ward.D2"), k = k)
+    for (r in seq_len(n)) assign[idx[r], bk] <- cl[r]
+  }
+  present <- assign > 0
+  for (i in seq_len(n)) for (j in seq_len(n)) if (i < j) {
+    v <- present[i, ] & present[j, ]
+    cnt[i, j] <- cnt[j, i] <- sum(v)
+    if (cnt[i, j] > 0) co[i, j] <- co[j, i] <- sum(assign[i, v] == assign[j, v]) / cnt[i, j]
+  }
+  # Reference partition obtained by clustering the label-independent consensus
+  # matrix; each resample's cluster labels are realigned to this reference to
+  # undo the arbitrary label permutation introduced by hierarchical clustering.
+  ref <- cutree(hclust(as.dist(1 - co), method = "ward.D2"), k = k)
+  names(ref) <- sites
+  for (bk in seq_len(n_boot)) {
+    idx <- which(present[, bk]); a <- assign[idx, bk]
+    agree_id <- sum((a == 1) == (ref[idx] == 1))
+    agree_sw <- sum((a == 1) == (ref[idx] == 2))
+    if (agree_sw > agree_id) a <- ifelse(a == 1, 2, 1)
+    assign[idx, bk] <- a
+  }
+  modal <- apply(assign, 1, function(v) { t <- table(v[v > 0]); as.integer(names(t)[which.max(t)]) })
+  consistency <- vapply(seq_len(n), function(i) {
+    v <- assign[i, ]; v <- v[v > 0]
+    if (!length(v)) NA_real_ else mean(v == modal[i])
+  }, numeric(1))
+  names(consistency) <- sites
+  list(consensus = co, partition = ref, modal = modal, consistency = consistency)
+}
+
+# Compute bootstrap consensus co-clustering summary for both phases.
+# Returns a data frame with Within_restricted, Within_broad, Overall_within, Across per phase.
+s6_bootstrap_summary <- function(art_list, groups_list, n_boot = 1000) {
+  boot <- lapply(art_list, s6_boot_consensus, n_boot = n_boot)
+  tri  <- function(m) m[upper.tri(m)]
+  map_dfr(names(boot), function(ph) {
+    cs  <- boot[[ph]]$consensus
+    sit <- rownames(cs); g <- groups_list[[ph]][sit]
+    wr  <- mean(tri(cs[sit[g == 1], sit[g == 1]]), na.rm = TRUE)
+    wb  <- mean(tri(cs[sit[g == 2], sit[g == 2]]), na.rm = TRUE)
+    xr  <- mean(cs[sit[g == 1], sit[g == 2]], na.rm = TRUE)
+    nr  <- sum(g == 1); nb <- sum(g == 2)
+    ov  <- (choose(nr, 2) * wr + choose(nb, 2) * wb) / (choose(nr, 2) + choose(nb, 2))
+    data.frame(Phase = ph, Restricted_n = nr, Broad_n = nb,
+               Within_restricted = round(wr, 2), Within_broad = round(wb, 2),
+               Overall_within = round(ov, 2), Across = round(xr, 2),
+               stringsAsFactors = FALSE)
+  })
+}
+
 # Mantel test for sign similarity vs geographic distance for a subset of sites.
 # `sites`: character vector of site names (row names in Smat and geom_full).
 # `Smat`: full site × sign matrix (binary or count).

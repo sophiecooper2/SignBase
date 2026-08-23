@@ -531,21 +531,7 @@ kable(louvain_wide,
 #| tbl-cap-location: bottom
 
 # ▸ ARI: Louvain vs. manual restricted/broad groups at each threshold
-# Manual groups hard-coded (1 = restricted, 2 = broad); source: paper.qmd
-manual_groups <- list(
-  "Aur-P1" = c("Abri Pataud" = 1, "Fumane" = 1, "Pod Hradem" = 1,
-               "Riparo Bombrini" = 1, "Grottes de Fonds-de-Forêt" = 1,
-               "Labeko Koba" = 1, "Hohlenstein-Stadel" = 1, "Gatzarria" = 1,
-               "Grotte de la Verpillière I" = 1,
-               "Geissenklösterle" = 2, "Hohle Fels" = 2, "Vogelherd" = 2,
-               "Cellier" = 2, "Blanchard" = 2, "La Ferrassie" = 2,
-               "Castanet" = 2, "Solutré" = 2, "Grotte du Renne" = 2,
-               "Les Cottés" = 2, "Trou al'Wesse" = 2),
-  "Aur-P2" = c("Les Rois" = 1, "Sirgenstein Cave" = 1, "La Viña" = 1,
-               "Mladeč" = 1, "Gargas" = 1, "Vindija Cave" = 1,
-               "Trou Magrite" = 2, "Bockstein-Törle" = 2, "Hohle Fels" = 2)
-)
-
+# Manual groups from functions.R (canonical source)
 ari_table <- map_dfr(thresholds, function(thr) {
   map_dfr(names(phases), function(ph) {
     lo <- louvain_memberships %>%
@@ -1373,19 +1359,8 @@ s6_boot_consensus <- function(mat, n_boot = 1000, k = 2) {
 
 ```{r}
 #| label: s6-boot-compute
-# Main-text restricted(1)/broad(2) groups for the two-phase framework.
-s6_groups <- list(
-  "Aur-P1" = c("Abri Pataud" = 1, "Fumane" = 1, "Pod Hradem" = 1,
-               "Riparo Bombrini" = 1, "Grottes de Fonds-de-Forêt" = 1,
-               "Labeko Koba" = 1, "Hohlenstein-Stadel" = 1, "Gatzarria" = 1,
-               "Grotte de la Verpillière I" = 1,
-               "Geissenklösterle" = 2, "Hohle Fels" = 2, "Vogelherd" = 2,
-               "Cellier" = 2, "Blanchard" = 2, "La Ferrassie" = 2,
-               "Castanet" = 2, "Solutré" = 2, "Grotte du Renne" = 2,
-               "Les Cottés" = 2, "Trou al'Wesse" = 2),
-  "Aur-P2" = c("Les Rois" = 1, "Sirgenstein Cave" = 1, "La Viña" = 1,
-               "Mladeč" = 1, "Gargas" = 1, "Vindija Cave" = 1,
-               "Trou Magrite" = 2, "Bockstein-Törle" = 2, "Hohle Fels" = 2))
+# Main-text restricted(1)/broad(2) groups for the two-phase framework (from functions.R).
+s6_groups <- manual_groups
 
 s6_art <- list(aurp1_artifact_data, aurp2_artifact_data)
 names(s6_art) <- names(s6_groups)
