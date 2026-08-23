@@ -1490,31 +1490,14 @@ if (requireNamespace("blockmodels", quietly = TRUE)) {
   }
 }
 # ── Inline-accessor helpers for the S6.3/S6.4 interpretation text ────────────
-# Number of blocks selected by ICL; maximum ICL; ICL gap between the best and
-# second-best model; lowest modal-block posterior across sites.
-s6_bestK   <- function(ph) if (ph %in% names(s6_sbm)) s6_sbm[[ph]]$bestK else NA_integer_
-s6_maxICL  <- function(ph) if (ph %in% names(s6_sbm)) max(s6_sbm[[ph]]$icl, na.rm = TRUE) else NA_real_
-s6_gap     <- function(ph) if (ph %in% names(s6_sbm)) {
-  v <- sort(s6_sbm[[ph]]$icl, decreasing = TRUE)
-  if (length(v) >= 2) v[1] - v[2] else NA_real_
-} else NA_real_
+# Direct calls to canonical functions in functions.R with local S6 objects.
+# These are simple aliases to avoid rewriting inline code.
+s6_bestK_wrap   <- function(ph) s6_bestK(s6_sbm, ph)
+s6_gap_wrap     <- function(ph) s6_gap(s6_sbm, ph)
+s6_global_minPost <- s6_global_minPost(s6_sbm)
+s6_mismatch_wrap <- function(ph) s6_mismatch(s6_sbm, s6_boot, s6_groups, ph)
 s6_minPost <- function(ph) if (ph %in% names(s6_sbm)) min(apply(s6_sbm[[ph]]$Z, 1, max)) else NA_real_
-s6_global_minPost <- if (length(s6_sbm)) min(sapply(names(s6_sbm), s6_minPost)) else NA_real_
-# Sites whose aligned SBM modal block (SBM block labels optimally remapped onto
-# the manual restricted/broad labels) differs from the manual group.
-s6_mismatch <- function(ph) {
-  if (!length(s6_sbm) || !ph %in% names(s6_sbm)) return(character())
-  sit <- names(s6_boot[[ph]]$consistency)
-  m   <- s6_groups[[ph]][sit]
-  nm  <- apply(s6_sbm[[ph]]$Z[sit, , drop = FALSE], 1, which.max)
-  K <- max(nm); best_agree <- -1; best_map <- rep(1L, K)
-  for (code in 0:(2^K - 1)) {
-    mp <- ((code %/% (2^(0:(K-1)))) %% 2) + 1L
-    agree <- sum(mp[nm] == as.integer(m))
-    if (agree > best_agree) { best_agree <- agree; best_map <- mp }
-  }
-  names(m)[best_map[nm] != as.integer(m)]
-}
+s6_maxICL  <- function(ph) if (ph %in% names(s6_sbm)) max(s6_sbm[[ph]]$icl, na.rm = TRUE) else NA_real_
 ```
 
 ```{r}
@@ -1567,11 +1550,11 @@ if (length(s6_sbm)) {
 
 ### Interpretation
 
-The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase, providing a model-based counterpart to the seriation. In **Aur-P1** the best-supported model contains `r s6_bestK("Aur-P1")` blocks, and in **Aur-P2** it contains `r s6_bestK("Aur-P2")` block. The ICL gap between the best and second-best model quantifies how decisively the optimum is preferred (`r n2(s6_gap("Aur-P1"))` in Aur-P1 and `r n2(s6_gap("Aur-P2"))` in Aur-P2); the comparison between the two phases tells the reader how much more strongly the block structure is determined in the better-sampled early phase.
+The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase, providing a model-based counterpart to the seriation. In **Aur-P1** the best-supported model contains `r s6_bestK_wrap("Aur-P1")` blocks, and in **Aur-P2** it contains `r s6_bestK_wrap("Aur-P2")` block. The ICL gap between the best and second-best model quantifies how decisively the optimum is preferred (`r n2(s6_gap_wrap("Aur-P1"))` in Aur-P1 and `r n2(s6_gap_wrap("Aur-P2"))` in Aur-P2); the comparison between the two phases tells the reader how much more strongly the block structure is determined in the better-sampled early phase.
 
-The membership table (@tbl-sbm-membership) gives posterior probabilities that qualify the deterministic group assignments used in the main text: every site is assigned to its modal block with posterior probability ≥ `r n2(s6_global_minPost)`, so the SBM is never equivocal about the partition it identifies, and the informative quantity is the number of blocks chosen and how those blocks map onto the manual restricted/broad groups rather than the confidence of individual assignments. In **Aur-P1** the best-supported model contains `r s6_bestK("Aur-P1")` blocks, and after aligning each SBM block to the nearest manual group it diverges on `r length(s6_mismatch("Aur-P1"))` of `r nrow(s6_sbm[["Aur-P1"]]$Z)` sites (`r paste(s6_mismatch("Aur-P1"), collapse = ", ")`). In **Aur-P2** the SBM selects a **single block**: its ICL profile is essentially flat (the gap between the one- and two-block solutions is `r n2(s6_gap("Aur-P2"))`), so the sparse sign-sharing network of the late phase does not support a two-block partition at all, and the model-based route neither corroborates nor contradicts the manual split there. Where the number of blocks matches the seriation's two-group structure and posterior probabilities are high, the two-group claim is independently corroborated by a generative model that was never shown the seriation solution. Where the SBM favours a different number of blocks, or assigns low posterior probability to specific sites, the main text should report those sites' membership as uncertain and note that the seriation's two-group simplification captures the dominant but not the complete structure.
+The membership table (@tbl-sbm-membership) gives posterior probabilities that qualify the deterministic group assignments used in the main text: every site is assigned to its modal block with posterior probability ≥ `r n2(s6_global_minPost)`, so the SBM is never equivocal about the partition it identifies, and the informative quantity is the number of blocks chosen and how those blocks map onto the manual restricted/broad groups rather than the confidence of individual assignments. In **Aur-P1** the best-supported model contains `r s6_bestK_wrap("Aur-P1")` blocks, and after aligning each SBM block to the nearest manual group it diverges on `r length(s6_mismatch_wrap("Aur-P1"))` of `r nrow(s6_sbm[["Aur-P1"]]$Z)` sites (`r paste(s6_mismatch_wrap("Aur-P1"), collapse = ", ")`). In **Aur-P2** the SBM selects a **single block**: its ICL profile is essentially flat (the gap between the one- and two-block solutions is `r n2(s6_gap_wrap("Aur-P2"))`), so the sparse sign-sharing network of the late phase does not support a two-block partition at all, and the model-based route neither corroborates nor contradicts the manual split there. Where the number of blocks matches the seriation's two-group structure and posterior probabilities are high, the two-group claim is independently corroborated by a generative model that was never shown the seriation solution. Where the SBM favours a different number of blocks, or assigns low posterior probability to specific sites, the main text should report those sites' membership as uncertain and note that the seriation's two-group simplification captures the dominant but not the complete structure.
 
-**Implications for the main text.** The SBM posterior probabilities are effectively certain (each site's modal block receives posterior ≥ `r n2(s6_global_minPost)`) for the partition the model identifies, so the model is rarely equivocal about its own grouping; the important information lies in *how many* blocks the model chooses and how far that partition diverges from the manual restricted/broad assignment. The SBM does not settle on two blocks in either phase under the revised data: in Aur-P1 it favours `r s6_bestK("Aur-P1")` blocks, and in Aur-P2 a single block, so the two-group structure is not independently recovered by the generative model, and the restricted/broad dichotomy should be read as the dominant axis of variation rather than a partition that emerges from the data through an unsupervised model. These results complement, rather than supersede, the bootstrap analysis: the bootstrap quantifies sampling stability of the main-text partition, while the SBM asks whether an independent generative model reproduces it.
+**Implications for the main text.** The SBM posterior probabilities are effectively certain (each site's modal block receives posterior ≥ `r n2(s6_global_minPost)`) for the partition the model identifies, so the model is rarely equivocal about its own grouping; the important information lies in *how many* blocks the model chooses and how far that partition diverges from the manual restricted/broad assignment. The SBM does not settle on two blocks in either phase under the revised data: in Aur-P1 it favours `r s6_bestK_wrap("Aur-P1")` blocks, and in Aur-P2 a single block, so the two-group structure is not independently recovered by the generative model, and the restricted/broad dichotomy should be read as the dominant axis of variation rather than a partition that emerges from the data through an unsupervised model. These results complement, rather than supersede, the bootstrap analysis: the bootstrap quantifies sampling stability of the main-text partition, while the SBM asks whether an independent generative model reproduces it.
 
 ## S6.4 Cross-Validation of Group Assignments (ARI) {#sec-s6-4}
 

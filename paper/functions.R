@@ -857,3 +857,45 @@ sci_md <- function(x, digits = 2) {
     paste0(mantissa, " \u00d7 10^", exponent, "^")
   }
 }
+
+# ── SBM vs manual group mismatch (S1 S6.3) ──────────────────────────────────────
+# Compute sites where SBM modal assignment diverges from manual restricted/broad
+# groups after optimal block-to-group mapping.
+# `sbm_list`: output of s6_sbm (list per phase with $Z matrix and $bestK)
+# `boot_list`: output of s6_boot (list per phase with $consistency)
+# `groups_list`: manual groups (manual_groups) per phase
+# Returns character vector of site names that diverge.
+s6_mismatch <- function(sbm_list, boot_list, groups_list, ph) {
+  if (!length(sbm_list) || !ph %in% names(sbm_list)) return(character())
+  sit <- names(boot_list[[ph]]$consistency)
+  m   <- groups_list[[ph]][sit]
+  nm  <- apply(sbm_list[[ph]]$Z[sit, , drop = FALSE], 1, which.max)
+  K <- max(nm); best_agree <- -1; best_map <- rep(1L, K)
+  for (code in 0:(2^K - 1)) {
+    mp <- ((code %/% (2^(0:(K-1)))) %% 2) + 1L
+    agree <- sum(mp[nm] == as.integer(m))
+    if (agree > best_agree) { best_agree <- agree; best_map <- mp }
+  }
+  names(m)[best_map[nm] != as.integer(m)]
+}
+
+# Compute SBM best K per phase
+s6_bestK <- function(sbm_list, ph) {
+  if (ph %in% names(sbm_list)) sbm_list[[ph]]$bestK else NA_integer_
+}
+
+# ICL gap between best and second-best model
+s6_gap <- function(sbm_list, ph) {
+  if (!length(sbm_list) || !ph %in% names(sbm_list)) return(NA_real_)
+  icl <- sbm_list[[ph]]$ICL
+  if (length(icl) < 2) return(NA_real_)
+  icl[1] - icl[2]
+}
+
+# Global minimum posterior probability across all phases/sites
+s6_global_minPost <- function(sbm_list) {
+  if (!length(sbm_list)) return(NA_real_)
+  min(unlist(lapply(sbm_list, function(x) {
+    if (!is.null(x$Z)) min(x$Z) else NA_real_
+  })), na.rm = TRUE)
+}
