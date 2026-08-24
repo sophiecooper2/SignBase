@@ -1157,3 +1157,161 @@ s6_global_minPost <- function(sbm_list) {
     if (!is.null(x$Z)) min(x$Z) else NA_real_
   })), na.rm = TRUE)
 }
+
+# ── Object-level downsampling & coverage-rarefaction helpers (S1 S9) ───────────
+# Canonical 29 sign-type columns (matches get_louvain_groups / network_stats).
+SIGN_COLS <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+               "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+               "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+               "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+               "concenline","pinleft","pinright","star")
+
+# 1) Per-site object counts for a phase (object-level rows of signbase_full_clean).
+site_object_counts <- function(signbase, phase) {
+  signbase %>% filter(phase2 == phase) %>%
+    group_by(site_name) %>% summarise(nobjects = n(), .groups = "drop")
+}
+
+# 2) One replicate: site x sign presence matrix by sampling k objects per site.
+downsample_site_matrix <- function(signbase, phase, k, seed = NULL) {
+  if (!is.null(seed)) set.seed(seed)
+  df <- signbase %>% filter(phase2 == phase)
+  sc <- intersect(SIGN_COLS, colnames(df))
+  sites <- unique(df$site_name)
+  rows <- list()
+  for (s in sites) {
+    objs <- df %>% filter(site_name == s)
+    n <- nrow(objs)
+    if (n < k) next
+    samp <- objs[sample.int(n, k), , drop = FALSE]
+    pv <- vapply(sc, function(cn) as.integer(any(as.numeric(samp[[cn]]) > 0)),
+                 integer(1))
+    rows[[s]] <- pv
+  }
+  if (!length(rows)) return(NULL)
+  mat <- do.call(rbind, rows)
+  rownames(mat) <- names(rows)
+  mat
+}
+
+# Internal: map an arbitrary Louvain partition onto the 2-level manual groups by
+# assigning each Louvain community to the majority manual group among its sites.
+map_to_manual <- function(louvain_vec, manual_vec) {
+  lv <- louvain_vec; mg <- manual_vec
+  common <- intersect(names(lv), names(mg))
+  lv <- lv[common]; mg <- mg[common]
+  comms <- split(common, lv)
+  out <- mg
+  for (cs in comms) {
+    tab <- table(mg[cs]); best <- names(tab)[which.max(tab)]
+    out[cs] <- best
+  }
+  out
+}
+
+# 3) Object-level downsampling sensitivity: re-run network/Louvain across R
+#    replicates at common object count k; report per-site group retention and
+#    community-structure stability (mean ARI vs manual, modularity, n communities).
+run_downsample_sensitivity <- function(signbase, phase, k, R = 1000,
+                                       threshold = 0.2, seed = 123) {
+  set.seed(seed)
+  manual <- manual_groups[[phase]]
+  df <- signbase %>% filter(phase2 == phase)
+  site_counts <- df %>% group_by(site_name) %>% summarise(n = n(), .groups = "drop")
+  qual <- site_counts$site_name[site_counts$n >= k]
+  nsites_qual <- length(qual)
+  ret_acc <- setNames(rep(0, nsites_qual), qual)
+  ari_vec <- numeric(0); mod_vec <- numeric(0); ncomm_vec <- numeric(0)
+  for (r in seq_len(R)) {
+    mat <- downsample_site_matrix(signbase, phase, k, seed = seed + r)
+    if (is.null(mat) || nrow(mat) < 2) next
+    lv <- get_louvain_groups(mat, threshold = threshold)
+    lv <- lv[intersect(names(lv), names(manual))]
+    if (length(lv) < 2) next
+    derived <- map_to_manual(lv, manual[names(lv)])
+    for (s in intersect(names(derived), qual)) {
+      if (as.character(derived[s]) == as.character(manual[s])) ret_acc[s] <- ret_acc[s] + 1
+    }
+    if (length(unique(derived)) > 1 &&
+        length(unique(manual[names(derived)])) > 1) {
+      ari_vec <- c(ari_vec, mclust::adjustedRandIndex(
+        as.integer(derived), as.integer(manual[names(derived)])))
+    }
+    ns <- network_stats(mat, threshold = threshold)
+    mod_vec   <- c(mod_vec, ns$modularity)
+    ncomm_vec <- c(ncomm_vec, ns$n_communities)
+  }
+  retention <- data.frame(
+    site_name = qual,
+    nobjects  = site_counts$n[match(qual, site_counts$site_name)],
+    retention_rate = ret_acc / R,
+    manual_group   = as.integer(manual[qual]),
+    stringsAsFactors = FALSE)
+  list(n_sites_qualified = nsites_qual, k = k, R = R, threshold = threshold,
+       retention = retention,
+        mean_ari = if (length(ari_vec)) mean(ari_vec, na.rm = TRUE) else NA_real_,
+       sd_ari   = if (length(ari_vec)) sd(ari_vec) else NA_real_,
+       mean_modularity = mean(mod_vec, na.rm = TRUE),
+       mean_n_communities = mean(ncomm_vec, na.rm = TRUE))
+}
+
+# 4) Coverage-based rarefaction: for each site, accumulate objects in random
+#    order; record sign-type richness and sample coverage (1 - f1/m) at each
+#    sample size m; interpolate richness at a target coverage. Returns per-site
+#    table, group means, and a Wilcoxon test of richness-at-target by group.
+coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
+                                 n_perm = 200, seed = 456) {
+  set.seed(seed)
+  df <- signbase %>% filter(phase2 == phase)
+  sc <- intersect(SIGN_COLS, colnames(df))
+  manual <- manual_groups[[phase]]
+  out <- list()
+  for (s in unique(df$site_name)) {
+    objs <- df %>% filter(site_name == s)
+    n <- nrow(objs)
+    if (n < 1) next
+    occ <- lapply(seq_len(n), function(i)
+      which(vapply(sc, function(cn) as.numeric(objs[[cn]][i]) > 0, logical(1))))
+    rich_curve <- numeric(n); cov_curve <- numeric(n)
+    for (p in seq_len(n_perm)) {
+      ord <- sample.int(n); cnt <- integer(length(SIGN_COLS))
+      f1 <- 0; rich <- 0; rseq <- numeric(n); cseq <- numeric(n)
+      for (m in seq_len(n)) {
+        for (sg in occ[[ord[m]]]) {
+          if (cnt[sg] == 0) { cnt[sg] <- 1; f1 <- f1 + 1; rich <- rich + 1 }
+          else if (cnt[sg] == 1) { cnt[sg] <- 2; f1 <- f1 - 1 }
+          else { cnt[sg] <- cnt[sg] + 1 }
+        }
+        rseq[m] <- rich
+        cseq[m] <- if (m > 0) 1 - f1 / m else 0
+      }
+      rich_curve <- rich_curve + rseq
+      cov_curve  <- cov_curve + cseq
+    }
+    rich_curve <- rich_curve / n_perm
+    cov_curve  <- cov_curve / n_perm
+    if (cov_curve[n] < target_coverage) rat <- NA_real_
+    else {
+      idx <- which(cov_curve >= target_coverage)[1]
+      rat <- if (idx == 1) rich_curve[1] else
+        rich_curve[idx-1] + (target_coverage - cov_curve[idx-1]) /
+        (cov_curve[idx] - cov_curve[idx-1]) * (rich_curve[idx] - rich_curve[idx-1])
+    }
+    out[[s]] <- data.frame(site_name = s, nobjects = n,
+                           richness_full = rich_curve[n],
+                           coverage_full = cov_curve[n],
+                           richness_at_target = rat,
+                           manual_group = as.integer(manual[s]),
+                           stringsAsFactors = FALSE)
+  }
+  tab <- bind_rows(out)
+  g1 <- na.omit(tab$richness_at_target[tab$manual_group == 1])
+  g2 <- na.omit(tab$richness_at_target[tab$manual_group == 2])
+  wt <- if (length(g1) >= 2 && length(g2) >= 2)
+    wilcox.test(g1, g2) else list(p.value = NA_real_, statistic = NA_real_)
+  list(table = tab,
+       mean_restricted = mean(g1, na.rm = TRUE),
+       mean_broad = mean(g2, na.rm = TRUE),
+       wilcox_p = if (is.list(wt)) wt$p.value else NA_real_,
+       target_coverage = target_coverage)
+}

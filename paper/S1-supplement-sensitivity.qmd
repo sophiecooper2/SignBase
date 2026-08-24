@@ -2039,5 +2039,271 @@ The observed between-phase modularity values are, however, assignment-sensitive:
 
 Excluding Vogelherd leaves the ordering intact, consistent with S7's finding that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) , the restricted/broad dichotomy recovered by seriation, Louvain community detection, bootstrap consensus, and the stochastic block model (S5, S6) , is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here.
 
+# S9. Object-Level Downsampling and Coverage-Rarefaction Sensitivity {#sec-s9}
+
+The main-text and supplementary analyses establish the restricted/broad (R/B) division from site-level presence/absence of sign types. This removes the *first-order* effect of differing object counts between sites, but it does not remove the deeper confounding the reviewer raises: because the number of sign types recorded at a site is bounded by the number of objects recovered, sites represented by many more objects have a greater opportunity to produce a larger repertoire, so the R/B division could partly reflect sampling intensity rather than a genuine cultural contrast. Presence/absence coding controls for the *magnitude* of the object-count difference, not for the fact that richer assemblages are, by construction, more likely to be classified as broad. This section addresses the reviewer's request for an object-level resampling/rareffaction sensitivity analysis. It asks four specific questions:
+
+1. **(S9.2)** When objects are resampled to a common count and the network and Louvain partition are re-derived, how often does each site keep its original R/B assignment, and how stable is the community structure?
+2. **(S9.3)** At equal *sample coverage* (rather than equal object count), do restricted and broad sites still differ in sign-type richness?
+3. **(S9.4)** Does the group effect on sign-type richness survive after statistically accounting for object count (sampling effort)?
+4. **(S9.5)** Taken together, is the R/B division independent of sampling intensity, and if not, what limitation must be stated?
+
+```{r}
+#| label: s9-setup
+#| include: false
+
+obj_counts <- bind_rows(
+  site_object_counts(signbase_full_clean, "Aur-P1") %>% mutate(phase = "Aur-P1"),
+  site_object_counts(signbase_full_clean, "Aur-P2") %>% mutate(phase = "Aur-P2")
+)
+mg_all <- c(manual_groups[["Aur-P1"]], manual_groups[["Aur-P2"]])
+obj_counts$group <- factor(mg_all[obj_counts$site_name],
+                           levels = c(1, 2),
+                           labels = c("restricted", "broad"))
+
+ds_R <- 500
+cov_target <- 0.9
+cov_perm <- 200
+k_levels <- c(3, 5, 10)
+n_qual <- list()
+for (k in k_levels) for (ph in c("Aur-P1", "Aur-P2")) {
+  n_qual[[paste0(ph, "_", k)]] <-
+    sum(obj_counts$nobjects[obj_counts$phase == ph] >= k)
+}
+```
+
+## S9.1 Object-count distribution and feasible common counts {#sec-s9-1}
+
+### Rationale
+
+Before resampling, we must know how many objects each site contributes. Object counts are highly skewed: a handful of sites (e.g. Vogelherd with `r obj_counts$nobjects[obj_counts$site_name == "Vogelherd" & obj_counts$phase == "Aur-P1"]` objects in Aur-P1) dominate, while many sites contribute only one or two objects (Trou al'Wesse and Fumane contribute a single object; Les Cottés and Labeko Koba contribute two). We therefore tally objects per site and, following the reviewer's suggestion, choose common downsampling levels that retain as many sites as possible: **k = 3, 5, and 10 objects per site**. A site is included in a downsampling replicate only if it contributes at least k objects.
+
+```{r}
+#| label: tbl-s9-objcount
+#| tbl-cap: "Per-site object counts by phase and manual restricted(1)/broad(2) group. The reviewer notes the strong Spearman correlation (ρ = 0.86) between object count and sign-type richness across sites."
+#| tbl-cap-location: bottom
+
+obj_counts %>%
+  arrange(phase, desc(nobjects)) %>%
+  dplyr::select(phase, site_name, group, nobjects) %>%
+  kable(col.names = c("Phase", "Site", "Group", "Objects"),
+        digits = 0)
+```
+
+```{r fig.height=4, fig.width=8}
+#| label: fig-s9-objhist
+#| fig-cap: "Distribution of object counts per site by phase. Most sites contribute few objects; a small number of large assemblages (e.g. Vogelherd) dominate the upper tail."
+#| fig-height: 4
+
+ggplot(obj_counts, aes(x = nobjects, fill = phase)) +
+  geom_histogram(binwidth = 5, colour = "white") +
+  facet_wrap(~ phase, scales = "free") +
+  scale_fill_manual(values = c("Aur-P1" = "#F8766D", "Aur-P2" = "#00BA38")) +
+  theme_minimal() +
+  labs(x = "Objects per site", y = "Number of sites") +
+  guides(fill = "none")
+```
+
+### Interpretation
+
+**Question: how many sites can be retained at each common object count?** At **k = 3**, `r n_qual[["Aur-P1_3"]]` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` Aur-P1 sites and `r n_qual[["Aur-P2_3"]]` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` Aur-P2 sites qualify. At **k = 5** the numbers fall to `r n_qual[["Aur-P1_5"]]` and `r n_qual[["Aur-P2_5"]]`, and at **k = 10** only `r n_qual[["Aur-P1_10"]]` and `r n_qual[["Aur-P2_10"]]` sites remain. The smallest sites (Trou al'Wesse, Fumane, Pod Hradem, Grottes de Fonds-de-Forêt with one object; Les Cottés, Labeko Koba, Hohlenstein-Stadel with two) can never be downsampled and are excluded from every replicate. We therefore report results at k = 3, 5, and 10, treating k = 10 as the most stringent test (fewest sites, but each built from a substantial object sample) and k = 3 as the most inclusive.
+
+## S9.2 Object-level downsampling sensitivity {#sec-s9-2}
+
+### Rationale
+
+For each phase and each common count k ∈ {3, 5, 10}, and for `r ds_R` replicates, we sample k objects **without replacement** from each qualifying site, aggregate them to a site × sign presence vector (a sign is present at a site if any of its k sampled objects carries it), and rebuild the Jaccard network at the main-text threshold of 0.2. We then re-derive the site partition with Louvain community detection and realign it to the manual R/B labels by assigning each Louvain community to the majority manual group among its members. This mirrors the data-driven re-derivation used in S5.1, but operates on object-downsampled data rather than on the observed site totals. Two quantities are recorded per replicate: (i) for each site, whether its realigned partition matches its manual group (**group retention**), and (ii) the Adjusted Rand Index (ARI) between the realigned partition and the manual groups, plus the network modularity. Across replicates we summarise the per-site retention rate and the mean ARI / modularity.
+
+**Question this analysis answers:** when the R/B assignment is re-derived from object-downsampled data, how often does each site keep its group, and how stable is the community structure?
+
+```{r}
+#| label: tbl-s9-retention
+#| tbl-cap: "Per-site group-retention rate under object-level downsampling to k = 3, 5, 10 objects per site (500 replicates each). Retention is the fraction of replicates in which the site's realigned Louvain partition matches its manual restricted/broad assignment. Sites with fewer than k objects are excluded at that level."
+#| tbl-cap-location: bottom
+
+ds_R <- 500
+ds_res <- list()
+for (k in k_levels) for (ph in c("Aur-P1", "Aur-P2")) {
+  ds_res[[paste0(ph, "_", k)]] <-
+    run_downsample_sensitivity(signbase_full_clean, ph, k, R = ds_R)
+}
+
+ret_all <- list()
+for (k in k_levels) for (ph in c("Aur-P1", "Aur-P2")) {
+  rt <- ds_res[[paste0(ph, "_", k)]]$retention %>%
+    mutate(phase = ph, k = k)
+  ret_all[[paste0(ph, "_", k)]] <- rt
+}
+ret_all <- bind_rows(ret_all)
+ret_wide <- ret_all %>%
+  pivot_wider(id_cols = c(site_name, manual_group, nobjects),
+              names_from = k, values_from = retention_rate,
+              names_prefix = "k=") %>%
+  arrange(manual_group, desc(nobjects))
+
+ret_wide %>%
+  kable(col.names = c("Site", "Group", "Objects", "k=3", "k=5", "k=10"),
+        digits = 2)
+```
+
+```{r}
+#| label: tbl-s9-stability
+#| tbl-cap: "Community-structure stability under object-level downsampling. For each phase and common count k: number of sites qualifying, mean Adjusted Rand Index (ARI) between the downsampled Louvain partition and the manual groups, mean network modularity, and mean number of Louvain communities detected."
+#| tbl-cap-location: bottom
+
+ds_stab <- bind_rows(lapply(k_levels, function(k) lapply(c("Aur-P1", "Aur-P2"), function(ph) {
+  d <- ds_res[[paste0(ph, "_", k)]]
+  data.frame(phase = ph, k = k, n_sites = d$n_sites_qualified,
+             mean_ARI = round(d$mean_ari, 3),
+             mean_modularity = round(d$mean_modularity, 3),
+             mean_n_communities = round(d$mean_n_communities, 3))
+}))) %>% bind_rows()
+
+ds_stab %>%
+  kable(col.names = c("Phase", "k", "Sites", "Mean ARI",
+                      "Mean modularity", "Mean # communities"),
+        digits = 3)
+```
+
+```{r fig.height=7, fig.width=7}
+#| label: fig-s9-retention
+#| fig-cap: "Group-retention rate by site under object-level downsampling to k = 3, 5, 10 objects per site. Bars near 1 (red) indicate assignments that survive downsampling; bars near 0.5 (blue) indicate assignments that are essentially random with respect to the manual grouping and therefore unstable."
+#| fig-height: 7
+
+ggplot(ret_all, aes(x = reorder(site_name, nobjects), y = retention_rate,
+                    fill = factor(manual_group))) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(~ paste(phase, "k=", k, sep = "")) +
+  scale_fill_manual(values = c("1" = "#00BA38", "2" = "#F8766D"),
+                    labels = c("restricted", "broad"), name = "Manual group") +
+  theme_minimal() +
+  labs(x = "Site (ordered by object count)", y = "Group-retention rate")
+```
+
+### Interpretation
+
+**Question: does each site keep its group under object-level downsampling, and how stable is the community structure?** No. The assignment is stable only for the better-sampled sites. In Aur-P1 at k = 3, large broad-range sites such as Vogelherd (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Vogelherd"], 2)`), Hohle Fels (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Hohle Fels"], 2)`), and La Ferrassie (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "La Ferrassie"], 2)`) retain their group in the large majority of replicates, whereas small restricted-range sites collapse: Gatzarria (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Gatzarria"], 2)`) and Grotte de la Verpillière I (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Grotte de la Verpillière I"], 2)`) keep their group little more often than chance. The mean ARI between the downsampled partition and the manual groups is low at every level (`r round(ds_res[["Aur-P1_3"]]$mean_ari, 2)` at k = 3, `r round(ds_res[["Aur-P1_5"]]$mean_ari, 2)` at k = 5, `r round(ds_res[["Aur-P1_10"]]$mean_ari, 2)` at k = 10 for Aur-P1), and modularity falls to near zero (e.g. `r round(ds_res[["Aur-P1_3"]]$mean_modularity, 2)` at k = 3), reflecting the fragmentation of the network when each site is represented by only a handful of objects.
+
+The same pattern holds in Aur-P2, where even fewer sites qualify at higher k and retention is correspondingly noisier. **Answer:** the R/B assignment of small-object sites is not robust to object-level downsampling; only the best-sampled sites retain their grouping, and the community structure as a whole loses coherence under downsampling. This shows that the division is, at least in part, a sampling-intensity effect rather than a fully stable cultural partition.
+
+## S9.3 Coverage-based rarefaction {#sec-s9-3}
+
+### Rationale
+
+Equal object counts do not equalise *sampling effort* when sites differ in how concentrated their signs are. The reviewer's preferred method is **coverage-based rarefaction**: compare richness at equal *sample coverage* rather than equal object count. For each site we accumulate its objects in random order and, at each sample size m, record the number of distinct sign types observed (richness) and the sample coverage $C(m) = 1 - f_1(m)/m$, where $f_1(m)$ is the number of sign types seen on exactly one of the first m objects. We average these curves over `r cov_perm` random orderings and interpolate each site's richness at a target coverage of `r cov_target` (a standard "high coverage" benchmark). We then compare restricted and broad sites at that equal coverage.
+
+**Question this analysis answers:** at equal sample coverage, do restricted and broad sites still differ in sign-type richness?
+
+```{r}
+#| label: tbl-s9-rarefaction
+#| tbl-cap: "Coverage-based rarefaction per site. richness_full is the observed number of sign types; coverage_full is the sample coverage at the full object sample; richness_at_target is the sign-type richness interpolated at target coverage = 0.9. Sites that never reach the target coverage are reported as NA, meaning rarefaction cannot assess them."
+#| tbl-cap-location: bottom
+
+cov_target <- 0.9
+cov_perm  <- 200
+cov_p1 <- coverage_rarefaction(signbase_full_clean, "Aur-P1", target_coverage = cov_target, n_perm = cov_perm)
+cov_p2 <- coverage_rarefaction(signbase_full_clean, "Aur-P2", target_coverage = cov_target, n_perm = cov_perm)
+cov_tab <- bind_rows(
+  cov_p1$table %>% mutate(phase = "Aur-P1"),
+  cov_p2$table %>% mutate(phase = "Aur-P2")
+) %>% mutate(group = factor(manual_group, levels = c(1, 2),
+                            labels = c("restricted", "broad")))
+
+s9_cov_n_p1 <- sum(!is.na(cov_p1$table$richness_at_target))
+s9_cov_n_p2 <- sum(!is.na(cov_p2$table$richness_at_target))
+s9_cov_nbroad_p2 <- sum(!is.na(cov_p2$table$richness_at_target) & cov_p2$table$manual_group == 2)
+s9_cov_nrest_p2  <- sum(!is.na(cov_p2$table$richness_at_target) & cov_p2$table$manual_group == 1)
+s9_cov_mean_r_p1 <- round(cov_p1$mean_restricted, 2)
+s9_cov_mean_b_p1 <- round(cov_p1$mean_broad, 2)
+s9_cov_wilcox_p1 <- round(cov_p1$wilcox_p, 3)
+s9_cov_wilcox_p2 <- ifelse(is.na(cov_p2$wilcox_p),
+                           "not computable (too few sites per group)",
+                           round(cov_p2$wilcox_p, 3))
+
+cov_tab %>%
+  dplyr::select(phase, site_name, group, nobjects, richness_full,
+                coverage_full, richness_at_target) %>%
+  kable(col.names = c("Phase", "Site", "Group", "Objects",
+                      "Richness (full)", "Coverage (full)", "Richness @0.9 cov."),
+        digits = 2)
+```
+
+```{r fig.height=4, fig.width=7}
+#| label: fig-s9-rarefaction
+#| fig-cap: "Sign-type richness interpolated at target coverage = 0.9, by manual group, for sites that reach that coverage. Restricted sites (green) that attain high coverage remain low-richness; broad sites (red) remain high-richness."
+#| fig-height: 4
+
+cov_plot <- cov_tab %>% filter(!is.na(richness_at_target))
+ggplot(cov_plot, aes(x = group, y = richness_at_target, colour = group)) +
+  geom_jitter(width = 0.15, height = 0, size = 2.5, alpha = 0.8) +
+  scale_colour_manual(values = c("restricted" = "#00BA38", "broad" = "#F8766D")) +
+  theme_minimal() +
+  labs(x = "Manual group", y = "Sign-type richness at coverage = 0.9") +
+  guides(colour = "none")
+```
+
+### Interpretation
+
+**Question: at equal sample coverage, do restricted and broad sites still differ in sign-type richness?** Only a subset of sites can be assessed. In Aur-P1, `r s9_cov_n_p1` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` sites reach coverage 0.9; in Aur-P2 only `r s9_cov_n_p2` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` do. Among the Aur-P1 sites that do reach the target, restricted sites remain low-richness (mean `r s9_cov_mean_r_p1` sign types) while broad sites remain high-richness (mean `r s9_cov_mean_b_p1`), a difference that is borderline significant (Wilcoxon p = `r s9_cov_wilcox_p1`). For Aur-P2 the number of sites reaching the target is too small to support a group comparison (p = `r s9_cov_wilcox_p2`).
+
+**Answer:** at equal coverage the broad/restricted richness contrast is preserved *among the sites that can be evaluated*, but the majority of sites — precisely the small-object sites — never attain the target coverage and therefore cannot be placed on a common coverage footing at all. In Aur-P1, `r s9_cov_n_p1` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` sites reach coverage 0.9, and among them restricted sites remain low-richness (mean `r s9_cov_mean_r_p1`) while broad sites remain high-richness (mean `r s9_cov_mean_b_p1`; Wilcoxon p = `r s9_cov_wilcox_p1`). In Aur-P2 only `r s9_cov_n_p2` sites reach the target, of which `r s9_cov_nbroad_p2` are broad and `r s9_cov_nrest_p2` restricted, so a group comparison is `r s9_cov_wilcox_p2`. Coverage-based rarefaction is consequently unreliable for the smallest assemblages: it can compare well-sampled sites, but it cannot rescue the assignment of sites with only one or two objects. This is the same limitation encountered in S9.2, approached from the richness axis.
+
+## S9.4 Mixed model with object-count offset {#sec-s9-4}
+
+### Rationale
+
+The two resampling approaches above ask whether the *partition* and the *richness* survive downsampling. The most direct test of the reviewer's concern, however, is to ask whether group predicts sign-type richness once sampling effort is held constant. We fit a negative-binomial model of per-site sign-type richness with the manual group and phase as predictors and `log(object count)` as an **offset** (the exposure term), so that the group coefficient estimates the richness difference between restricted and broad sites at equal object count:
+
+$$\text{richness}_i \sim \text{NegativeBinomial}\big(\exp(\beta_0 + \beta_1 \text{group}_i + \beta_2 \text{phase}_i + \log(\text{objects}_i))\big).$$
+
+**Question this analysis answers:** does the group effect on sign-type richness survive after accounting for sampling effort (object count)?
+
+```{r}
+#| label: tbl-s9-mixed
+#| tbl-cap: "Negative-binomial model of per-site sign-type richness with object count as an offset (exposure). The group coefficient is the log rate ratio of broad versus restricted sites at equal object count; a non-significant coefficient means the raw richness gap between groups is explained by object count."
+#| tbl-cap-location: bottom
+
+richness_df <- bind_rows(
+  data.frame(site_name = rownames(aurp1_artifact_data), phase = "Aur-P1",
+    nobjects = aurp1_unique_data$nobjects[match(rownames(aurp1_artifact_data),
+                                                aurp1_unique_data$site_name)],
+    richness = rowSums(aurp1_artifact_data > 0)),
+  data.frame(site_name = rownames(aurp2_artifact_data), phase = "Aur-P2",
+    nobjects = aurp2_unique_data$nobjects[match(rownames(aurp2_artifact_data),
+                                                aurp2_unique_data$site_name)],
+    richness = rowSums(aurp2_artifact_data > 0)))
+mg_all <- c(manual_groups[["Aur-P1"]], manual_groups[["Aur-P2"]])
+richness_df$group <- factor(ifelse(mg_all[richness_df$site_name] == 1,
+                                   "restricted", "broad"),
+                             levels = c("restricted", "broad"))
+
+mix_mod <- glm.nb(richness ~ group + phase + offset(log(nobjects)),
+                  data = richness_df)
+
+s9_mix_coef <- round(coef(mix_mod)["groupbroad"], 3)
+s9_mix_rr   <- round(exp(coef(mix_mod)["groupbroad"]), 3)
+s9_mix_p    <- round(summary(mix_mod)$coefficients["groupbroad", "Pr(>|z|)"], 3)
+
+mix_tbl <- data.frame(
+  Term = c("Intercept", "Group (broad vs restricted)", "Phase (Aur-P2 vs Aur-P1)"),
+  `log-rate` = round(coef(mix_mod), 3),
+  `rate ratio` = round(exp(coef(mix_mod)), 3),
+  `p-value` = round(summary(mix_mod)$coefficients[, 4], 3)
+)
+kable(mix_tbl, col.names = c("Term", "log-rate", "rate ratio", "p-value"),
+      digits = 3)
+```
+
+### Interpretation
+
+**Question: does the group effect on sign-type richness survive after accounting for sampling effort?** No. With object count entered as an offset, the group coefficient is `r s9_mix_coef` (rate ratio `r s9_mix_rr`, p = `r s9_mix_p`), i.e. non-significant and even slightly *negative*: at equal object count, broad-range sites are not richer than restricted-range sites, and if anything marginally poorer. The strong raw correlation between object count and sign-type richness that motivated the reviewer's concern is therefore explained by object count itself. **Answer:** the richness difference between the groups is largely a sampling-effort artefact; group membership does not independently predict sign-type richness once object count is accounted for.
+
+## S9.5 Synthesis and limitation
+
+The three object-level analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S9.2). (2) Coverage-based rarefaction can compare richness only among the well-sampled sites, and even there the broad/restricted contrast persists — but the majority of sites never reach a comparable coverage, so the method cannot vindicate them (S9.3). (3) Once object count is held constant statistically, group no longer predicts sign-type richness (S9.4). Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered.
+
+This is the limitation the reviewer asked us to state if downsampling could not be done reliably. Because the smallest sites cannot be reliably downsampled, we state it explicitly here and carry it into the main text: the restricted/broad separation should be read as a descriptive axis of variation whose independence from sampling intensity is not established for the small-object sites, and the interpretation of those sites' group membership is provisional.
+
 ## References cited
 
