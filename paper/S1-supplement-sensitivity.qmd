@@ -1556,7 +1556,7 @@ The SBM results must be interpreted alongside the bootstrap consensus (S6.2) and
 
 ### Rationale
 
-To quantify overall agreement among the three ways of partitioning sites , the main-text manual restricted/broad groups, the bootstrap modal blocks (S6.2), and the SBM modal assignments (S6.3) , we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the S5 analyses use `mclust::adjustedRandIndex`, which yields the same values).
+To quantify overall agreement among the three ways of partitioning sites , the main-text manual restricted/broad groups, the bootstrap modal blocks (S6.2), and the SBM modal assignments (S6.3), we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the S5 analyses use `mclust::adjustedRandIndex`, which yields the same values).
 
 ```{r}
 #| label: s6-ari
@@ -1614,9 +1614,9 @@ kable(s6_ari_tab,
 
 ### Interpretation
 
-The ARI values summarise how far the three routes to the two-group partition agree, and the agreement is informative precisely because it varies by phase and method (@tbl-s6-ari). A high ARI between the manual groups and an unsupervised partition (SBM or bootstrap) indicates that the main-text grouping is broadly reproduced by data-driven partitions; because those partitions are also derived from the same sign data, this agreement is not independent confirmation that the groups differ. A low ARI indicates a genuine divergence: the manual restricted/broad split and the partition recovered by an unsupervised method organise the sites differently. Because the restricted/broad divide is defined partly by sign-type *richness* (the restricted sites are assemblages with few sign types), it is not in general expected to coincide with clusters defined purely by compositional *similarity*, and low ARI between the manual groups and similarity-based partitions should be interpreted in that light rather than as evidence that either partition is wrong. The specific pattern , which method agrees with the manual groups in which phase, is reported in @tbl-s6-ari.
+The ARI values summarise how far the three routes to the two-group partition agree, and the agreement is informative precisely because it varies by phase and method (@tbl-s6-ari). A high ARI between the manual groups and an unsupervised partition (SBM or bootstrap) indicates that the main-text grouping is broadly reproduced by data-driven partitions; because those partitions are also derived from the same sign data, this agreement is not independent confirmation that the groups differ. A low ARI indicates a genuine divergence: the manual restricted/broad split and the partition recovered by an unsupervised method organise the sites differently. Because the restricted/broad divide is defined partly by sign-type *richness* (the restricted sites are assemblages with few sign types), it is not in general expected to coincide with clusters defined purely by compositional *similarity*, and low ARI between the manual groups and similarity-based partitions should be interpreted in that light rather than as evidence that either partition is wrong.  
 
-**Implications for the main text.** The two-group claim is strongest where the manual assignment, the bootstrap, and the SBM converge, and qualified where they diverge. Where the SBM's best partition reproduces the manual groups (high ARI), the main text can cite the SBM as a model-based cross-check that was fit without reference to the seriation solution; because it uses the same sign data, it remains a consistency check rather than a fully independent confirmation. Where it does not, the divergence should be acknowledged and the seriation's two-group structure presented as the dominant axis of variation rather than an exhaustive description of the data.
+**Implications for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-s6-ari). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The SBM columns are undefined because the stochastic block model selects a single block in both phases (S6.3); the SBM therefore provides no two-group ARI, and its result that the sign-sharing networks are too sparse to support more than one block is consistent with the bootstrap finding that the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s6-6.
 
 ## S6.5 Summary of Implications {#sec-s6-5}
 
@@ -1642,79 +1642,76 @@ aurp1_grp <- aurp1_unique_data$group[match(rownames(aurp1_artifact_data),
 aurp2_grp <- aurp2_unique_data$group[match(rownames(aurp2_artifact_data),
                                            aurp2_unique_data$site_name)]
 
-sign_cols_all <- intersect(c("line","dashline","obline","radline","circumline",
-  "notch","obnotch","radnotch","circumnotch","dot","cupule","cross","rhombus",
-  "grid","hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni","v",
-  "circumspiral","vulva","anthropomorph","zoomorph","paw","concenline",
-  "pinleft","pinright","star"), names(signbase_full_clean))
+sign_cols_all <- intersect(colnames(aurp1_artifact_data), colnames(aurp2_artifact_data))
 
 # (A) Maximally-selected achieved-significance test
-s9_bestP1 <- best_split_permtest(aurp1_artifact_data, group = aurp1_grp, B = 999, seed = 1)
-s9_bestP2 <- best_split_permtest(aurp2_artifact_data, group = aurp2_grp, B = 999, seed = 1)
+s6_6_bestP1 <- best_split_permtest(aurp1_artifact_data, group = aurp1_grp, B = 999, seed = 1)
+s6_6_bestP2 <- best_split_permtest(aurp2_artifact_data, group = aurp2_grp, B = 999, seed = 1)
 
 # (B-i) Site-level leave-one-out cross-validated group recovery
-s9_cvP1 <- cv_group_accuracy(aurp1_artifact_data, aurp1_grp, k = 1, B = 999, seed = 1)
-s9_cvP2 <- cv_group_accuracy(aurp2_artifact_data, aurp2_grp, k = 1, B = 999, seed = 1)
+s6_6_cvP1 <- cv_group_accuracy(aurp1_artifact_data, aurp1_grp, k = 1, B = 999, seed = 1)
+s6_6_cvP2 <- cv_group_accuracy(aurp2_artifact_data, aurp2_grp, k = 1, B = 999, seed = 1)
 
 # (B-ii) Object-level holdout: groups from one half of objects, test on the other
-s9_objP1 <- cv_permanova_objectsplit(
+s6_6_objP1 <- cv_permanova_objectsplit(
   signbase_full_clean %>% filter(phase2 == "Aur-P1") %>%
     dplyr::select(site_name, all_of(sign_cols_all)),
   sign_cols_all, B_rep = 100, B_perm = 499, seed = 1)
-s9_objP2 <- cv_permanova_objectsplit(
+s6_6_objP2 <- cv_permanova_objectsplit(
   signbase_full_clean %>% filter(phase2 == "Aur-P2") %>%
     dplyr::select(site_name, all_of(sign_cols_all)),
   sign_cols_all, B_rep = 100, B_perm = 499, seed = 1)
 
 # (C) Group-free continuous gradient PerMANOVA on the first PCoA axis
-s9_D1 <- as.matrix(vegdist(aurp1_artifact_data, "jaccard", binary = TRUE))
-s9_D2 <- as.matrix(vegdist(aurp2_artifact_data, "jaccard", binary = TRUE))
-s9_gradP1 <- gradient_permanova(s9_D1, cmdscale(s9_D1, k = 1)[, 1])
-s9_gradP2 <- gradient_permanova(s9_D2, cmdscale(s9_D2, k = 1)[, 1])
+s6_6_D1 <- vegdist(aurp1_artifact_data, "jaccard", binary = TRUE)
+s6_6_D2 <- vegdist(aurp2_artifact_data, "jaccard", binary = TRUE)
+s6_6_gradP1 <- gradient_permanova(s6_6_D1, cmdscale(s6_6_D1, k = 1)[, 1])
+s6_6_gradP2 <- gradient_permanova(s6_6_D2, cmdscale(s6_6_D2, k = 1)[, 1])
 
 # Summary table
-s9_tab <- data.frame(
+s6_6_tab <- data.frame(
   Method = c("A: Maximally-selected split (P1)", "A: Maximally-selected split (P2)",
             "B: LOOCV site classification (P1)", "B: LOOCV site classification (P2)",
             "B: Object-half holdout (P1)", "B: Object-half holdout (P2)",
             "C: Gradient PerMANOVA (P1)", "C: Gradient PerMANOVA (P2)"),
-  Statistic = c(round(s9_bestP1$observed_best_F, 2), round(s9_bestP2$observed_best_F, 2),
-                paste0(round(s9_cvP1$accuracy, 2), " acc"), paste0(round(s9_cvP2$accuracy, 2), " acc"),
-                paste0("comb p =", format.pval(s9_objP1$combined_p, digits = 2)),
-                paste0("comb p =", format.pval(s9_objP2$combined_p, digits = 2)),
-                paste0("R2 =", s9_gradP1$R2), paste0("R2 =", s9_gradP2$R2)),
-  `p-value` = c(round(s9_bestP1$p_value, 3), round(s9_bestP2$p_value, 3),
-                round(s9_cvP1$p_value, 3), round(s9_cvP2$p_value, 3),
-                round(s9_objP1$combined_p, 4), round(s9_objP2$combined_p, 4),
-                s9_gradP1$p, s9_gradP2$p))
+  Statistic = c(round(s6_6_bestP1$observed_best_F, 2), round(s6_6_bestP2$observed_best_F, 2),
+                paste0(round(s6_6_cvP1$accuracy, 2), " acc"), paste0(round(s6_6_cvP2$accuracy, 2), " acc"),
+                paste0(round(s6_6_objP1$prop_significant * 100), "% splits sig"),
+                paste0(round(s6_6_objP2$prop_significant * 100), "% splits sig"),
+                paste0("R2 = ", s6_6_gradP1$R2), paste0("R2 = ", s6_6_gradP2$R2)),
+  `p-value` = c(round(s6_6_bestP1$p_value, 3), round(s6_6_bestP2$p_value, 3),
+                round(s6_6_cvP1$p_value, 3), round(s6_6_cvP2$p_value, 3),
+                format.pval(s6_6_objP1$combined_p, digits = 3),
+                format.pval(s6_6_objP2$combined_p, digits = 3),
+                s6_6_gradP1$p, s6_6_gradP2$p))
 ```
 
 ```{r}
-#| label: tbl-s9-summary
+#| label: tbl-s6-6-summary
 #| tbl-cap: "Circularity-breaking validation of the restricted/broad group difference. Method A re-derives the optimal two-group split from randomised data in every permutation (observed optimal pseudo-F vs. its null). Method B validates the grouping on withheld data: site-level leave-one-out k-NN classification accuracy (with permutation p-value) and object-level holdout where groups are defined from one random half of each site's objects and tested on the other half (Fisher-combined p across 100 random splits). Method C is a group-free continuous gradient PerMANOVA on the first PCoA axis. A significant result indicates the group structure is recoverable from data not used to define it."
 #| tbl-cap-location: bottom
-kable(s9_tab, digits = 3, align = "llc")
+kable(s6_6_tab, digits = 3, align = "llc")
 ```
 
 ### Interpretation
 
 The methods below answer one general question, whether the restricted/broad difference is a genuine pattern recoverable from data independent of how the groups were originally defined, through three specific questions, each answered by a different route.
 
-**Question 1 (strategy A):** Is the observed two-group split *stronger* than the best split one would obtain by optimising on randomised data, that is, does the restricted/broad partition survive a null that accounts for the fact that the grouping was itself optimised to maximise separation?
-- *Answer:* No. The observed optimal split is **not** significant (Aur-P1 observed optimal pseudo-F = `r round(s9_bestP1$observed_best_F, 2)`, permutation p = `r s9_bestP1$p_value`; Aur-P2 p = `r s9_bestP2$p_value`). This is consistent with , not contradictory to , the conclusions below: the restricted/broad contrast is a real, recoverable *gradient/axis of variation*, but it is not a sharp discontinuous partition that survives the most stringent "optimisation-accounted-for" null.
+**Question 1 (strategy A):** Is the observed two-group split *stronger* than the best split one would obtain by optimising on randomised data, that is, does the restricted/broad partition survive a null that accounts for the fact that the grouping was itself optimised to maximise separation? Method A re-derives the optimal split by ordering sites on sign-repertoire richness, the same principle underlying the manual restricted/broad distinction, and compares the observed optimum against the null distribution of optima from randomised data.
+- *Answer:* No. The observed optimal split is **not** significant (Aur-P1 observed optimal pseudo-F = `r round(s6_6_bestP1$observed_best_F, 2)`, permutation p = `r s6_6_bestP1$p_value`; Aur-P2 observed optimal pseudo-F = `r round(s6_6_bestP2$observed_best_F, 2)`, permutation p = `r s6_6_bestP2$p_value`). This is consistent with, not contradictory to, the conclusions from strategies B and C below: because B and C independently show the contrast is recoverable from withheld data, the non-significance of A is best read as evidence against a *sharp discontinuous partition* rather than against the contrast existing. The restricted/broad contrast is therefore a real, recoverable *gradient/axis of variation*, but it is not a sharp partition that survives the most stringent "optimisation-accounted-for" null.
 
 **Question 2 (strategy B):** Can the group assignment be recovered from data that did **not** contribute to defining it? 
 - *Site level (B-i):* Can a held-out site's restricted/broad label be predicted from a classifier trained only on the other sites?
-  - *Answer:* Yes. Leave-one-site-out classification recovers the manual label for `r s9_cvP1$accuracy` of Aur-P1 sites (95% CI `r round(s9_cvP1$ci_lo, 2)`–`r round(s9_cvP1$ci_hi, 2)`, permutation p = `r s9_cvP1$p_value`) and `r s9_cvP2$accuracy` of Aur-P2 sites (permutation p = `r s9_cvP2$p_value`). A site's group is therefore predictable from a classifier trained on the *other* sites, so the assignment is not an artefact of fitting all sites simultaneously.
+  - *Answer:* Yes. Leave-one-site-out classification recovers the manual label for `r round(s6_6_cvP1$accuracy * 100)`% of Aur-P1 sites (95% CI `r round(s6_6_cvP1$ci_lo, 2)`–`r round(s6_6_cvP1$ci_hi, 2)`, permutation p = `r s6_6_cvP1$p_value`) and `r round(s6_6_cvP2$accuracy * 100)`% of Aur-P2 sites (permutation p = `r s6_6_cvP2$p_value`). A site's group is therefore predictable from a classifier trained on the *other* sites, so the assignment is not an artefact of fitting all sites simultaneously.
 - *Object level (B-ii):* When the two-group rule is learned from one random half of each site's objects and tested, by PerMANOVA, on the *other* half, is the held-out contrast still significant?
-  - *Answer:* Yes for Aur-P1: the held-out PerMANOVA is significant in the large majority of random splits (`r s9_objP1$prop_significant` of 100; Fisher-combined p = `r format.pval(s9_objP1$combined_p, digits=2)`), using `r s9_objP1$n_usable` of `r nrow(aurp1_artifact_data)` sites that have enough objects for splitting. For Aur-P2 the combined evidence is likewise significant (Fisher-combined p = `r format.pval(s9_objP2$combined_p, digits=2)`), although only `r s9_objP2$n_usable` of `r nrow(aurp2_artifact_data)` Aur-P2 sites have two or more objects, so each individual split has low power (few splits clear p < 0.05 on their own) and the conclusion for Aur-P2 rests on the combined test rather than any single split. This shows the grouping is stable across *disjoint sets of objects*, which the original PerMANOVA , using every object to both define and test the groups , could not establish.
+  - *Answer:* Yes for Aur-P1: the held-out PerMANOVA is significant in the large majority of random splits (`r round(s6_6_objP1$prop_significant * 100)`% of 100; Fisher-combined p = `r format.pval(s6_6_objP1$combined_p, digits=2)`), using `r s6_6_objP1$n_usable` of `r nrow(aurp1_artifact_data)` sites that have enough objects for splitting. For Aur-P2 the combined evidence is likewise significant (Fisher-combined p = `r format.pval(s6_6_objP2$combined_p, digits=2)`), although only `r s6_6_objP2$n_usable` of `r nrow(aurp2_artifact_data)` Aur-P2 sites have two or more objects, so each individual split has low power (few splits clear p < 0.05 on their own) and the conclusion for Aur-P2 rests on the combined test rather than any single split. This shows the grouping is stable across *disjoint sets of objects*, which the original PerMANOVA, using every object to both define and test the groups, could not establish.
 
 **Question 3 (strategy C):** If we abandon the discrete two-group partition entirely and instead ask whether sign composition varies continuously along the main compositional axis, is that gradient significant?
-- *Answer:* Yes. A group-free gradient PerMANOVA regressing sign composition on the continuous first ordination axis is significant in both phases (Aur-P1: R² = `r s9_gradP1$R2`, p = `r s9_gradP1$p`; Aur-P2: R² = `r s9_gradP2$R2`, p = `r s9_gradP2$p`). Even without asserting discrete groups, a compositional gradient explains a significant fraction of the variation.
+- *Answer:* Yes. A group-free gradient PerMANOVA regressing sign composition on the continuous first ordination axis is significant in both phases (Aur-P1: R² = `r s6_6_gradP1$R2`, p = `r s6_6_gradP1$p`; Aur-P2: R² = `r s6_6_gradP2$R2`, p = `r s6_6_gradP2$p`). Even without asserting discrete groups, a compositional gradient explains a significant fraction of the variation.
 
 **Summary.** Strategies B and C provide the strongest evidence that the
 restricted/broad contrast is not a circularity artefact: the grouping is
-recovered from withheld data (strategy B) and a continuous gradient is significant without any group definition (strategy C). Strategy A, the most conservative test, shows the contrast is a real but gradual axis of variation rather than a sharp partition. We therefore present the main-text PerMANOVA as descriptive and exploratory, and we rely on the cross-validation results (strategy B) as the appropriate independent confirmation that the grouping is not a circularity artefact.
+recovered from withheld data (strategy B) and a continuous gradient is significant without any group definition (strategy C). Strategy A, the most conservative test, is consistent with a gradual rather than sharp partition and does not contradict the recoverability established by B and C. We therefore present the main-text PerMANOVA as descriptive and exploratory, and we rely on the cross-validation results (strategy B) as the appropriate independent confirmation that the grouping is not a circularity artefact.
 
 # S7. Object-Type Sensitivity: Figurine Exclusion {#sec-s7}
 
