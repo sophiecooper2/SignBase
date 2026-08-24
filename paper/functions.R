@@ -858,6 +858,62 @@ sci_md <- function(x, digits = 2) {
   }
 }
 
+# ── SBM fitting (S1 S6.3) ────────────────────────────────────────────────────────
+# Fit stochastic block models for K = 1:5 blocks on a binary site x sign matrix.
+# Uses the `blockmodels` package with Bernoulli SBM for undirected networks ("SBM_sym").
+# Uses *weighted* adjacency (1 - Jaccard similarity, thresholded at 0.2), not binarized.
+# Returns a list with: $icl (numeric vector length 5), $bestK (int), $Z (n_sites x bestK matrix of posteriors).
+# Saves results to file if `save_path` is provided (default NULL: no caching).
+fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
+  if (!is.null(seed)) set.seed(seed)
+  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+                  "concenline","pinleft","pinright","star")
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
+  jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+  adj <- 1 - jac
+  adj[adj < 0.2] <- 0
+  diag(adj) <- 0
+  # blockmodels expects a symmetric adjacency matrix for SBM_sym
+  # Suppress verbose output from blockmodels estimation
+  sink(tempfile()); on.exit(sink())
+  bm <- blockmodels::BM_bernoulli("SBM_sym", adj, verbosity = 0, explore_min = 1)
+  bm$estimate()
+  sink()
+  icl <- bm$ICL[1:max_K]
+  bestK <- which.max(icl)
+  # Get posterior membership matrix Z for the best K
+  Z <- bm$memberships[[bestK]]$Z
+  rownames(Z) <- rownames(adj)
+  colnames(Z) <- paste0("Block", seq_len(bestK))
+  res <- list(icl = icl, bestK = bestK, Z = Z)
+  if (!is.null(save_path)) {
+    saveRDS(res, save_path)
+  }
+  res
+}
+
+# Fit SBM for both phases and optionally save combined results.
+# `art_list`: named list of artifact_data per phase (e.g., list(Aur-P1 = ..., Aur-P2 = ...))
+# `save_path`: path to write the RDS file (default NULL: no caching)
+s6_fit_sbm_all <- function(art_list, max_K = 5, save_path = NULL) {
+  out <- lapply(names(art_list), function(ph) {
+    message("Fitting SBM for ", ph, " (K = 1:", max_K, ")...")
+    fit_sbm(art_list[[ph]], max_K = max_K)
+  })
+  names(out) <- names(art_list)
+  if (!is.null(save_path)) {
+    saveRDS(out, save_path)
+    message("Saved SBM results to ", save_path)
+  }
+  out
+}
+
 # ── SBM vs manual group mismatch (S1 S6.3) ──────────────────────────────────────
 # Compute sites where SBM modal assignment diverges from manual restricted/broad
 # groups after optimal block-to-group mapping.
@@ -887,9 +943,10 @@ s6_bestK <- function(sbm_list, ph) {
 # ICL gap between best and second-best model
 s6_gap <- function(sbm_list, ph) {
   if (!length(sbm_list) || !ph %in% names(sbm_list)) return(NA_real_)
-  icl <- sbm_list[[ph]]$ICL
+  icl <- sbm_list[[ph]]$icl
   if (length(icl) < 2) return(NA_real_)
-  icl[1] - icl[2]
+  sorted <- sort(icl, decreasing = TRUE)
+  sorted[1] - sorted[2]
 }
 
 # Global minimum posterior probability across all phases/sites
