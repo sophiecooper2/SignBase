@@ -61,6 +61,7 @@ library(knitr)
 library(ggpubr)
 library(magrittr)
 library(rcarbon)
+library(blockmodels)
 source(here::here("paper/functions.R"))  # shared function library
 
 # ── Reproduce the data-cleaning pipeline from paper.qmd ──────────────────────
@@ -123,6 +124,7 @@ evolved_unique_data <- make_phase_data("evolved_aurignacian", signbase_full_clea
 proto_artifact_data   <- extract_artifact(proto_unique_data)
 early_artifact_data   <- extract_artifact(early_unique_data)
 evolved_artifact_data <- extract_artifact(evolved_unique_data)
+```
 ```
 
 ```{r}
@@ -1467,28 +1469,8 @@ The bootstrap treats block structure as a resampling artefact of an observed par
 
 ```{r}
 #| label: s6-sbm-compute
-s6_sbm <- list()
-if (requireNamespace("blockmodels", quietly = TRUE)) {
-  set.seed(42)
-  for (ph in names(s6_art)) {
-    x <- as.matrix(s6_art[[ph]]); x[x > 0] <- 1
-    adj <- (1 - as.matrix(vegan::vegdist(x, "jaccard", binary = TRUE))) >= 0.2
-    diag(adj) <- FALSE
-    mode(adj) <- "integer"
-    bm <- blockmodels::BM_bernoulli("SBM", adj, verbosity = 0,
-                                    explore_min = 1, exploration_factor = 1.5)
-    bm$estimate()
-    icl <- as.numeric(bm$ICL)
-    bestK <- which.max(replace(icl, is.na(icl), -Inf))
-    # blockmodels stores the n x K posterior membership matrix Z in the
-    # environment of the S4 SBM object corresponding to the chosen K.
-    obj <- bm$memberships[[min(bestK, length(bm$memberships))]]
-    Z <- slot(obj, ".xData")$Z
-    colnames(Z) <- paste0("Block", seq_len(ncol(Z)))
-    rownames(Z) <- rownames(x)
-    s6_sbm[[ph]] <- list(icl = icl, bestK = bestK, Z = Z)
-  }
-}
+# Load pre-computed SBM results (avoids needing blockmodels at render time)
+s6_sbm <- readRDS("s6_sbm_results.rds")
 # ── Inline-accessor helpers for the S6.3/S6.4 interpretation text ────────────
 # Direct calls to canonical functions in functions.R with local S6 objects.
 # These are simple aliases to avoid rewriting inline code.
