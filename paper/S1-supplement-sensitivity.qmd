@@ -1460,6 +1460,98 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
 
 **Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the S3 geodesic results. The bootstrap 95% CI on this statistic is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2; both span zero. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Mantel test has low statistical power: the wide intervals mean a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall well inside the sampling noise and could not be excluded. The non-significant Mantel result must therefore be read as a *lack of evidence* for geographic structure, not as evidence that geographic structure is absent, and (consistent with S5.10) it provides no support for any alternative cultural process.
 
+## S5.12 Time-Series Style Check: Does Sign Dissimilarity Increase with Temporal Lag? {#sec-s5-12}
+
+### Rationale
+
+The main text reports a temporal Mantel test in which sign dissimilarity is correlated with temporal distance (|ΔMedianBP|); that test is weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) yet explains little variation, and the reviewer correctly notes it cannot demonstrate whether substantial change in sign types did or did not occur through time. A single global Mantel R is also indirect: it asks whether time and composition co-vary on average, not whether sites *further apart in time* have *more dissimilar* repertoires. To test temporal turnover more directly we ask three specific questions:
+
+1. **Does sign dissimilarity increase with temporal lag?** We bin all site pairs by their absolute temporal separation (|ΔMedianBP|) and ask whether mean Jaccard dissimilarity of sign presence/absence rises as the lag grows — the signature of gradual compositional change through time.
+2. **Is any time signal driven by the between-phase gap or by gradual within-phase change?** Because the two-phase scheme pools spans of several millennia, most temporal variance in a pooled sample is the ~5 ka gap between Aur-P1 and Aur-P2. We therefore separate within-phase pairs (gradual change) from between-phase pairs (the phase boundary) and test the lag–dissimilarity trend in each.
+3. **How should a flat or null trend be interpreted?** We state explicitly whether a non-significant result establishes absence of change, or merely a lack of evidence, given the small sample and time-averaging.
+
+### Analysis
+
+We aggregate the cleaned object-level data to **site level**: for each of the `r n_sites_ts` sites we record the presence/absence of every sign type (any object at the site carrying the sign counts as present) and a single calibrated age taken as the median `MedianBP` (years BP) across the site's objects. Pairwise Jaccard dissimilarity of the binary sign vectors and the absolute temporal lag |ΔMedianBP| (converted to ka) are computed for all `r n_pairs_ts` unordered site pairs. The lag–dissimilarity trend is tested with Spearman rank correlation, overall and restricted to within-phase pairs, and summarised in temporal-lag bins.
+
+```{r}
+#| label: s5-12-time-lag
+#| warning: false
+
+# Site-level sign presence/absence and calibrated age (MedianBP, years BP)
+site_sign <- signbase_full_clean %>%
+  group_by(site_name) %>%
+  summarise(across(line:star, ~ as.numeric(sum(.) > 0)),
+            MedianBP = median(MedianBP),
+            phase2   = first(phase2),
+            .groups = "drop")
+
+n_sites_ts <- nrow(site_sign)
+n_p1_ts    <- sum(site_sign$phase2 == "Aur-P1")
+n_p2_ts    <- sum(site_sign$phase2 == "Aur-P2")
+
+# Pairwise Jaccard sign dissimilarity and absolute temporal lag (|ΔMedianBP|)
+Y_dist   <- vegan::vegdist(site_sign %>% dplyr::select(line:star),
+                           method = "jaccard", binary = TRUE)
+D_jac    <- as.matrix(Y_dist)
+D_lag    <- as.matrix(dist(site_sign$MedianBP))
+ut       <- upper.tri(D_jac)
+
+pairs_ts <- data.frame(
+  lag_year   = D_lag[ut],
+  lag_ka     = D_lag[ut] / 1000,
+  jac        = D_jac[ut],
+  same_phase = (outer(site_sign$phase2, site_sign$phase2, `==`))[ut]
+)
+n_pairs_ts <- nrow(pairs_ts)
+
+# Trend tests: does dissimilarity rise with temporal lag?
+ts_all    <- cor.test(pairs_ts$lag_ka, pairs_ts$jac, method = "spearman")
+ts_within <- cor.test(pairs_ts$lag_ka[pairs_ts$same_phase],
+                      pairs_ts$jac[pairs_ts$same_phase], method = "spearman")
+ts_rho_all     <- round(unname(ts_all$estimate), 3)
+ts_p_all       <- round(ts_all$p.value, 3)
+ts_rho_within  <- round(unname(ts_within$estimate), 3)
+ts_p_within    <- round(ts_within$p.value, 3)
+
+# Mean dissimilarity within vs between phases (the dominant between-phase gap)
+mean_jac_within   <- round(mean(pairs_ts$jac[pairs_ts$same_phase]), 3)
+mean_jac_between  <- round(mean(pairs_ts$jac[!pairs_ts$same_phase]), 3)
+mean_lag_within   <- round(mean(pairs_ts$lag_ka[pairs_ts$same_phase]), 2)
+mean_lag_between  <- round(mean(pairs_ts$lag_ka[!pairs_ts$same_phase]), 2)
+
+# Binned mean dissimilarity by temporal-lag class
+pairs_ts$lag_bin <- cut(pairs_ts$lag_ka,
+                        breaks = c(0, 2, 4, 6, 8, 10, 12, 15, 20, 50),
+                        include.lowest = TRUE)
+ts_bin_tab <- pairs_ts %>%
+  group_by(lag_bin) %>%
+  summarise(`Pairs` = n(),
+            `Mean Jaccard dissimilarity` = round(mean(jac), 3),
+            `SD` = round(sd(jac), 3)) %>%
+  ungroup()
+
+ts_jac_short <- round(ts_bin_tab$`Mean Jaccard dissimilarity`[1], 3)
+ts_last_bin  <- as.character(ts_bin_tab$lag_bin[nrow(ts_bin_tab)])
+ts_last_n    <- ts_bin_tab$Pairs[nrow(ts_bin_tab)]
+```
+
+```{r}
+#| label: tbl-ts-lag
+#| tbl-cap: "Mean Jaccard dissimilarity of geometric-sign repertoires by temporal-lag class (absolute |ΔMedianBP| between site pairs, in ka). Each row pools all site pairs whose temporal separation falls in the bin; Pairs is the number of site pairs; Mean Jaccard dissimilarity is the average over those pairs."
+#| tbl-cap-location: bottom
+
+kable(ts_bin_tab, digits = 3)
+```
+
+### Interpretation
+
+**Question 1 — does sign dissimilarity increase with temporal lag?** No. Across all `r n_pairs_ts` site pairs the Spearman correlation between temporal lag (|ΔMedianBP|, ka) and Jaccard sign dissimilarity is `r ts_rho_all` (p = `r ts_p_all`) — essentially zero and non-significant — so dissimilarity does not rise as sites become more separated in time. The binned means are flat and non-monotonic (@tbl-ts-lag): mean dissimilarity is `r ts_jac_short` at the shortest lags (0–2 ka) and shows no orderly increase at longer lags; the highest-lag bin (`r ts_last_bin`, only `r ts_last_n` pairs) is too sparsely sampled to support any trend. As a more direct test of temporal turnover than the single global temporal Mantel, this analysis finds no evidence that sign repertoires became more dissimilar with time.
+
+**Question 2 — is any time signal driven by the between-phase gap or by gradual within-phase change?** The time signal is absent in both components. Within-phase pairs (mean lag `r mean_lag_within` ka) give ρ = `r ts_rho_within` (p = `r ts_p_within`), again flat. The between-phase gap dominates the temporal variance of the pooled sample — between-phase pairs have a mean lag of `r mean_lag_between` ka, roughly double the within-phase mean — yet between-phase pairs are if anything slightly *less* dissimilar (mean Jaccard `r mean_jac_between`) than within-phase pairs (mean Jaccard `r mean_jac_within`). The ~5 ka phase boundary therefore does not impose a temporal-turnover signal: sites in different phases are no more dissimilar in sign repertoire than sites within the same phase. This also clarifies the main-text temporal Mantel, which was weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) only because it pairs 438 objects that largely share a site `MedianBP`, inflating the effective sample; at the site level, where each age is measured once, no monotonic time trend remains.
+
+**Question 3 — how should a flat trend be interpreted?** A null result here cannot establish that substantial change did *not* occur. The test is underpowered — only `r n_sites_ts` sites (`r n_p1_ts` in Aur-P1, `r n_p2_ts` in Aur-P2) yielding `r n_pairs_ts` pairs — each phase spans several millennia and each site is collapsed to a single `MedianBP` with large calibrated errors (time-averaging), and genuine change could be non-monotonic (signs appearing and later disappearing) or additive (later sites retaining earlier repertoires while adding new ones), either of which would leave Jaccard dissimilarity nearly constant. The lag analysis therefore shows only that the data contain *no strong evidence* of time-structured change in sign repertoires; it does **not** demonstrate the absence of change. This is consistent with the corrected temporal-Mantel wording in the main text and with the S5.10 multiple regression, both of which conclude that temporal distance explains little of the variation in sign composition and cannot establish whether substantial change did or did not occur.
+
 # S6. Robustness of the Two-Group Structure: Bootstrap Consensus and Stochastic Block Models {#sec-s6}
 
 ## S6.1 Rationale {#sec-s6-1}
