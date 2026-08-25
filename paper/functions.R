@@ -27,6 +27,7 @@ suppressPackageStartupMessages({
   library(ggrepel)
   library(knitr)
   library(readxl)
+  library(ape)
 })
 
 # ── Data preparation ──────────────────────────────────────────────────────────
@@ -1314,4 +1315,45 @@ coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
        mean_broad = mean(g2, na.rm = TRUE),
        wilcox_p = if (is.list(wt)) wt$p.value else NA_real_,
        target_coverage = target_coverage)
+}
+
+# 5) Negative-binomial model of sign-type richness with an object-count offset
+#    (S1 S9.4). Tests whether the restricted/broad group effect on richness
+#    survives after accounting for sampling effort (object count as exposure).
+#    Defined once here and called by both paper.qmd and S1 S9.4 so the model is
+#    fitted identically in the two documents and never duplicated.
+# Args:
+#   art_list:    named list of site x sign matrices, one per phase
+#                (e.g. list("Aur-P1" = aurp1_artifact_data,
+#                           "Aur-P2" = aurp2_artifact_data))
+#   uniq_list:   named list of per-phase site-level data frames (must contain
+#                $site_name and $nobjects), one per phase
+#   groups_list: canonical manual groups (manual_groups) per phase
+# Returns: list with $data (per-site richness/offset/group/phase), $fit
+#          (glm.nb object), and scalar summaries $group_coef,
+#          $group_rate_ratio, $group_p.
+s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
+  richness_df <- bind_rows(lapply(names(art_list), function(ph) {
+    art  <- art_list[[ph]]
+    uniq <- uniq_list[[ph]]
+    data.frame(
+      site_name = rownames(art),
+      phase     = ph,
+      nobjects  = uniq$nobjects[match(rownames(art), uniq$site_name)],
+      richness  = rowSums(art > 0)
+    )
+  }))
+  grp_val <- mapply(function(s, p) groups_list[[p]][s],
+                    richness_df$site_name, richness_df$phase)
+  richness_df$group <- factor(
+    ifelse(grp_val == 1, "restricted", "broad"),
+    levels = c("restricted", "broad"))
+  fit <- MASS::glm.nb(richness ~ group + phase + offset(log(nobjects)),
+                      data = richness_df)
+  co         <- coef(fit)
+  group_coef <- co["groupbroad"]
+  list(data = richness_df, fit = fit,
+       group_coef = group_coef,
+       group_rate_ratio = exp(group_coef),
+       group_p = summary(fit)$coefficients["groupbroad", "Pr(>|z|)"])
 }

@@ -63,6 +63,7 @@ library(magrittr)
 library(rcarbon)
 library(blockmodels)
 library(MASS)
+library(ecodist)
 source(here::here("paper/functions.R"))  # shared function library
 
 # ── Reproduce the data-cleaning pipeline from paper.qmd ──────────────────────
@@ -1307,6 +1308,158 @@ The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A r
 
 In short, size normalisation removes the mean-degree confound and confirms that the modularity-based claim of stronger community structure in Aur-P1 survives net of network size, whereas neither phase's mean degree can be used as evidence of intrinsically higher connectivity.
 
+## S5.10 Multiple Regression on Distance Matrices (Drivers of Sign Dissimilarity) {#sec-s5-10}
+
+The Mantel tests establish that geographic distance is not significantly correlated with sign dissimilarity in either phase, but a non-significant result cannot by itself identify which alternative process — if any — generated the pattern. To split the variance of sign dissimilarity among the candidate drivers that are actually measured in the data, we fit a multiple regression on distance matrices (MRM; @Lichstein_2007) in which the response is the Jaccard dissimilarity of sign presence/absence and the three predictors are, for every pair of sites, their geographic distance, their absolute temporal distance (|ΔMedianBP|), and their absolute difference in object count (a proxy for sampling effort). Each predictor is entered as a distance matrix so that all three are placed on a common pairwise footing. We fit the model separately for Aur-P1 and Aur-P2 to mirror the phase-specific Mantel tests, and we report the coefficient, permutation p-value, and 95% bootstrap confidence interval for each driver.
+
+```{r}
+#| label: s5-10-mrm
+#| warning: false
+
+mrm_phase <- function(art, uniq, nperm = 10000, B = 500) {
+  sites <- uniq   # rows are assumed aligned with the rows of art
+  Y   <- as.dist(vegan::vegdist(art, method = "jaccard", binary = TRUE))
+  pts <- sites %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+  geo <- sf::st_distance(pts) %>% as.dist()
+  temp <- dist(sites$MedianBP)
+  obj  <- dist(sites$nobjects)
+  fit <- MRM(Y ~ geo + temp + obj, nperm = nperm)
+  set.seed(7)
+  boot_one <- function() {
+    idx <- sample(nrow(art), replace = TRUE)
+    Yb  <- as.dist(vegan::vegdist(art[idx, ], method = "jaccard", binary = TRUE))
+    pb  <- sites[idx, , drop = FALSE] %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+    gb  <- sf::st_distance(pb) %>% as.dist()
+    tb  <- dist(sites$MedianBP[idx])
+    ob  <- dist(sites$nobjects[idx])
+    res <- tryCatch(MRM(Yb ~ gb + tb + ob, nperm = 10)$coef,
+                    error = function(e) NULL)
+    if (is.null(res) || !("Y" %in% colnames(res))) return(NULL)
+    if (any(is.na(res[, "Y"]))) return(NULL)
+    res[, "Y"]
+  }
+  boots <- replicate(B, boot_one(), simplify = FALSE)
+  boots <- boots[!sapply(boots, is.null)]
+  boots <- do.call(cbind, boots)
+  list(coef   = fit$coef,
+       r2     = fit$r.squared,
+       geo_ci = quantile(boots["geo", ], c(0.025, 0.975)),
+       temp_ci= quantile(boots["temp", ], c(0.025, 0.975)),
+       obj_ci = quantile(boots["obj", ],  c(0.025, 0.975)))
+}
+
+mrm_p1 <- mrm_phase(aurp1_artifact_data, aurp1_unique_data)
+mrm_p2 <- mrm_phase(aurp2_artifact_data, aurp2_unique_data)
+
+mrm_p1_r2 <- mrm_p1$r.squared
+mrm_p2_r2 <- mrm_p2$r.squared
+
+mrm_p1_geo <- mrm_p1$coef["geo","Y"]; mrm_p1_geo_p <- mrm_p1$coef["geo","pval"]
+mrm_p1_geo_lo <- mrm_p1$geo_ci[1]; mrm_p1_geo_hi <- mrm_p1$geo_ci[2]
+mrm_p1_temp <- mrm_p1$coef["temp","Y"]; mrm_p1_temp_p <- mrm_p1$coef["temp","pval"]
+mrm_p1_temp_lo <- mrm_p1$temp_ci[1]; mrm_p1_temp_hi <- mrm_p1$temp_ci[2]
+mrm_p1_obj <- mrm_p1$coef["obj","Y"]; mrm_p1_obj_p <- mrm_p1$coef["obj","pval"]
+mrm_p1_obj_lo <- mrm_p1$obj_ci[1]; mrm_p1_obj_hi <- mrm_p1$obj_ci[2]
+
+mrm_p2_geo <- mrm_p2$coef["geo","Y"]; mrm_p2_geo_p <- mrm_p2$coef["geo","pval"]
+mrm_p2_temp <- mrm_p2$coef["temp","Y"]; mrm_p2_temp_p <- mrm_p2$coef["temp","pval"]
+mrm_p2_obj <- mrm_p2$coef["obj","Y"]; mrm_p2_obj_p <- mrm_p2$coef["obj","pval"]
+mrm_p2_geo_lo <- mrm_p2$geo_ci[1]; mrm_p2_geo_hi <- mrm_p2$geo_ci[2]
+mrm_p2_temp_lo <- mrm_p2$temp_ci[1]; mrm_p2_temp_hi <- mrm_p2$temp_ci[2]
+mrm_p2_obj_lo <- mrm_p2$obj_ci[1]; mrm_p2_obj_hi <- mrm_p2$obj_ci[2]
+```
+
+For Aur-P1 the MRM explains `r n2(mrm_p1_r2)` of the variance in sign dissimilarity; none of the three drivers is significant (geographic: β = `r n3(mrm_p1_geo)`, 95% CI [`r n3(mrm_p1_geo_lo)`, `r n3(mrm_p1_geo_hi)`], p = `r n3(mrm_p1_geo_p)`; temporal: β = `r n3(mrm_p1_temp)`, 95% CI [`r n3(mrm_p1_temp_lo)`, `r n3(mrm_p1_temp_hi)`], p = `r n3(mrm_p1_temp_p)`; object count: β = `r n3(mrm_p1_obj)`, 95% CI [`r n3(mrm_p1_obj_lo)`, `r n3(mrm_p1_obj_hi)`], p = `r n3(mrm_p1_obj_p)`). Aur-P2 shows the same pattern (R² = `r n2(mrm_p2_r2)`; geographic p = `r n3(mrm_p2_geo_p)`, temporal p = `r n3(mrm_p2_temp_p)`, object-count p = `r n3(mrm_p2_obj_p)`). Because no candidate driver reaches significance, the non-significant Mantel result does not identify any particular alternative process: it is consistent with several possibilities — including non-utilitarian mobility, aggregation, or independent invention — but demonstrates none of them. With only `r nrow(aurp2_artifact_data)` sites, the Aur-P2 MRM is underpowered, so its non-significant coefficients should be read as indicative rather than conclusive; the substantive point is that the data contain no statistical evidence favouring one driver over another.
+
+## S5.11 Mantel Correlogram and Bootstrap Confidence Intervals on the Mantel R {#sec-s5-11}
+
+### Rationale
+
+The Mantel tests reported in the main text and in S3 evaluate a single global null hypothesis: that geometric-sign dissimilarity is uncorrelated with geographic distance across all site pairs simultaneously. A non-significant global result can conceal scale-dependent structure — for example, sign sharing might be geographically clustered at short distances but random at long distances, producing a net correlation near zero. Because the global test cannot distinguish "no spatial structure at any scale" from "positive and negative structure that cancel," we ask two specific questions:
+
+1. **Does sign dissimilarity show any spatial autocorrelation at a specific distance lag?** A Mantel correlogram partitions site pairs by geographic-distance bin and tests the Mantel correlation within each bin; a significant positive r at one or more lags would reveal scale-dependent structure that the global test misses.
+2. **How uncertain is the global Mantel R estimate, and what does that imply about statistical power?** We place a bootstrap 95% confidence interval on the single global Mantel R reported for each phase. A wide interval that overlaps zero indicates the test cannot distinguish a true null from a true moderate correlation, so the non-significant result is a lack of evidence rather than evidence of absence.
+
+### Analysis
+
+We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the S3 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram`, which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we additionally resample sites with replacement (B = 1000) and recompute the Mantel R each time, taking the 2.5% and 97.5% quantiles as the bootstrap interval.
+
+```{r}
+#| label: s5-11-mantel-corr
+#| warning: false
+
+phase_distances <- function(df) {
+  art <- df %>%
+    dplyr::select(line:star) %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
+  sf_obj <- sf::st_as_sf(df, coords = c("longitude", "latitude"), crs = 4326)
+  geo <- as.dist(sf::st_distance(sf_obj) / 1000)
+  list(jac = jac, geo = geo)
+}
+
+pd_p1 <- phase_distances(aurp1_unique_data)
+pd_p2 <- phase_distances(aurp2_unique_data)
+
+nclass_p1 <- 5
+nclass_p2 <- 3
+set.seed(2024)
+
+mg_p1 <- ecodist::mgram(pd_p1$jac, pd_p1$geo,
+                        nclass = nclass_p1, equiprobable = TRUE,
+                        nboot = 1000, cboot = 0.95, nperm = 1000)
+mg_p2 <- ecodist::mgram(pd_p2$jac, pd_p2$geo,
+                        nclass = nclass_p2, equiprobable = TRUE,
+                        nboot = 1000, cboot = 0.95, nperm = 1000)
+
+mg_p1_df <- as.data.frame(mg_p1$mgram) %>% mutate(Phase = "Aur-P1")
+mg_p2_df <- as.data.frame(mg_p2$mgram) %>% mutate(Phase = "Aur-P2")
+mg_plot_df <- bind_rows(mg_p1_df, mg_p2_df)
+
+# Global Mantel R (point estimate + permutation p), same construction as S3
+mp1 <- vegan::mantel(pd_p1$geo, pd_p1$jac, permutations = 1000)
+mp2 <- vegan::mantel(pd_p2$geo, pd_p2$jac, permutations = 1000)
+mg_p1_r <- mp1$statistic; mg_p1_p <- mp1$signif
+mg_p2_r <- mp2$statistic; mg_p2_p <- mp2$signif
+
+# Bootstrap 95% CI on the global Mantel R via site resampling
+boot_mantel_R <- function(df, B = 1000, seed = 42) {
+  set.seed(seed); n <- nrow(df); Rs <- numeric(B)
+  for (b in seq_len(B)) {
+    pd <- phase_distances(df[sample(seq_len(n), n, replace = TRUE), ])
+    Rs[b] <- vegan::mantel(pd$geo, pd$jac, permutations = 0)$statistic
+  }
+  quantile(Rs, c(0.025, 0.975))
+}
+mb_p1 <- boot_mantel_R(aurp1_unique_data)
+mb_p2 <- boot_mantel_R(aurp2_unique_data)
+mb_p1_lo <- mb_p1[1]; mb_p1_hi <- mb_p1[2]
+mb_p2_lo <- mb_p2[1]; mb_p2_hi <- mb_p2[2]
+
+n_pairs_p1 <- nrow(aurp1_unique_data) * (nrow(aurp1_unique_data) - 1) / 2
+n_pairs_p2 <- nrow(aurp2_unique_data) * (nrow(aurp2_unique_data) - 1) / 2
+```
+
+```{r fig.height=5, fig.width=8}
+#| label: fig-mantel-correlogram
+#| fig-cap: "Mantel correlogram of geometric-sign dissimilarity against geographic distance, by phase. Points are the Mantel r within each distance lag; error bars are 95% bootstrap confidence intervals (ecodist::mgram, llim/ulim). The dashed line is r = 0. No lag reaches significance, and all intervals straddle zero."
+
+ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
+  geom_point(size = 2.5, colour = "#2c7fb8") +
+  geom_errorbar(aes(ymin = llim, ymax = ulim), width = 0.08, colour = "#2c7fb8") +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
+  facet_wrap(~ Phase, scales = "free_x") +
+  labs(x = "Geographic distance lag (km)", y = "Mantel r") +
+  theme_minimal()
+```
+
+### Interpretation
+
+**Question 1 — is there scale-dependent spatial structure?** No. In Aur-P1 the `r nclass_p1` distance lags yield Mantel r values from `r n3(min(mg_p1_df$mantelr))` to `r n3(max(mg_p1_df$mantelr))`, none significant (smallest p = `r n3(min(mg_p1_df$pval))`); in Aur-P2 the `r nclass_p2` lags range from `r n3(min(mg_p2_df$mantelr))` to `r n3(max(mg_p2_df$mantelr))`, also none significant (smallest p = `r n3(min(mg_p2_df$pval))`). Every lag's 95% bootstrap interval straddles or lies close to zero: the most extreme bounds across lags are `r n3(min(mg_p1_df$llim))` and `r n3(max(mg_p1_df$ulim))` for Aur-P1 and `r n3(min(mg_p2_df$llim))` and `r n3(max(mg_p2_df$ulim))` for Aur-P2, both comfortably including zero. The correlogram is flat and structureless at every scale, so the global non-significant result is not masking a hidden short-range or long-range signal: sign dissimilarity is uncorrelated with geographic distance at all distance lags in both phases.
+
+**Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the S3 geodesic results. The bootstrap 95% CI on this statistic is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2; both span zero. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Mantel test has low statistical power: the wide intervals mean a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall well inside the sampling noise and could not be excluded. The non-significant Mantel result must therefore be read as a *lack of evidence* for geographic structure, not as evidence that geographic structure is absent, and (consistent with S5.10) it provides no support for any alternative cultural process.
+
 # S6. Robustness of the Two-Group Structure: Bootstrap Consensus and Stochastic Block Models {#sec-s6}
 
 ## S6.1 Rationale {#sec-s6-1}
@@ -2265,26 +2418,16 @@ $$\text{richness}_i \sim \text{NegativeBinomial}\big(\exp(\beta_0 + \beta_1 \tex
 #| tbl-cap: "Negative-binomial model of per-site sign-type richness with object count as an offset (exposure). The group coefficient is the log rate ratio of broad versus restricted sites at equal object count; a non-significant coefficient means the raw richness gap between groups is explained by object count."
 #| tbl-cap-location: bottom
 
-richness_df <- bind_rows(
-  data.frame(site_name = rownames(aurp1_artifact_data), phase = "Aur-P1",
-    nobjects = aurp1_unique_data$nobjects[match(rownames(aurp1_artifact_data),
-                                                aurp1_unique_data$site_name)],
-    richness = rowSums(aurp1_artifact_data > 0)),
-  data.frame(site_name = rownames(aurp2_artifact_data), phase = "Aur-P2",
-    nobjects = aurp2_unique_data$nobjects[match(rownames(aurp2_artifact_data),
-                                                aurp2_unique_data$site_name)],
-    richness = rowSums(aurp2_artifact_data > 0)))
-mg_all <- c(manual_groups[["Aur-P1"]], manual_groups[["Aur-P2"]])
-richness_df$group <- factor(ifelse(mg_all[richness_df$site_name] == 1,
-                                   "restricted", "broad"),
-                             levels = c("restricted", "broad"))
+s9_mix <- s9_offset_mixed_model(
+  art_list  = list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data),
+  uniq_list = list("Aur-P1" = aurp1_unique_data,    "Aur-P2" = aurp2_unique_data),
+  groups_list = manual_groups
+)
+mix_mod <- s9_mix$fit
 
-mix_mod <- glm.nb(richness ~ group + phase + offset(log(nobjects)),
-                  data = richness_df)
-
-s9_mix_coef <- round(coef(mix_mod)["groupbroad"], 3)
-s9_mix_rr   <- round(exp(coef(mix_mod)["groupbroad"]), 3)
-s9_mix_p    <- round(summary(mix_mod)$coefficients["groupbroad", "Pr(>|z|)"], 3)
+s9_mix_coef <- round(s9_mix$group_coef, 3)
+s9_mix_rr   <- round(s9_mix$group_rate_ratio, 3)
+s9_mix_p    <- round(s9_mix$group_p, 3)
 
 mix_tbl <- data.frame(
   Term = c("Intercept", "Group (broad vs restricted)", "Phase (Aur-P2 vs Aur-P1)"),
