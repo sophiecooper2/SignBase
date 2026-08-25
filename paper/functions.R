@@ -1299,7 +1299,7 @@ coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
     }
     out[[s]] <- data.frame(site_name = s, nobjects = n,
                            richness_full = rich_curve[n],
-                           coverage_full = cov_curve[n],
+                            coverage_full = max(0, min(1, cov_curve[n])),
                            richness_at_target = rat,
                            manual_group = as.integer(manual[s]),
                            stringsAsFactors = FALSE)

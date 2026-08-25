@@ -511,7 +511,7 @@ All data and code needed to reproduce the analyses in this paper are publicly av
 
 # Results
 
-## Cultural Group Detection
+## Detection of Groups Differentiated by Sign Repertoire
 
 ```{r fig.height= 8, fig.width= 13}
 #| label: fig-seriation
