@@ -30,6 +30,165 @@ suppressPackageStartupMessages({
   library(ape)
 })
 
+# Canonical 29 sign-type columns (matches get_louvain_groups / network_stats).
+SIGN_COLS <- c("line","dashline","obline","radline","circumline","notch","obnotch",
+               "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
+               "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
+               "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
+               "concenline","pinleft","pinright","star")
+
+# ── Canonical data-cleaning pipeline (shared by paper.qmd and S1) ───────────────
+# `signbase_full` is the raw SignBase CSV tibble (read by the calling document).
+# Returns the cleaned object-level table with calibrated `MedianBP`, a
+# technology-based three-phase `time_period` and two-phase `phase2` (matching the
+# main-text assignment), a MedianBP-only `time_period_date` (used by S1 sensitivity
+# analyses that revert technology overrides), and a positive `sign_total`.
+clean_signbase <- function(signbase_full) {
+  signbase_full_clean <- signbase_full %>%
+    filter(site_name != "Willendorf",
+           site_name != "Riparo di Fontana Nuova",
+           site_name != "Muralovka",
+           site_name != "Shanidar Cave",
+           site_name != "Hayonim Cave",
+           site_name != "El Salitre",
+           site_name != "Grotte De La Princesse Pauline",
+           site_name != "Šandalja II") %>%
+    dplyr::select(-other, -rectangle) %>%
+    mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>%
+    mutate(latitude  = ifelse(site_name == "Riparo Bombrini", 43.77083,  latitude))
+
+  signbase_years <- signbase_full_clean %>%
+    drop_na(date_bp_max_min) %>%
+    mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±"),
+           date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>%
+    separate(date_bp_max_min, sep = " - ", c("date_bp_max", "date_bp_min"), remove = FALSE) %>%
+    mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"), str_extract(date_bp_max, ".*?(?=\\/)"), date_bp_max),
+           date_bp_min = ifelse(str_detect(date_bp_min, "\\/"), str_extract(date_bp_min, ".*?(?=\\/)"), date_bp_min)) %>%
+    separate(date_bp_max, sep = "±", c("date_bp_max_age", "date_bp_max_error")) %>%
+    separate(date_bp_min, sep = "±", c("date_bp_min_age", "date_bp_min_error")) %>%
+    drop_na(date_bp_max_age, date_bp_max_error) %>%
+    mutate(date_bp_max_age = parse_number(date_bp_max_age),
+           date_bp_max_error = parse_number(date_bp_max_error))
+
+  signbase_years_cal <-
+    rcarbon::calibrate(signbase_years$date_bp_max_age,
+                        signbase_years$date_bp_max_error,
+                        verbose = FALSE) %>%
+    summary() %>%
+    tibble()
+
+  signbase_years$MedianBP <- signbase_years_cal$MedianBP
+
+  signbase_full_clean <- signbase_full_clean %>%
+    inner_join(signbase_years %>% dplyr::select(object_id, MedianBP))
+
+  signbase_full_clean <- signbase_full_clean %>%
+    mutate(time_period = case_when(
+      site_name == "Spy"         ~ NA_character_,
+      site_name == "El Castillo" ~ NA_character_,
+      site_name == "Hohle Fels" & layer %in% c("Va", "Vaa", "Vab", "Vb") ~ "early_aurignacian",
+      site_name == "Hohle Fels" & layer %in% c("IV", "IIIa", "IIIb", "Iid", "Iida", "Iie") ~ "evolved_aurignacian",
+      site_name == "Hohle Fels" & layer == "IIIa-V" ~ NA_character_,
+      site_name == "Geissenklösterle"  ~ "early_aurignacian",
+      site_name == "Vogelherd"         ~ "early_aurignacian",
+      site_name == "La Ferrassie"      ~ "early_aurignacian",
+      site_name == "Abri Pataud"       ~ "early_aurignacian",
+      site_name == "Mladeč"            ~ "evolved_aurignacian",
+      site_name == "Gatzarria"         ~ "proto_aurignacian",
+      (MedianBP > 39799) ~ "proto_aurignacian",
+      (MedianBP > 37799) ~ "early_aurignacian",
+      (MedianBP > 31999) ~ "evolved_aurignacian"
+    )) %>%
+    filter(!is.na(time_period)) %>%
+    mutate(phase2 = ifelse(time_period %in% c("proto_aurignacian", "early_aurignacian"),
+                           "Aur-P1", "Aur-P2")) %>%
+    mutate(sign_total = rowSums(dplyr::select(., line:star))) %>%
+    filter(sign_total > 0)
+
+  signbase_full_clean <- signbase_full_clean %>%
+    mutate(time_period_date = case_when(
+      (MedianBP > 39799) ~ "proto_aurignacian",
+      (MedianBP > 37799) ~ "early_aurignacian",
+      (MedianBP > 31999) ~ "evolved_aurignacian"
+    ))
+
+  signbase_full_clean
+}
+
+# Distinct site-level longitude/latitude lookup used by make_phase_data / make_phase2_data.
+site_latlong <- function(df) {
+  df %>%
+    dplyr::select(site_name, longitude, latitude) %>%
+    distinct(site_name, .keep_all = TRUE)
+}
+
+# Site-level time-lag analysis (S5.12 / paper.qmd temporal-Mantel summary).
+# Aggregates to site level, computes pairwise Jaccard dissimilarity and |ΔMedianBP|
+# lag (ka), and returns trend statistics plus a binned summary table. Single source
+# of truth so the supplement and main text report identical numbers.
+time_lag_pairs <- function(df = signbase_full_clean) {
+  site_sign <- df %>%
+    group_by(site_name) %>%
+    summarise(across(line:star, ~ as.numeric(sum(.) > 0)),
+              MedianBP = median(MedianBP),
+              phase2   = first(phase2),
+              .groups = "drop")
+
+  n_sites_ts <- nrow(site_sign)
+  n_p1_ts    <- sum(site_sign$phase2 == "Aur-P1")
+  n_p2_ts    <- sum(site_sign$phase2 == "Aur-P2")
+
+  Y_dist   <- vegan::vegdist(site_sign %>% dplyr::select(line:star),
+                             method = "jaccard", binary = TRUE)
+  D_jac    <- as.matrix(Y_dist)
+  D_lag    <- as.matrix(dist(site_sign$MedianBP))
+  ut       <- upper.tri(D_jac)
+
+  pairs_ts <- data.frame(
+    lag_year   = D_lag[ut],
+    lag_ka     = D_lag[ut] / 1000,
+    jac        = D_jac[ut],
+    same_phase = (outer(site_sign$phase2, site_sign$phase2, `==`))[ut]
+  )
+  n_pairs_ts <- nrow(pairs_ts)
+
+  ts_all    <- cor.test(pairs_ts$lag_ka, pairs_ts$jac, method = "spearman")
+  ts_within <- cor.test(pairs_ts$lag_ka[pairs_ts$same_phase],
+                        pairs_ts$jac[pairs_ts$same_phase], method = "spearman")
+  rho_all    <- round(unname(ts_all$estimate), 3)
+  p_all      <- round(ts_all$p.value, 3)
+  rho_within <- round(unname(ts_within$estimate), 3)
+  p_within   <- round(ts_within$p.value, 3)
+
+  mean_jac_within   <- round(mean(pairs_ts$jac[pairs_ts$same_phase]), 3)
+  mean_jac_between  <- round(mean(pairs_ts$jac[!pairs_ts$same_phase]), 3)
+  mean_lag_within   <- round(mean(pairs_ts$lag_ka[pairs_ts$same_phase]), 2)
+  mean_lag_between  <- round(mean(pairs_ts$lag_ka[!pairs_ts$same_phase]), 2)
+
+  pairs_ts$lag_bin <- cut(pairs_ts$lag_ka,
+                          breaks = c(0, 2, 4, 6, 8, 10, 12, 15, 20, 50),
+                          include.lowest = TRUE)
+  ts_bin_tab <- pairs_ts %>%
+    group_by(lag_bin) %>%
+    summarise(`Pairs` = n(),
+              `Mean Jaccard dissimilarity` = round(mean(jac), 3),
+              `SD` = round(sd(jac), 3)) %>%
+    ungroup()
+
+  ts_jac_short <- round(ts_bin_tab$`Mean Jaccard dissimilarity`[1], 3)
+  ts_last_bin  <- as.character(ts_bin_tab$lag_bin[nrow(ts_bin_tab)])
+  ts_last_n    <- ts_bin_tab$Pairs[nrow(ts_bin_tab)]
+
+  list(
+    n_sites = n_sites_ts, n_p1 = n_p1_ts, n_p2 = n_p2_ts, n_pairs = n_pairs_ts,
+    rho_all = rho_all, p_all = p_all, rho_within = rho_within, p_within = p_within,
+    mean_jac_within = mean_jac_within, mean_jac_between = mean_jac_between,
+    mean_lag_within = mean_lag_within, mean_lag_between = mean_lag_between,
+    bin_tab = ts_bin_tab, jac_short = ts_jac_short, last_bin = ts_last_bin, last_n = ts_last_n,
+    pairs = pairs_ts
+  )
+}
+
 # ── Data preparation ──────────────────────────────────────────────────────────
 # Build per-phase site-level data from the object-level table.
 # `signbase_full_clean` and `lat_long_df` are expected to exist in the calling
@@ -61,11 +220,7 @@ extract_artifact <- function(df) {
 # Louvain community detection on a site × sign binary matrix.
 # Returns a named integer vector (community ID per site).
 get_louvain_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
-  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
-                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
-                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
-                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
-                  "concenline","pinleft","pinright","star")
+  sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(artifact_data))
   mat <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat <- mat[, colSums(mat) > 0, drop = FALSE]
@@ -280,11 +435,7 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
 # NOTE: igraph:: is used explicitly throughout to avoid sna/statnet masking.
 network_stats <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
   # Select only sign-type columns that have at least one nonzero value
-  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
-                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
-                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
-                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
-                  "concenline","pinleft","pinright","star")
+  sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(artifact_data))
   mat <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat <- mat[, colSums(mat) > 0, drop = FALSE]
@@ -327,11 +478,7 @@ set.seed(42)
 # Compute per-site network centrality metrics for a binary artifact matrix
 # Returns a data.frame with site_name, degree, strength, betweenness, eigenvector
 node_centrality <- function(artifact_data, threshold = 0.2) {
-  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
-                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
-                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
-                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
-                  "concenline","pinleft","pinright","star")
+  sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(artifact_data))
   mat <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat <- mat[, colSums(mat) > 0, drop = FALSE]
@@ -1068,11 +1215,7 @@ sci_md <- function(x, digits = 2) {
 # Saves results to file if `save_path` is provided (default NULL: no caching).
 fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   if (!is.null(seed)) set.seed(seed)
-  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
-                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
-                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
-                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
-                  "concenline","pinleft","pinright","star")
+  sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(artifact_data))
   mat <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat <- mat[, colSums(mat) > 0, drop = FALSE]
@@ -1160,12 +1303,6 @@ s6_global_minPost <- function(sbm_list) {
 }
 
 # ── Object-level downsampling & coverage-rarefaction helpers (S1 S9) ───────────
-# Canonical 29 sign-type columns (matches get_louvain_groups / network_stats).
-SIGN_COLS <- c("line","dashline","obline","radline","circumline","notch","obnotch",
-               "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
-               "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
-               "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
-               "concenline","pinleft","pinright","star")
 
 # 1) Per-site object counts for a phase (object-level rows of signbase_full_clean).
 site_object_counts <- function(signbase, phase) {
@@ -1356,4 +1493,137 @@ s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
        group_coef = group_coef,
        group_rate_ratio = exp(group_coef),
        group_p = summary(fit)$coefficients["groupbroad", "Pr(>|z|)"])
+}
+
+# ── Shared sensitivity (S7 figurine-exclusion + S8 exclude-entire-Vogelherd) ──
+# Single source of truth for the figurine/site-robustness statistics so that the
+# main text (paper.qmd) and the S1/S8 supplements cannot report divergent numbers.
+sensitivity_summary <- function(signbase_full_clean,
+                                 aurp1_artifact_data, aurp2_artifact_data) {
+  figurine_types <- c("figurine zoomorph", "figurine anthropomorph",
+                      "figurine undet.", "possible figurine")
+
+  figurine_summary <- signbase_full_clean %>%
+    filter(object_type %in% figurine_types) %>%
+    count(phase2, site_name, object_type) %>%
+    pivot_wider(names_from = object_type, values_from = n, values_fill = 0) %>%
+    mutate(Total = rowSums(across(where(is.numeric)))) %>%
+    arrange(phase2, desc(Total))
+
+  s7_baseline <- bind_rows(
+    network_stats(aurp1_artifact_data) %>% mutate(Phase = "Aur-P1"),
+    network_stats(aurp2_artifact_data) %>% mutate(Phase = "Aur-P2")
+  ) %>% dplyr::select(Phase, n_sites, n_edges, density, mean_degree,
+                      transitivity, modularity) %>%
+    mutate(Condition = "Baseline (all objects)")
+
+  # S7: rebuild each phase after excluding the filtered rows, then network_stats
+  s7_phase_stats <- function(df, condition) {
+    purrr::map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
+      ph_df <- df %>% filter(phase2 == ph)
+      if (n_distinct(ph_df$site_name) < 2) return(NULL)
+      lat_long <- df %>% dplyr::select(site_name, longitude, latitude) %>%
+        distinct(site_name, .keep_all = TRUE)
+      ph_obj <- ph_df %>% group_by(site_name) %>% summarise(nobjects = n())
+      ph_unique <- ph_df %>%
+        group_by(site_name) %>%
+        mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
+        summarize(across(where(is.numeric), sum)) %>%
+        left_join(lat_long) %>% left_join(ph_obj) %>%
+        mutate(time_period = ph)
+      ph_art <- extract_artifact(ph_unique)
+      ns <- network_stats(ph_art, threshold = 0.2)
+      data.frame(Phase = ph, n_sites = ns$n_sites, n_edges = ns$n_edges,
+                 density = ns$density, mean_degree = ns$mean_degree,
+                 transitivity = ns$transitivity, modularity = ns$modularity,
+                 Condition = condition, stringsAsFactors = FALSE)
+    })
+  }
+
+  # S7 Analysis: exclude all figurines (global)
+  signbase_no_fig <- signbase_full_clean %>% filter(!object_type %in% figurine_types)
+  s7_no_fig <- s7_phase_stats(signbase_no_fig, "Exclude all figurines")
+
+  # S7 Analysis: exclude only Vogelherd figurines
+  signbase_no_vog_fig <- signbase_full_clean %>%
+    filter(!(site_name == "Vogelherd" & object_type %in% figurine_types))
+  s7_no_vog_fig <- s7_phase_stats(signbase_no_vog_fig, "Exclude Vogelherd figurines")
+
+  s7_sites_before <- signbase_full_clean %>% count(phase2, site_name) %>%
+    group_by(phase2) %>% summarise(sites = n(), .groups = "drop")
+  s7_sites_after <- signbase_no_fig %>% count(phase2, site_name) %>%
+    group_by(phase2) %>% summarise(sites = n(), .groups = "drop")
+  s7_sites_lost <- s7_sites_before %>%
+    left_join(s7_sites_after, by = "phase2", suffix = c("_before", "_after")) %>%
+    mutate(lost = sites_before - sites_after) %>% rename(Phase = phase2)
+
+  s7_vog_before <- signbase_full_clean %>%
+    filter(site_name == "Vogelherd") %>% count(phase2, name = "objects_before")
+  s7_vog_after <- signbase_no_vog_fig %>%
+    filter(site_name == "Vogelherd") %>% count(phase2, name = "objects_after")
+  s7_vog_summary <- s7_vog_before %>%
+    left_join(s7_vog_after, by = "phase2") %>%
+    mutate(removed = objects_before - objects_after) %>% rename(Phase = phase2)
+
+  joint_comparison <- bind_rows(s7_baseline, s7_no_fig, s7_no_vog_fig) %>%
+    dplyr::select(Phase, Condition, n_sites, n_edges, mean_degree,
+                  transitivity, modularity)
+  s7_baseline_md <- s7_baseline %>% dplyr::select(Phase, Baseline_md = mean_degree)
+  joint_comparison <- joint_comparison %>%
+    left_join(s7_baseline_md, by = "Phase") %>%
+    mutate(pct_change_md = round((mean_degree - Baseline_md) / Baseline_md * 100, 1)) %>%
+    dplyr::select(-Baseline_md)
+
+  # S8 Analysis B: exclude the entire Vogelherd site
+  signbase_novog <- signbase_full_clean %>% filter(site_name != "Vogelherd")
+  lat_long_nv <- signbase_novog %>%
+    dplyr::select(site_name, longitude, latitude) %>% distinct(site_name, .keep_all = TRUE)
+  aurp1_nv <- make_phase2_data("Aur-P1", signbase_novog, lat_long_nv)
+  aurp2_nv <- make_phase2_data("Aur-P2", signbase_novog, lat_long_nv)
+  s8_novog <- bind_rows(
+    network_stats(extract_artifact(aurp1_nv), threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
+    network_stats(extract_artifact(aurp2_nv), threshold = 0.2) %>% mutate(Phase = "Aur-P2")
+  ) %>% dplyr::select(Phase, n_sites, n_edges, density, mean_degree,
+                      transitivity, modularity) %>%
+    mutate(Condition = "Exclude Vogelherd")
+
+  # ── Date-based object counts (S8 Analysis A prose) ──
+  signbase_date <- signbase_full_clean %>%
+    mutate(phase2_date = ifelse(time_period_date %in%
+                                  c("proto_aurignacian", "early_aurignacian"),
+                                "Aur-P1", "Aur-P2"))
+  hf_p1       <- nrow(signbase_date %>% filter(site_name == "Hohle Fels",  phase2_date == "Aur-P1"))
+  hf_p2       <- nrow(signbase_date %>% filter(site_name == "Hohle Fels",  phase2_date == "Aur-P2"))
+  vog_p1_date <- nrow(signbase_date %>% filter(site_name == "Vogelherd",  phase2_date == "Aur-P1"))
+  vog_p2_date <- nrow(signbase_date %>% filter(site_name == "Vogelherd",  phase2_date == "Aur-P2"))
+  young_total <- hf_p2 + vog_p2_date
+
+  # ── Scalars for the main-text sensitivity sentence (paper.qmd) ──
+  md_base_p1   <- s7_baseline$mean_degree[s7_baseline$Phase == "Aur-P1"]
+  md_base_p2   <- s7_baseline$mean_degree[s7_baseline$Phase == "Aur-P2"]
+  md_nofig_p1  <- s7_no_fig$mean_degree[s7_no_fig$Phase == "Aur-P1"]
+  md_novog_p1  <- s8_novog$mean_degree[s8_novog$Phase == "Aur-P1"]
+  base_edges_p1  <- s7_baseline$n_edges[s7_baseline$Phase == "Aur-P1"]
+  novog_edges_p1 <- s8_novog$n_edges[s8_novog$Phase == "Aur-P1"]
+  edge_pct <- round((base_edges_p1 - novog_edges_p1) / base_edges_p1 * 100, 0)
+  md_pct   <- round((md_base_p1 - md_novog_p1) / md_base_p1 * 100, 1)
+
+  list(
+    figurine_types   = figurine_types,
+    figurine_summary = figurine_summary,
+    s7_baseline      = s7_baseline,
+    s7_no_fig        = s7_no_fig,
+    s7_no_vog_fig    = s7_no_vog_fig,
+    s7_sites_lost    = s7_sites_lost,
+    s7_vog_before    = s7_vog_before,
+    s7_vog_summary   = s7_vog_summary,
+    joint_comparison = joint_comparison,
+    s8_novog         = s8_novog,
+    hf_p1 = hf_p1, hf_p2 = hf_p2,
+    vog_p1_date = vog_p1_date, vog_p2_date = vog_p2_date,
+    young_total = young_total,
+    md_base_p1 = md_base_p1, md_base_p2 = md_base_p2,
+    md_nofig_p1 = md_nofig_p1, md_novog_p1 = md_novog_p1,
+    edge_pct = edge_pct, md_pct = md_pct
+  )
 }

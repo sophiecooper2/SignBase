@@ -66,66 +66,10 @@ library(MASS)
 library(ecodist)
 source(here::here("paper/functions.R"))  # shared function library
 
-# ── Reproduce the data-cleaning pipeline from paper.qmd ──────────────────────
+# ── Reproduce the data-cleaning pipeline from paper.qmd (single source: functions.R) ──
 signbase_full <- read_csv(here::here("data/signBase_Version1.0.csv"))
-
-signbase_full_clean <- signbase_full %>%
-  filter(site_name != "Willendorf",
-         site_name != "Riparo di Fontana Nuova",
-         site_name != "Muralovka",
-         site_name != "Shanidar Cave",
-         site_name != "Hayonim Cave",
-         site_name != "El Salitre",
-         site_name != "Grotte De La Princesse Pauline",
-         site_name != "Šandalja II") %>%
-  dplyr::select(-other, -rectangle) %>%
-  mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>%
-  mutate(latitude  = ifelse(site_name == "Riparo Bombrini", 43.77083,  latitude))
-
-signbase_years <- signbase_full_clean %>%
-  drop_na(date_bp_max_min) %>%
-  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±"),
-         date_bp_max_min = str_replace_all(date_bp_max_min, "\\+",       "±")) %>%
-  separate(date_bp_max_min, sep = " - ", c("date_bp_max", "date_bp_min"), remove = FALSE) %>%
-  mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"),
-                              str_extract(date_bp_max, ".*?(?=\\/)"), date_bp_max),
-         date_bp_min = ifelse(str_detect(date_bp_min, "\\/"),
-                              str_extract(date_bp_min, ".*?(?=\\/)"), date_bp_min)) %>%
-  separate(date_bp_max, sep = "±", c("date_bp_max_age", "date_bp_max_error")) %>%
-  separate(date_bp_min, sep = "±", c("date_bp_min_age", "date_bp_min_error")) %>%
-  drop_na(date_bp_max_age, date_bp_max_error) %>%
-  mutate(date_bp_max_age   = parse_number(date_bp_max_age),
-         date_bp_max_error = parse_number(date_bp_max_error))
-
-signbase_years_cal <-
-  rcarbon::calibrate(signbase_years$date_bp_max_age,
-                     signbase_years$date_bp_max_error,
-                     verbose = FALSE) %>%
-  summary() %>%
-  tibble()
-
-signbase_years$MedianBP <- signbase_years_cal$MedianBP
-
-signbase_full_clean <- signbase_full_clean %>%
-  inner_join(signbase_years %>% dplyr::select(object_id, MedianBP)) %>%
-  mutate(time_period = case_when(
-    (MedianBP > 39799) ~ "proto_aurignacian",
-    (MedianBP > 37799) ~ "early_aurignacian",
-    (MedianBP > 31999) ~ "evolved_aurignacian")) %>%
-  mutate(sign_total = rowSums(.[, 25:53])) %>%
-  filter(sign_total > 0)
-
-lat_long_df <- signbase_full_clean %>%
-  dplyr::select(site_name, longitude, latitude) %>%
-  distinct(site_name, .keep_all = TRUE)
-
-proto_unique_data   <- make_phase_data("proto_aurignacian", signbase_full_clean, lat_long_df)
-early_unique_data   <- make_phase_data("early_aurignacian", signbase_full_clean, lat_long_df)
-evolved_unique_data <- make_phase_data("evolved_aurignacian", signbase_full_clean, lat_long_df)
-
-proto_artifact_data   <- extract_artifact(proto_unique_data)
-early_artifact_data   <- extract_artifact(early_unique_data)
-evolved_artifact_data <- extract_artifact(evolved_unique_data)
+signbase_full_clean <- clean_signbase(signbase_full)
+lat_long_df <- site_latlong(signbase_full_clean)
 ```
 
 
@@ -133,61 +77,13 @@ evolved_artifact_data <- extract_artifact(evolved_unique_data)
 # ── Two-phase (Aur-P1/Aur-P2) technology-based data, mirroring paper.qmd ─────
 # Replicates the main-text reclassification (Spy/El Castillo excluded;
 # technology-based reassignment) so S6 tests the same data as the main text.
-signbase_full_clean <- signbase_full_clean %>%
-  mutate(time_period2 = case_when(
-    site_name == "Spy"         ~ NA_character_,
-    site_name == "El Castillo" ~ NA_character_,
-    # Hohle Fels is assigned at the layer level: AH V (Va, Vaa, Vab, Vb) is
-    # Early Aurignacian (Aur-P1); AH IV, IIIb, IIIa and the II-series are
-    # Evolved/Late Aurignacian (Aur-P2) (Dinnis et al. 2019; Bataille &
-    # Conard 2018, 2019); the mixed layer IIIa-V is excluded.
-    site_name == "Hohle Fels" & layer %in% c("Va", "Vaa", "Vab", "Vb") ~ "early_aurignacian",
-    site_name == "Hohle Fels" & layer %in% c("IV", "IIIa", "IIIb", "Iid", "Iida", "Iie") ~ "evolved_aurignacian",
-    site_name == "Hohle Fels" & layer == "IIIa-V" ~ NA_character_,
-    site_name == "Geissenklösterle"  ~ "early_aurignacian",
-    site_name == "Vogelherd"         ~ "early_aurignacian",
-    site_name == "La Ferrassie"      ~ "early_aurignacian",
-    site_name == "Abri Pataud"       ~ "early_aurignacian",
-    site_name == "Mladeč"            ~ "evolved_aurignacian",
-    site_name == "Gatzarria"         ~ "proto_aurignacian",
-    (MedianBP > 39799) ~ "proto_aurignacian",
-    (MedianBP > 37799) ~ "early_aurignacian",
-    (MedianBP > 31999) ~ "evolved_aurignacian"
-  )) %>%
-  filter(!is.na(time_period2)) %>%
-  mutate(phase2 = ifelse(time_period2 %in% c("proto_aurignacian", "early_aurignacian"),
-                         "Aur-P1", "Aur-P2"))
-
-lat_long_df2 <- signbase_full_clean %>%
-  dplyr::select(site_name, longitude, latitude) %>%
-  distinct(site_name, .keep_all = TRUE)
-
-make_phase2_data <- function(p2, df, lat_long_df) {
-  d <- df %>% filter(phase2 == p2) %>%
-    mutate(longitude = as.character(longitude), latitude = as.character(latitude))
-  obj_num <- d %>% group_by(site_name) %>% summarise(nobjects = n())
-  d %>% group_by(site_name) %>% summarize(across(where(is.numeric), sum)) %>%
-    left_join(lat_long_df) %>% left_join(obj_num) %>% mutate(time_period = p2)
-}
-
-aurp1_unique_data <- make_phase2_data("Aur-P1", signbase_full_clean, lat_long_df2)
-aurp2_unique_data <- make_phase2_data("Aur-P2", signbase_full_clean, lat_long_df2)
+aurp1_unique_data <- make_phase2_data("Aur-P1", signbase_full_clean, lat_long_df)
+aurp2_unique_data <- make_phase2_data("Aur-P2", signbase_full_clean, lat_long_df)
 aurp1_artifact_data <- extract_artifact(aurp1_unique_data)
 aurp2_artifact_data <- extract_artifact(aurp2_unique_data)
 
-aurp1_unique_data <- aurp1_unique_data %>%
-  mutate(group = case_when(
-    site_name %in% c("Abri Pataud", "Fumane", "Pod Hradem", "Riparo Bombrini",
-                     "Grottes de Fonds-de-Forêt", "Labeko Koba", "Hohlenstein-Stadel",
-                     "Gatzarria", "Grotte de la Verpillière I") ~ "1",
-    site_name %in% c("Geissenklösterle", "Hohle Fels", "Vogelherd", "Cellier",
-                     "Blanchard", "La Ferrassie", "Castanet", "Solutré",
-                     "Grotte du Renne", "Les Cottés", "Trou al'Wesse") ~ "2"))
-aurp2_unique_data <- aurp2_unique_data %>%
-  mutate(group = case_when(
-    site_name %in% c("Les Rois", "Sirgenstein Cave", "La Viña", "Mladeč",
-                     "Gargas", "Vindija Cave") ~ "1",
-    site_name %in% c("Trou Magrite", "Bockstein-Törle", "Hohle Fels") ~ "2"))
+aurp1_unique_data <- add_manual_group(aurp1_unique_data, "Aur-P1")
+aurp2_unique_data <- add_manual_group(aurp2_unique_data, "Aur-P2")
 ```
 
 
@@ -416,19 +312,9 @@ kable(two_phase_ref,
 #| tbl-cap-location: bottom
 
 # Rebuild per-component artifact data from the technology-based assignment
-make_tech_art <- function(df) {
-  latlng <- df %>% dplyr::select(site_name, longitude, latitude) %>% distinct(site_name, .keep_all = TRUE)
-  obj_num <- df %>% group_by(site_name) %>% summarise(nobjects = n())
-  unique_df <- df %>%
-    mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
-    group_by(site_name) %>% summarize(across(where(is.numeric), sum)) %>%
-    left_join(latlng) %>% left_join(obj_num)
-  extract_artifact(unique_df)
-}
-
-tech_proto_art   <- make_tech_art(signbase_full_clean %>% filter(time_period2 == "proto_aurignacian"))
-tech_early_art   <- make_tech_art(signbase_full_clean %>% filter(time_period2 == "early_aurignacian"))
-tech_evolved_art <- make_tech_art(signbase_full_clean %>% filter(time_period2 == "evolved_aurignacian"))
+tech_proto_art   <- make_phase_data("proto_aurignacian", signbase_full_clean, lat_long_df)
+tech_early_art   <- make_phase_data("early_aurignacian", signbase_full_clean, lat_long_df)
+tech_evolved_art <- make_phase_data("evolved_aurignacian", signbase_full_clean, lat_long_df)
 
 three_phase_tech <- bind_rows(
   "Proto-Aurignacian (Aur-P1)"  = network_stats(tech_proto_art, threshold = 0.2),
@@ -461,7 +347,7 @@ The two-phase, three-phase, and four-phase periodisations yield consistent concl
 # Four-phase split: Proto/Early as in the three-phase decomposition; the
 # Evolved Aurignacian (Aur-P2) split into Evolved (37.8-35 ka BP) and Late
 # (35-32 ka BP) at 35 ka BP.
-tech_evolved_df <- signbase_full_clean %>% filter(time_period2 == "evolved_aurignacian")
+tech_evolved_df <- tech_evolved_art
 evolved_sub_df <- tech_evolved_df %>% filter(MedianBP > 35000)
 late_sub_df   <- tech_evolved_df %>% filter(MedianBP <= 35000)
 
@@ -470,11 +356,11 @@ four_phase_stats[["Proto-Aurignacian (Aur-P1)"]] <- network_stats(tech_proto_art
 four_phase_stats[["Early Aurignacian (Aur-P1)"]] <- network_stats(tech_early_art, threshold = 0.2)
 
 if (nrow(evolved_sub_df) >= 2) {
-  four_phase_stats[["Evolved Aurignacian (37.8-35 ka BP)"]] <- network_stats(make_tech_art(evolved_sub_df), threshold = 0.2)
+  four_phase_stats[["Evolved Aurignacian (37.8-35 ka BP)"]] <- network_stats(evolved_sub_df, threshold = 0.2)
 }
 
 if (nrow(late_sub_df) >= 2) {
-  four_phase_stats[["Late Aurignacian (35-32 ka BP)"]] <- network_stats(make_tech_art(late_sub_df), threshold = 0.2)
+  four_phase_stats[["Late Aurignacian (35-32 ka BP)"]] <- network_stats(late_sub_df, threshold = 0.2)
 }
 
 four_phase_df <- bind_rows(four_phase_stats, .id = "Phase") %>%
@@ -565,11 +451,7 @@ kable(ari_table,
 permanova_louvain <- function(artifact_data, df, threshold = 0.2,
                               metric = "jaccard") {
   lvgr <- get_louvain_groups(artifact_data, threshold, metric)
-  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
-                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
-                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
-                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
-                  "concenline","pinleft","pinright","star")
+  sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(artifact_data))
   mat_bin <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat_bin <- as.data.frame(lapply(mat_bin, function(x) as.numeric(x > 0)))
@@ -597,11 +479,7 @@ permanova_louvain <- function(artifact_data, df, threshold = 0.2,
 
 permanova_manual <- function(df, phase, threshold = 0.2) {
   df <- df %>% filter(site_name %in% names(manual_groups[[phase]]))
-  sign_names <- c("line","dashline","obline","radline","circumline","notch","obnotch",
-                  "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
-                  "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
-                  "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
-                  "concenline","pinleft","pinright","star")
+  sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(df))
   arts <- as.data.frame(df[, present, drop = FALSE], row.names = df$site_name)
   arts <- arts[, colSums(arts) > 0, drop = FALSE]
@@ -955,7 +833,7 @@ compute_phase2_stats <- function(p2_boundary) {
       group_by(site_name) %>%
       mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
       summarize(across(where(is.numeric), sum)) %>%
-      left_join(lat_long_df2) %>%
+      left_join(lat_long_df) %>%
       left_join(phase_obj) %>%
       mutate(time_period = ph)
     phase_artifact <- extract_artifact(phase_unique)
@@ -1149,7 +1027,7 @@ boot_results <- bind_rows(
 ) %>% dplyr::select(Phase, everything())
 
 kable(boot_results,
-      col.names = c("Phase", "Mean°", "2.5%", "97.5%", "Q", "2.5%", "97.5%"),
+      col.names = c("Phase", "Mean degree", "2.5%", "97.5%", "Q", "2.5%", "97.5%"),
       digits = 3,
       align = "lcccccc")
 ```
@@ -1478,62 +1356,24 @@ We aggregate the cleaned object-level data to **site level**: for each of the `r
 #| label: s5-12-time-lag
 #| warning: false
 
-# Site-level sign presence/absence and calibrated age (MedianBP, years BP)
-site_sign <- signbase_full_clean %>%
-  group_by(site_name) %>%
-  summarise(across(line:star, ~ as.numeric(sum(.) > 0)),
-            MedianBP = median(MedianBP),
-            phase2   = first(phase2),
-            .groups = "drop")
-
-n_sites_ts <- nrow(site_sign)
-n_p1_ts    <- sum(site_sign$phase2 == "Aur-P1")
-n_p2_ts    <- sum(site_sign$phase2 == "Aur-P2")
-
-# Pairwise Jaccard sign dissimilarity and absolute temporal lag (|ΔMedianBP|)
-Y_dist   <- vegan::vegdist(site_sign %>% dplyr::select(line:star),
-                           method = "jaccard", binary = TRUE)
-D_jac    <- as.matrix(Y_dist)
-D_lag    <- as.matrix(dist(site_sign$MedianBP))
-ut       <- upper.tri(D_jac)
-
-pairs_ts <- data.frame(
-  lag_year   = D_lag[ut],
-  lag_ka     = D_lag[ut] / 1000,
-  jac        = D_jac[ut],
-  same_phase = (outer(site_sign$phase2, site_sign$phase2, `==`))[ut]
-)
-n_pairs_ts <- nrow(pairs_ts)
-
-# Trend tests: does dissimilarity rise with temporal lag?
-ts_all    <- cor.test(pairs_ts$lag_ka, pairs_ts$jac, method = "spearman")
-ts_within <- cor.test(pairs_ts$lag_ka[pairs_ts$same_phase],
-                      pairs_ts$jac[pairs_ts$same_phase], method = "spearman")
-ts_rho_all     <- round(unname(ts_all$estimate), 3)
-ts_p_all       <- round(ts_all$p.value, 3)
-ts_rho_within  <- round(unname(ts_within$estimate), 3)
-ts_p_within    <- round(ts_within$p.value, 3)
-
-# Mean dissimilarity within vs between phases (the dominant between-phase gap)
-mean_jac_within   <- round(mean(pairs_ts$jac[pairs_ts$same_phase]), 3)
-mean_jac_between  <- round(mean(pairs_ts$jac[!pairs_ts$same_phase]), 3)
-mean_lag_within   <- round(mean(pairs_ts$lag_ka[pairs_ts$same_phase]), 2)
-mean_lag_between  <- round(mean(pairs_ts$lag_ka[!pairs_ts$same_phase]), 2)
-
-# Binned mean dissimilarity by temporal-lag class
-pairs_ts$lag_bin <- cut(pairs_ts$lag_ka,
-                        breaks = c(0, 2, 4, 6, 8, 10, 12, 15, 20, 50),
-                        include.lowest = TRUE)
-ts_bin_tab <- pairs_ts %>%
-  group_by(lag_bin) %>%
-  summarise(`Pairs` = n(),
-            `Mean Jaccard dissimilarity` = round(mean(jac), 3),
-            `SD` = round(sd(jac), 3)) %>%
-  ungroup()
-
-ts_jac_short <- round(ts_bin_tab$`Mean Jaccard dissimilarity`[1], 3)
-ts_last_bin  <- as.character(ts_bin_tab$lag_bin[nrow(ts_bin_tab)])
-ts_last_n    <- ts_bin_tab$Pairs[nrow(ts_bin_tab)]
+# Site-level time-lag check, computed once in functions.R (time_lag_pairs).
+tl <- time_lag_pairs(signbase_full_clean)
+n_sites_ts       <- tl$n_sites
+n_p1_ts          <- tl$n_p1
+n_p2_ts          <- tl$n_p2
+n_pairs_ts       <- tl$n_pairs
+ts_rho_all       <- tl$rho_all
+ts_p_all         <- tl$p_all
+ts_rho_within    <- tl$rho_within
+ts_p_within      <- tl$p_within
+mean_jac_within  <- tl$mean_jac_within
+mean_jac_between <- tl$mean_jac_between
+mean_lag_within  <- tl$mean_lag_within
+mean_lag_between <- tl$mean_lag_between
+ts_bin_tab       <- tl$bin_tab
+ts_jac_short     <- tl$jac_short
+ts_last_bin      <- tl$last_bin
+ts_last_n        <- tl$last_n
 ```
 
 ```{r}
@@ -1958,12 +1798,40 @@ The methods below answer one general question, whether the restricted/broad diff
 **Summary.** Strategies B and C provide the strongest evidence that the
 restricted/broad contrast is not a circularity artefact: the grouping is
 recovered from withheld data (strategy B) and a continuous gradient is significant without any group definition (strategy C). Strategy A, the most conservative test, is consistent with a gradual rather than sharp partition and does not contradict the recoverability established by B and C. We therefore present the main-text PerMANOVA as descriptive and exploratory, and we rely on the cross-validation results (strategy B) as the appropriate independent confirmation that the grouping is not a circularity artefact.
-
 # S7. Object-Type Sensitivity: Figurine Exclusion {#sec-s7}
+
+
+```{r}
+#| label: s7-setup
+#| include: false
+# ── S7 setup: all figurine-exclusion statistics are produced by the shared
+#    sensitivity_summary() function in functions.R (also used by paper.qmd and the
+#    S8 section), so the supplement and the main text cannot report divergent numbers.
+
+excl <- sensitivity_summary(signbase_full_clean, aurp1_artifact_data, aurp2_artifact_data)
+
+figurine_types   <- excl$figurine_types
+figurine_summary <- excl$figurine_summary
+s7_baseline      <- excl$s7_baseline
+s7_no_fig        <- excl$s7_no_fig
+s7_no_vog        <- excl$s7_no_vog_fig
+s7_sites_lost    <- excl$s7_sites_lost
+s7_vog_before    <- excl$s7_vog_before
+s7_vog_summary   <- excl$s7_vog_summary
+joint_comparison <- excl$joint_comparison
+
+s7_fig_count <- function(site) figurine_summary$Total[figurine_summary$site_name == site]
+s7_fig_count_cond <- function(site, ph) {
+  sum(figurine_summary$Total[figurine_summary$site_name == site & figurine_summary$phase2 == ph])
+}
+s7_fig_total <- sum(figurine_summary$Total)
+s7_fig_p1 <- sum(figurine_summary$Total[figurine_summary$phase2 == "Aur-P1"])
+s7_fig_p2 <- sum(figurine_summary$Total[figurine_summary$phase2 == "Aur-P2"])
+```
 
 ## S7.1 Rationale
 
-@Bentz_Dutkiewicz_2026 demonstrate that ivory figurines in the Swabian Aurignacian carry sign sequences with higher information density than tools. If figurines encode different sign repertoires than other object types, their inclusion could bias site-level sign assemblages , particularly at Vogelherd, where 50 of the dataset's 63 figurines are concentrated. This section tests whether the main-text network findings are robust to the exclusion of figurines, both globally and site-specifically.
+@Bentz_Dutkiewicz_2026 demonstrate that ivory figurines in the Swabian Aurignacian carry sign sequences with higher information density than tools. If figurines encode different sign repertoires than other object types, their inclusion could bias site-level sign assemblages , particularly at Vogelherd, where `r s7_fig_count("Vogelherd")` of the dataset's `r s7_fig_total` figurines are concentrated. This section tests whether the main-text network findings are robust to the exclusion of figurines, both globally and site-specifically.
 
 ## S7.2 Figurine Distribution in the Dataset
 
@@ -1971,16 +1839,7 @@ recovered from withheld data (strategy B) and a continuous gradient is significa
 #| label: tbl-figurine-count
 #| tbl-cap: "Distribution of figurine objects across phases and sites. Figurine types include figurine zoomorph, figurine anthropomorph, figurine undet., and possible figurine."
 #| tbl-cap-location: bottom
-
-figurine_types <- c("figurine zoomorph", "figurine anthropomorph",
-                    "figurine undet.", "possible figurine")
-
-figurine_summary <- signbase_full_clean %>%
-  filter(object_type %in% figurine_types) %>%
-  count(phase2, site_name, object_type) %>%
-  pivot_wider(names_from = object_type, values_from = n, values_fill = 0) %>%
-  mutate(Total = rowSums(across(where(is.numeric)))) %>%
-  arrange(phase2, desc(Total))
+# figurine_summary is precomputed in the s7-setup chunk
 
 kable(figurine_summary,
       col.names = c("Phase", "Site",
@@ -1989,7 +1848,32 @@ kable(figurine_summary,
       digits = 0)
 ```
 
-@tbl-figurine-count shows that figurines are heavily concentrated at Vogelherd (50 objects), with minor representation at Hohle Fels (8), Geissenklösterle (3), Hohlenstein-Stadel (1), and La Ferrassie (1). Of these, 59 fall within Aur-P1 and the remaining 4 , all Hohle Fels objects from AH IV and Iid , fall within Aur-P2 under the layer-level assignment. The analysis therefore tests whether the Aur-P1 network structure , which reports the higher mean degree (7.50) , is driven by these 50 objects at a single site.
+```{r}
+#| label: s7-helpers
+#| include: false
+# ── Accessor helpers for the S7 interpretation prose (read from joint_comparison) ──
+s7_md  <- function(ph, cond = "Baseline (all objects)") {
+  round(joint_comparison$mean_degree[joint_comparison$Phase == ph & joint_comparison$Condition == cond], 2)
+}
+s7_ed  <- function(ph, cond = "Baseline (all objects)") {
+  joint_comparison$n_edges[joint_comparison$Phase == ph & joint_comparison$Condition == cond]
+}
+s7_ns  <- function(ph, cond = "Baseline (all objects)") {
+  joint_comparison$n_sites[joint_comparison$Phase == ph & joint_comparison$Condition == cond]
+}
+s7_mo  <- function(ph, cond = "Baseline (all objects)") {
+  round(joint_comparison$modularity[joint_comparison$Phase == ph & joint_comparison$Condition == cond], 3)
+}
+s7_tr  <- function(ph, cond = "Baseline (all objects)") {
+  round(joint_comparison$transitivity[joint_comparison$Phase == ph & joint_comparison$Condition == cond], 3)
+}
+s7_pct <- function(cond) {
+  paste0(round(joint_comparison$pct_change_md[
+    joint_comparison$Phase == "Aur-P1" & joint_comparison$Condition == cond], 1), "%")
+}
+```
+
+@tbl-figurine-count shows that figurines are heavily concentrated at Vogelherd (`r s7_fig_count("Vogelherd")` objects), with minor representation at Hohle Fels (`r s7_fig_count("Hohle Fels")`), Geissenklösterle (`r s7_fig_count("Geissenklösterle")`), Hohlenstein-Stadel (`r s7_fig_count("Hohlenstein-Stadel")`), and La Ferrassie (`r s7_fig_count("La Ferrassie")`). Of these, `r s7_fig_p1` fall within Aur-P1 and the remaining `r s7_fig_p2` , all Hohle Fels objects from AH IV and Iid , fall within Aur-P2 under the layer-level assignment. The analysis therefore tests whether the Aur-P1 network structure , which reports the higher mean degree (`r s7_md("Aur-P1")`) , is driven by these `r s7_fig_count("Vogelherd")` objects at a single site.
 
 ## S7.3 Analysis 1: Exclude All Figurines
 
@@ -2001,56 +1885,9 @@ We remove all objects where `object_type` contains "figurine" (63 objects total:
 #| label: tbl-exclude-figurines
 #| tbl-cap: "Network statistics before and after excluding all figurine objects (figurine zoomorph, figurine anthropomorph, figurine undet., and possible figurine). Threshold = 0.2, Jaccard similarity."
 #| tbl-cap-location: bottom
+# s7_baseline and s7_no_fig are precomputed in the s7-setup chunk
 
-# Baseline stats (already computed)
-baseline_stats <- bind_rows(
-  network_stats(aurp1_artifact_data) %>% mutate(Phase = "Aur-P1"),
-  network_stats(aurp2_artifact_data) %>% mutate(Phase = "Aur-P2")
-) %>%
-  dplyr::select(Phase, n_sites, n_edges, density, mean_degree, transitivity, modularity) %>%
-  mutate(Condition = "All objects")
-
-# Helper: rebuild phase data and compute network stats for a filtered dataset
-s7_phase_stats <- function(df, condition) {
-  map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
-    ph_df <- df %>% filter(phase2 == ph)
-    if (n_distinct(ph_df$site_name) < 2) return(NULL)
-    lat_long <- df %>% dplyr::select(site_name, longitude, latitude) %>%
-      distinct(site_name, .keep_all = TRUE)
-    ph_obj <- ph_df %>% group_by(site_name) %>% summarise(nobjects = n())
-    ph_unique <- ph_df %>%
-      group_by(site_name) %>%
-      mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
-      summarize(across(where(is.numeric), sum)) %>%
-      left_join(lat_long) %>%
-      left_join(ph_obj) %>%
-      mutate(time_period = ph)
-    ph_art <- extract_artifact(ph_unique)
-    ns <- network_stats(ph_art, threshold = 0.2)
-    data.frame(Phase = ph, n_sites = ns$n_sites, n_edges = ns$n_edges,
-               density = ns$density, mean_degree = ns$mean_degree,
-               transitivity = ns$transitivity, modularity = ns$modularity,
-               Condition = condition, stringsAsFactors = FALSE)
-  })
-}
-
-# Exclude figurines
-signbase_no_fig <- signbase_full_clean %>%
-  filter(!object_type %in% figurine_types)
-
-no_fig_stats <- s7_phase_stats(signbase_no_fig, "Excluding figurines")
-
-# Sites lost
-sites_before <- signbase_full_clean %>% count(phase2, site_name) %>%
-  group_by(phase2) %>% summarise(sites = n(), .groups = "drop")
-sites_after <- signbase_no_fig %>% count(phase2, site_name) %>%
-  group_by(phase2) %>% summarise(sites = n(), .groups = "drop")
-sites_lost <- sites_before %>%
-  left_join(sites_after, by = "phase2", suffix = c("_before", "_after")) %>%
-  mutate(lost = sites_before - sites_after) %>%
-  rename(Phase = phase2)
-
-excl_comparison <- bind_rows(baseline_stats, no_fig_stats)
+excl_comparison <- bind_rows(s7_baseline, s7_no_fig)
 
 kable(excl_comparison,
       col.names = c("Phase", "Sites", "Edges", "Density", "Mean degree",
@@ -2064,16 +1901,16 @@ kable(excl_comparison,
 #| tbl-cap: "Number of sites per phase before and after figurine exclusion. Sites are lost when all objects at that site are figurines."
 #| tbl-cap-location: bottom
 
-kable(sites_lost %>% dplyr::select(Phase, sites_before, sites_after, lost),
+kable(s7_sites_lost %>% dplyr::select(Phase, sites_before, sites_after, lost),
       col.names = c("Phase", "Sites (all)", "Sites (no figurines)", "Sites lost"),
       digits = 0)
 ```
 
 ### Interpretation
 
-Excluding all 63 figurines has only a small effect on the Aur-P1 network: one edge is lost (75 → 74) and mean degree falls from 7.50 to 7.40, with no sites lost (all 20 sites retained). Aur-P2 is unchanged (mean degree 4.22, 19 edges, 9 sites): the four Hohle Fels figurines removed from it do not alter the site's sign repertoire, so its network is unaffected. The detectable Aur-P1 effects are declines in transitivity (0.711 → 0.683) and modularity (0.336 → 0.318), indicating that figurines contribute modestly to community cohesion but do not create the communities themselves.
+Excluding all `r s7_fig_total` figurines has only a small effect on the Aur-P1 network: one edge is lost (`r s7_ed("Aur-P1")` → `r s7_ed("Aur-P1","Exclude all figurines")`) and mean degree falls from `r s7_md("Aur-P1")` to `r s7_md("Aur-P1","Exclude all figurines")`, with no sites lost (all `r s7_ns("Aur-P1")` sites retained). Aur-P2 is unchanged (mean degree `r s7_md("Aur-P2")`, `r s7_ed("Aur-P2")` edges, `r s7_ns("Aur-P2")` sites): the `r s7_fig_count_cond("Hohle Fels","Aur-P2")` Hohle Fels figurines removed from it do not alter the site's sign repertoire, so its network is unaffected. The detectable Aur-P1 effects are declines in transitivity (`r s7_tr("Aur-P1")` → `r s7_tr("Aur-P1","Exclude all figurines")`) and modularity (`r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude all figurines")`), indicating that figurines contribute modestly to community cohesion but do not create the communities themselves.
 
-Critically, Aur-P1 retains the higher mean degree (7.40) under figurine exclusion, preserving the main-text ordering Aur-P1 > Aur-P2 (7.40 > 4.22). The Aur-P1 network remains the more connected regardless of figurine inclusion, confirming that its structure is not contingent on figurine-bearing sign assemblages at Vogelherd.
+Critically, Aur-P1 retains the higher mean degree (`r s7_md("Aur-P1","Exclude all figurines")`) under figurine exclusion, preserving the main-text ordering Aur-P1 > Aur-P2 (`r s7_md("Aur-P1","Exclude all figurines")` > `r s7_md("Aur-P2")`). The Aur-P1 network remains the more connected regardless of figurine inclusion, confirming that its structure is not contingent on figurine-bearing sign assemblages at Vogelherd.
 
 ## S7.4 Analysis 2: Exclude Vogelherd Figurines Only
 
@@ -2085,25 +1922,9 @@ Rather than removing all figurines globally, this analysis removes only the 50 f
 #| label: tbl-vogelherd-exclude
 #| tbl-cap: "Network statistics before and after excluding figurines from Vogelherd only. All other figurines (Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, La Ferrassie) are retained. Threshold = 0.2, Jaccard similarity."
 #| tbl-cap-location: bottom
+# s7_baseline, s7_no_vog and s7_vog_summary are precomputed in the s7-setup chunk
 
-signbase_no_vog <- signbase_full_clean %>%
-  filter(!(site_name == "Vogelherd" & object_type %in% figurine_types))
-
-no_vog_stats <- s7_phase_stats(signbase_no_vog, "Excl. Vogelherd figurines")
-
-# Vogelherd object counts
-vog_before <- signbase_full_clean %>%
-  filter(site_name == "Vogelherd") %>%
-  count(phase2, name = "objects_before")
-vog_after <- signbase_no_vog %>%
-  filter(site_name == "Vogelherd") %>%
-  count(phase2, name = "objects_after")
-vog_summary <- vog_before %>%
-  left_join(vog_after, by = "phase2") %>%
-  mutate(removed = objects_before - objects_after) %>%
-  rename(Phase = phase2)
-
-vog_comparison <- bind_rows(baseline_stats, no_vog_stats)
+vog_comparison <- bind_rows(s7_baseline, s7_no_vog)
 
 kable(vog_comparison,
       col.names = c("Phase", "Sites", "Edges", "Density", "Mean degree",
@@ -2117,16 +1938,16 @@ kable(vog_comparison,
 #| tbl-cap: "Vogelherd object counts before and after removing figurines. Non-figurine objects at Vogelherd (tools, plaquettes, etc.) are retained."
 #| tbl-cap-location: bottom
 
-kable(vog_summary %>% dplyr::select(Phase, objects_before, objects_after, removed),
+kable(s7_vog_summary %>% dplyr::select(Phase, objects_before, objects_after, removed),
       col.names = c("Phase", "Objects (all)", "Objects (no figurines)", "Removed"),
       digits = 0)
 ```
 
 ### Interpretation
 
-Removing only Vogelherd's figurines (50 objects: 173 → 123 in Aur-P1) has a negligible effect on Aur-P1: mean degree drops from 7.50 to 7.40 (−1.3%), one edge is lost (75 → 74), and modularity decreases from 0.336 to 0.333. Aur-P2 shows no change whatsoever (mean degree 4.22 → 4.22, modularity 0.161 → 0.161), confirming that Vogelherd figurines do not contribute to network structure in the later phase.
+Removing only Vogelherd's figurines (`r s7_fig_count("Vogelherd")` objects: `r s7_vog_before$objects_before[s7_vog_before$phase2 == "Aur-P1"]` → `r s7_vog_summary$objects_after[s7_vog_summary$Phase == "Aur-P1"]` in Aur-P1) has a negligible effect on Aur-P1: mean degree drops from `r s7_md("Aur-P1")` to `r s7_md("Aur-P1","Exclude Vogelherd figurines")` (`r s7_pct("Exclude Vogelherd figurines")`), one edge is lost (`r s7_ed("Aur-P1")` → `r s7_ed("Aur-P1","Exclude Vogelherd figurines")`), and modularity decreases from `r s7_mo("Aur-P1")` to `r s7_mo("Aur-P1","Exclude Vogelherd figurines")`. Aur-P2 shows no change whatsoever (mean degree `r s7_md("Aur-P2")` → `r s7_md("Aur-P2","Exclude Vogelherd figurines")`, modularity `r s7_mo("Aur-P2")` → `r s7_mo("Aur-P2","Exclude Vogelherd figurines")`), confirming that Vogelherd figurines do not contribute to network structure in the later phase.
 
-The effect of removing Vogelherd figurines alone (−1.3% in Aur-P1) is the same as removing all 63 figurines globally (−1.3%), and in both cases the network is essentially unchanged. The figurine effect therefore does not scale with the number of figurines removed; figurines at Hohle Fels, Geissenklösterle (3), Hohlenstein-Stadel (1), and La Ferrassie (1) do not alter the network structure , including the four Hohle Fels figurines assigned to Aur-P2, which leave that phase's network unchanged , and Vogelherd's connectivity within Aur-P1 is carried by its 123 non-figurine objects.
+The effect of removing Vogelherd figurines alone (`r s7_pct("Exclude Vogelherd figurines")` in Aur-P1) is the same as removing all `r s7_fig_total` figurines globally (`r s7_pct("Exclude all figurines")`), and in both cases the network is essentially unchanged. The figurine effect therefore does not scale with the number of figurines removed; figurines at Hohle Fels (`r s7_fig_count("Hohle Fels")`), Geissenklösterle (`r s7_fig_count("Geissenklösterle")`), Hohlenstein-Stadel (`r s7_fig_count("Hohlenstein-Stadel")`), and La Ferrassie (`r s7_fig_count("La Ferrassie")`) do not alter the network structure , including the `r s7_fig_count_cond("Hohle Fels","Aur-P2")` Hohle Fels figurines assigned to Aur-P2, which leave that phase's network unchanged , and Vogelherd's connectivity within Aur-P1 is carried by its `r s7_vog_summary$objects_after[s7_vog_summary$Phase == "Aur-P1"]` non-figurine objects.
 
 ## S7.5 Joint Comparison
 
@@ -2134,24 +1955,11 @@ The effect of removing Vogelherd figurines alone (−1.3% in Aur-P1) is the same
 #| label: tbl-objtype-joint
 #| tbl-cap: "Side-by-side comparison of network statistics across all conditions: baseline (all objects), exclude all figurines, and exclude Vogelherd figurines only. The rightmost columns show the percentage change in mean degree from baseline."
 #| tbl-cap-location: bottom
-
-all_conditions <- bind_rows(
-  baseline_stats %>% mutate(Condition = "Baseline (all objects)"),
-  no_fig_stats %>% mutate(Condition = "Exclude all figurines"),
-  no_vog_stats %>% mutate(Condition = "Exclude Vogelherd figurines")
-) %>%
-  dplyr::select(Phase, Condition, n_sites, n_edges, mean_degree, transitivity, modularity)
-
-# Compute % change from baseline
-baseline_md <- baseline_stats %>% dplyr::select(Phase, Baseline_md = mean_degree)
-joint_comparison <- all_conditions %>%
-  left_join(baseline_md, by = "Phase") %>%
-  mutate(pct_change_md = round((mean_degree - Baseline_md) / Baseline_md * 100, 1)) %>%
-  dplyr::select(-Baseline_md)
+# joint_comparison is precomputed in the s7-setup chunk
 
 kable(joint_comparison,
       col.names = c("Phase", "Condition", "Sites", "Edges", "Mean degree",
-                    "Transitivity", "Modularity", "Δ mean° (%)"),
+                    "Transitivity", "Modularity", "Δ mean degree (%)"),
       digits = 3,
       align = "lllccccc")
 ```
@@ -2160,18 +1968,44 @@ kable(joint_comparison,
 
 The joint comparison in @tbl-objtype-joint shows that figurine exclusion has a modest and phase-dependent effect on network structure:
 
-| Phase | Baseline mean° | No figurines | Δ | Vogelherd only | Δ |
-|-------|---------------|-------------|---|----------------|---|
-| Aur-P1 | 7.50 | 7.40 | −1.3% | 7.40 | −1.3% |
-| Aur-P2 | 4.22 | 4.22 | 0% | 4.22 | 0% |
+```{r}
+#| label: tbl-s7-6-meandegree
+#| tbl-cap: "Mean degree by figurine-exclusion condition, with percentage change from baseline. Reproduced directly from the joint comparison in @tbl-objtype-joint."
+#| tbl-cap-location: bottom
 
-**Outcome observed: Negligible effect, no qualitative change.** Mean degree changes are at most −1.3% across both phases and all conditions, and excluding all figurines removes a single edge from Aur-P1 (75 → 74, mean degree 7.50 → 7.40) while leaving Aur-P2's edge set unchanged (19 edges, mean degree 4.22). Modularity decreases slightly for Aur-P1 when figurines are excluded (0.336 → 0.318 excluding all; 0.336 → 0.333 excluding Vogelherd only) while Aur-P2 is unchanged (0.161), indicating that figurines contribute marginally to within-group cohesion but do not create the community structure.
+s7_md_summary <- joint_comparison %>%
+  dplyr::select(Phase, Condition, mean_degree, pct_change_md) %>%
+  mutate(short = case_when(
+    Condition == "Baseline (all objects)"      ~ "Baseline",
+    Condition == "Exclude all figurines"       ~ "No figurines",
+    Condition == "Exclude Vogelherd figurines" ~ "Vogelherd only")) %>%
+  pivot_wider(id_cols = Phase, names_from = short,
+              values_from = c(mean_degree, pct_change_md)) %>%
+  dplyr::select(
+    Phase,
+    `Baseline mean degree` = `mean_degree_Baseline`,
+    `No figurines`        = `mean_degree_No figurines`,
+    delta_no              = `pct_change_md_No figurines`,
+    `Vogelherd only`      = `mean_degree_Vogelherd only`,
+    delta_vog             = `pct_change_md_Vogelherd only`) %>%
+  mutate(
+    delta_no  = paste0(formatC(delta_no,  digits = 1, format = "f"), "%"),
+    delta_vog = paste0(formatC(delta_vog, digits = 1, format = "f"), "%"))
 
-**Phase ordering is preserved.** The main-text connectivity contrast Aur-P1 > Aur-P2 (7.50 > 4.22) is unchanged under both exclusion scenarios (7.40 > 4.22 excluding all figurines; 7.40 > 4.22 excluding Vogelherd figurines only), preserving the key finding that the early phase is the more connected.
+kable(s7_md_summary,
+      col.names = c("Phase", "Baseline mean degree", "No figurines", "Δ",
+                    "Vogelherd only", "Δ"),
+      digits = c(0, 2, 2, 0, 2, 0),
+      align = "llcccc")
+```
 
-**The figurine effect is small and Vogelherd-specific.** Removing Vogelherd figurines alone (−1.3%) produces the same effect as removing all 63 figurines globally (−1.3%). Figurines at Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, and La Ferrassie do not alter network structure. This indicates that although Vogelherd's figurine assemblage is unusually rich , 50 of 63 figurines , and contributes disproportionately to sign-type counts, its 123 remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
+**Outcome observed: Negligible effect, no qualitative change.** Mean degree changes are at most `r s7_pct("Exclude all figurines")` across both phases and all conditions, and excluding all figurines removes a single edge from Aur-P1 (`r s7_ed("Aur-P1")` → `r s7_ed("Aur-P1","Exclude all figurines")`, mean degree `r s7_md("Aur-P1")` → `r s7_md("Aur-P1","Exclude all figurines")`) while leaving Aur-P2's edge set unchanged (`r s7_ed("Aur-P2")` edges, mean degree `r s7_md("Aur-P2")`). Modularity decreases slightly for Aur-P1 when figurines are excluded (`r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude all figurines")` excluding all; `r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude Vogelherd figurines")` excluding Vogelherd only) while Aur-P2 is unchanged (`r s7_mo("Aur-P2")`), indicating that figurines contribute marginally to within-group cohesion but do not create the community structure.
 
-**Conclusion.** The main-text findings are robust to figurine exclusion. The Aur-P1 > Aur-P2 connectivity contrast, the two-group community structure, and the site membership of both phases are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity within Aur-P1 is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Aur-P1: 0.336 → 0.318), suggesting that figurines contribute modestly to community cohesion , consistent with @Bentz_Dutkiewicz_2026 argument that figurines carry high-information sign sequences, but the communities themselves are defined by shared sign types across all object types.
+**Phase ordering is preserved.** The main-text connectivity contrast Aur-P1 > Aur-P2 (`r s7_md("Aur-P1")` > `r s7_md("Aur-P2")`) is unchanged under both exclusion scenarios (`r s7_md("Aur-P1","Exclude all figurines")` > `r s7_md("Aur-P2")` excluding all figurines; `r s7_md("Aur-P1","Exclude Vogelherd figurines")` > `r s7_md("Aur-P2")` excluding Vogelherd figurines only), preserving the key finding that the early phase is the more connected.
+
+**The figurine effect is small and Vogelherd-specific.** Removing Vogelherd figurines alone (`r s7_pct("Exclude Vogelherd figurines")` in Aur-P1) produces the same effect as removing all `r s7_fig_total` figurines globally (`r s7_pct("Exclude all figurines")`). Figurines at Hohle Fels (`r s7_fig_count("Hohle Fels")`), Geissenklösterle (`r s7_fig_count("Geissenklösterle")`), Hohlenstein-Stadel (`r s7_fig_count("Hohlenstein-Stadel")`), and La Ferrassie (`r s7_fig_count("La Ferrassie")`) do not alter network structure. This indicates that although Vogelherd's figurine assemblage is unusually rich , `r s7_fig_count("Vogelherd")` of `r s7_fig_total` figurines , and contributes disproportionately to sign-type counts, its `r s7_vog_summary$objects_after[s7_vog_summary$Phase == "Aur-P1"]` remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
+
+**Conclusion.** The main-text findings are robust to figurine exclusion. The Aur-P1 > Aur-P2 connectivity contrast, the two-group community structure, and the site membership of both phases are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity within Aur-P1 is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Aur-P1: `r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude all figurines")`), suggesting that figurines contribute modestly to community cohesion , consistent with @Bentz_Dutkiewicz_2026 argument that figurines carry high-information sign sequences, but the communities themselves are defined by shared sign types across all object types.
 
 # S8. Site Reclassification Sensitivity Analysis {#sec-s8}
 
@@ -2191,8 +2025,8 @@ Because these attributions are important for the two-phase framework, this secti
 # Reassign each object purely by its calibrated date (technology overrides
 # removed); the Spy/El Castillo exclusions from the baseline are retained.
 signbase_date <- signbase_full_clean %>%
-  mutate(time_period2 = time_period,
-         phase2 = ifelse(time_period %in% c("proto_aurignacian", "early_aurignacian"),
+  mutate(time_period2 = time_period_date,
+         phase2 = ifelse(time_period_date %in% c("proto_aurignacian", "early_aurignacian"),
                          "Aur-P1", "Aur-P2"))
 
 lat_long_date <- signbase_date %>%
@@ -2211,21 +2045,8 @@ date_stats <- bind_rows(
                 transitivity, modularity)
 
 # ── Analysis B: exclude Vogelherd entirely ─────────────────────────────────
-signbase_novog <- signbase_full_clean %>% filter(site_name != "Vogelherd")
-lat_long_nv <- signbase_novog %>%
-  dplyr::select(site_name, longitude, latitude) %>%
-  distinct(site_name, .keep_all = TRUE)
-
-aurp1_nv <- make_phase2_data("Aur-P1", signbase_novog, lat_long_nv)
-aurp2_nv <- make_phase2_data("Aur-P2", signbase_novog, lat_long_nv)
-
-no_vog_stats <- bind_rows(
-  network_stats(extract_artifact(aurp1_nv), threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
-  network_stats(extract_artifact(aurp2_nv), threshold = 0.2) %>% mutate(Phase = "Aur-P2")
-) %>%
-  mutate(Condition = "Exclude Vogelherd") %>%
-  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree,
-                transitivity, modularity)
+# s8_novog is precomputed by sensitivity_summary() in the s7-setup chunk
+no_vog_stats <- excl$s8_novog
 ```
 
 ## S8.2 Results
@@ -2261,19 +2082,29 @@ s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph
 
 ### Effects by condition
 
-**Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 (its ~35–36 ka BP (calibrated) dates fall in the Early Aurignacian range, which is folded into Aur-P1), while Hohle Fels and Vogelherd are split across the phases by object date: 20 of 49 Hohle Fels objects and 160 of 173 Vogelherd objects remain in Aur-P1, and 29 and 13 objects , those calibrated to ~32 ka BP or younger , move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 , now missing Mladeč but containing 42 young-dated objects from Hohle Fels and Vogelherd , has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
+**Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 (its ~35–36 ka BP (calibrated) dates fall in the Early Aurignacian range, which is folded into Aur-P1), while Hohle Fels and Vogelherd are split across the phases by object date: `r excl$hf_p1` of `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels"))` Hohle Fels objects and `r excl$vog_p1_date` of `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` Vogelherd objects remain in Aur-P1, and `r excl$hf_p2` and `r excl$vog_p2_date` objects , those calibrated to ~32 ka BP or younger , move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 , now missing Mladeč but containing `r excl$young_total` young-dated objects from Hohle Fels and Vogelherd , has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
 
-**Vogelherd exclusion (Analysis B).** Removing Vogelherd's 173 objects from the technology-based baseline reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges. Mean degree falls from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")` (−3.2%), and modularity from `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Vogelherd")`. Aur-P2 is unaffected (`r s8_md("Aur-P2", "Exclude Vogelherd")`, `r s8_ne("Aur-P2", "Exclude Vogelherd")` edges, `r s8_ns("Aur-P2", "Exclude Vogelherd")` sites).
+**Vogelherd exclusion (Analysis B).** Removing Vogelherd's `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` objects from the technology-based baseline reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges. Mean degree falls from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")` (`r paste0("−", excl$md_pct, "%")`), and modularity from `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Vogelherd")`. Aur-P2 is unaffected (`r s8_md("Aur-P2", "Exclude Vogelherd")`, `r s8_ne("Aur-P2", "Exclude Vogelherd")` edges, `r s8_ns("Aur-P2", "Exclude Vogelherd")` sites).
 
 ## S8.3 Phase-Ordering Robustness
 
 The most consequential finding is that **the Aur-P1 > Aur-P2 connectivity ordering is preserved under every condition**:
 
-| Condition | Aur-P1 mean° | Aur-P2 mean° | Ordering |
-|-----------|-------------|-------------|----------|
-| Baseline (technology-based) | `r s8_md("Aur-P1", "Baseline (technology-based)")` | `r s8_md("Aur-P2", "Baseline (technology-based)")` | Aur-P1 > Aur-P2 |
-| Date-based | `r s8_md("Aur-P1", "Date-based")` | `r s8_md("Aur-P2", "Date-based")` | Aur-P1 > Aur-P2 |
-| Exclude Vogelherd | `r s8_md("Aur-P1", "Exclude Vogelherd")` | `r s8_md("Aur-P2", "Exclude Vogelherd")` | Aur-P1 > Aur-P2 |
+```{r}
+#| label: tbl-s8-ordering
+#| tbl-cap: "Mean degree by phase under each reassignment condition. The Aur-P1 > Aur-P2 ordering is preserved under every condition."
+#| tbl-cap-location: bottom
+
+s8_ordering <- all_reclass %>%
+  dplyr::select(Phase, Condition, mean_degree) %>%
+  pivot_wider(id_cols = Condition, names_from = Phase, values_from = mean_degree) %>%
+  mutate(Ordering = ifelse(`Aur-P1` > `Aur-P2`, "Aur-P1 > Aur-P2", "Aur-P2 > Aur-P1")) %>%
+  dplyr::select(Condition, `Aur-P1`, `Aur-P2`, Ordering)
+
+kable(s8_ordering,
+      col.names = c("Condition", "Aur-P1 mean degree", "Aur-P2 mean degree", "Ordering"),
+      digits = 2)
+```
 
 Under the date-based assignment Aur-P1's mean degree rises (from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Date-based")`) and Aur-P2's falls (from `r s8_md("Aur-P2", "Baseline (technology-based)")` to `r s8_md("Aur-P2", "Date-based")`), so the contrast is not an artefact of the technological reassignment , the naive date-based assignment, if anything, strengthens it. Excluding Vogelherd weakens but does not remove the contrast (`r s8_md("Aur-P1", "Exclude Vogelherd")` vs `r s8_md("Aur-P2", "Exclude Vogelherd")`).
 

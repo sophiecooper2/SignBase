@@ -72,92 +72,8 @@ ncountries <- signbase_full %>%
   length()
 nsigntypes <- ncol(signbase_full)
 
-signbase_full_clean <- signbase_full %>%  # 511 rows
-  filter(site_name != "Willendorf",
-         site_name != "Riparo di Fontana Nuova",
-         site_name != "Muralovka",
-         site_name != "Shanidar Cave",
-         site_name != "Hayonim Cave",
-         site_name != "El Salitre",
-         site_name != "Grotte De La Princesse Pauline",
-         site_name != "Šandalja II") %>% 
-  dplyr::select(-other, -rectangle) %>% 
-  mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>% 
-  mutate(latitude = ifelse(site_name == "Riparo Bombrini", 43.77083, latitude))
-
-signbase_years <- signbase_full_clean %>%
-  drop_na(date_bp_max_min) %>% 
-  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>% 
-  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>% 
-  separate(date_bp_max_min,
-           sep = " - ",
-           c("date_bp_max", "date_bp_min"),
-           remove = FALSE) %>% 
-  mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"),
-                              str_extract(date_bp_max, ".*?(?=\\/)"),
-                              date_bp_max)) %>% 
-  mutate(date_bp_min = ifelse(str_detect(date_bp_min, "\\/"),
-                              str_extract(date_bp_min, ".*?(?=\\/)"),
-                              date_bp_min)) %>% 
-  separate(date_bp_max,
-           sep = "±",
-           c("date_bp_max_age",
-             "date_bp_max_error")) %>% 
-  separate(date_bp_min,
-           sep = "±",
-           c("date_bp_min_age",
-             "date_bp_min_error")) %>% 
-  drop_na(date_bp_max_age,
-          date_bp_max_error) %>% 
-  mutate(date_bp_max_age = parse_number(date_bp_max_age),
-         date_bp_max_error = parse_number(date_bp_max_error))
-
-signbase_years_cal <- 
-  rcarbon::calibrate(signbase_years$date_bp_max_age,
-                     signbase_years$date_bp_max_error,
-                     verbose = FALSE) %>% 
-  summary() %>% 
-  tibble()
-
-signbase_years$MedianBP <- signbase_years_cal$MedianBP
-
-signbase_full_clean <- signbase_full_clean %>% 
-  inner_join(signbase_years %>% 
-              dplyr::select(object_id, MedianBP))
-
-signbase_full_clean <- signbase_full_clean %>%
-  mutate(time_period = case_when(
-    # --- Exclusions (mixed assemblages) ---
-    site_name == "Spy"         ~ NA_character_,
-    site_name == "El Castillo" ~ NA_character_,
-    # --- Reclassifications based on technological attribution ---
-    # Hohle Fels is assigned at the layer level: the lower Aurignacian horizons
-    # (AH Vb, Vab, Vaa, Va) are Early Aurignacian (Aur-P1), while the upper
-    # horizons (AH IV, IIIb, IIIa and the II-series) are Evolved/Late
-    # Aurignacian (Aur-P2), following Dinnis et al. (2019) and Bataille &
-    # Conard (2018). The single object from the mixed layer IIIa-V spans the
-    # whole sequence and is excluded.
-    site_name == "Hohle Fels" & layer %in% c("Va", "Vaa", "Vab", "Vb") ~ "early_aurignacian",
-    site_name == "Hohle Fels" & layer %in% c("IV", "IIIa", "IIIb", "Iid", "Iida", "Iie") ~ "evolved_aurignacian",
-    site_name == "Hohle Fels" & layer == "IIIa-V" ~ NA_character_,
-    site_name == "Geissenklösterle"  ~ "early_aurignacian",
-    site_name == "Vogelherd"         ~ "early_aurignacian",
-    site_name == "La Ferrassie"      ~ "early_aurignacian",
-    site_name == "Abri Pataud"       ~ "early_aurignacian",
-    site_name == "Mladeč"            ~ "evolved_aurignacian",
-    site_name == "Gatzarria"         ~ "proto_aurignacian",
-    # --- Default: date-based assignment ---
-    (MedianBP > 39799) ~ "proto_aurignacian",
-    (MedianBP > 37799) ~ "early_aurignacian",
-    (MedianBP > 31999) ~ "evolved_aurignacian"
-  )) %>%
-  filter(!is.na(time_period)) %>%
-  mutate(phase2 = ifelse(time_period %in% c("proto_aurignacian", "early_aurignacian"),
-                         "Aur-P1", "Aur-P2"))
-
-signbase_full_clean <- signbase_full_clean %>% 
-  mutate(sign_total = rowSums(signbase_full_clean %>% select(line:star))) %>% 
-  filter(sign_total > 0)
+signbase_full_clean <- clean_signbase(signbase_full)
+lat_long_df <- site_latlong(signbase_full_clean)
 
 nsites_clean <- signbase_full_clean %>% 
   pull(site_name ) %>% 
@@ -170,12 +86,8 @@ ncountries_clean <- signbase_full_clean %>%
   length()
 nsigntypes_clean <- nsigntypes - 1
 
-date_min <- signbase_years_cal %>% 
-  pull(MedianBP) %>% 
-  min()
-date_max <- signbase_years_cal %>% 
-  pull(MedianBP) %>% 
-  max()
+date_min <- min(signbase_full_clean$MedianBP)
+date_max <- max(signbase_full_clean$MedianBP)
 date_range <- date_max - date_min
 date_min_pretty <- pretty_print_dates(date_min)
 date_max_pretty <- pretty_print_dates(date_max)
@@ -230,6 +142,19 @@ artifact_count_median <- median(artifact_count_df$artifact_count)
   
 ```
 
+```{r}
+# ── Sensitivity summary (shared with S1/S8 via functions.R) ────────────────────
+# Single source of truth for the figurine/site-robustness numbers reported below,
+# so the main text cannot diverge from the supplements.
+sens <- sensitivity_summary(signbase_full_clean, aurp1_artifact_data, aurp2_artifact_data)
+md_base_p1  <- sens$md_base_p1
+md_base_p2  <- sens$md_base_p2
+md_nofig_p1 <- sens$md_nofig_p1
+md_novog_p1 <- sens$md_novog_p1
+edge_pct    <- sens$edge_pct
+md_pct      <- sens$md_pct
+```
+
 Abstract: The Aurignacian technocomplex (ca. 43–30 ka cal BP) marks a pivotal expansion of _Homo sapiens_ into Western Eurasia, yet the evolution of social organization during this transition remains debated. Here we investigate social dynamics through the analysis of geometric signs on mobile objects within a two-phase framework that respects specialist technological attributions in site assignment. Using seriation and network analysis, we examine whether sign distribution reflects sign-use grouping within each phase, and whether the sign-sharing network differs between the early and late Aurignacian. Within the early phase (Aur-P1; 20 sites) we propose and evaluate a two-group structure of restricted versus broad geometric-sign repertoires. The small late phase (Aur-P2; `r aurp2_site_count` sites) shows a weaker, less resolved structure. The early phase supports a larger network centred on key sites, but formal permutation tests indicate that the phases do not differ significantly in edge density, modularity, mean betweenness, or component count, so the observed differences in connectivity track the larger size of the early phase rather than a statistically distinguishable community structure. Mantel tests did not detect a significant correlation between geographic distance and sign distribution in either phase, and the isolation-by-distance relationship does not differ between them, although this null result should be interpreted cautiously given the small sample sizes. These results indicate that the restricted/broad separation is a descriptive pattern evident only in the early phase of Aurignacian symbolic culture, however an object-level sensitivity analysis shows this pattern is partly confounded with sampling effort for the smallest sites. The absence of a significant geographic correlation is consistent with this interpretation but does not establish it, and the connectivity dynamics of the two phases should be compared net of network size rather than through a simple densest-hub narrative.
 ---
 
@@ -241,9 +166,9 @@ Previous work has fruitfully explored social organization dynamics of the Upper 
 
 Similar analyses of personal ornament types from the Aurignacian identified fourteen geographically cohesive groups [@Vanhaeren_d]. Drawing on ethnographic studies that show how body decoration and ornamentation indicate ethno-linguistic identity, @Vanhaeren_d used Aurignacian personal ornamentation as a proxy for ethno-linguistic diversity. The variation in personal ornament types is interpreted as evidence of long-lasting cultural differences and as robustly establishing the ethno-linguistic diversity of the Aurignacian period. Seriation, correspondence, and GIS analyses of 157 distinct ornament types from 98 Aurignacian sites in Europe and the Near East identified geographically cohesive groups sharing similar ornament type associations. These groups sweep counter-clockwise throughout western France, northern Spain, the Pyrenees, and the Mediterranean region.
 
-Cultural groups have also been identified from forty-two quadrilateral geometric signs from four cave sites in the Cantabrian region of Spain, likely associated with the Magdalenian period, spanning a distance of 30 kilometers [@Sauvet_2018]. Multivariate analysis of 45 morphological characteristics of the signs revealed two clusters. To interpret these clusters, @Sauvet_2018 drew on case studies of geometric signs as identity markers, including South African engraved ostrich shells from 60 ka BP, maker's marks on Gallo-Roman pottery, and 19th century French craft guild members' personal marks. Using these case studies as analogies, @Sauvet_2018 interpreted the Magdalenian geometric signs as identity markers, and the two clusters as representative of two cultural groups.
+Cultural groups have also been claimed from forty-two quadrilateral geometric signs from four cave sites in the Cantabrian region of Spain, likely associated with the Magdalenian period, spanning a distance of 30 kilometers [@Sauvet_2018]. Multivariate analysis of 45 morphological characteristics of the signs revealed two clusters. To interpret these clusters, @Sauvet_2018 drew on case studies of geometric signs as identity markers, including South African engraved ostrich shells from 60 ka BP, maker's marks on Gallo-Roman pottery, and 19th century French craft guild members' personal marks. Using these case studies as analogies, @Sauvet_2018 interpreted the Magdalenian geometric signs as identity markers, and the two clusters as representative of two cultural groups.
 
-In this study, we extend this previous work using geometric signs as identity markers to investigate cultural group dynamics in the Aurignacian period, providing a novel approach to understanding how early groups of _Homo sapiens_ interacted with each other and their environments. Our archaeological and modelling results support the view that geometric signs are informative proxies for reconstructing past cultural diversity and correlate with past population dynamics.
+In this study, we extend this previous work using geometric signs as identity markers to investigate group dynamics in the Aurignacian period, providing a novel approach to understanding how early groups of _Homo sapiens_ interacted with each other and their environments. Our archaeological and modelling results support the view that geometric signs are informative proxies for reconstructing past cultural diversity and correlate with past population dynamics.
 
 ## Periodization of the Aurignacian
 
@@ -459,34 +384,16 @@ knitr::include_graphics(here::here("figures/map-and-hist-plot.png"))
 #| label: ts-lag-summary
 #| echo: false
 #| warning: false
-# Site-level replication of S5.12 time-lag check, for inline reporting in main text.
-site_sign <- signbase_full_clean %>%
-  group_by(site_name) %>%
-  summarise(across(line:star, ~ as.numeric(sum(.) > 0)),
-            MedianBP = median(MedianBP),
-            phase2   = first(phase2),
-            .groups = "drop")
-
-n_sites_ts <- nrow(site_sign)
-Y_dist   <- vegan::vegdist(site_sign %>% dplyr::select(line:star),
-                           method = "jaccard", binary = TRUE)
-D_jac    <- as.matrix(Y_dist)
-D_lag    <- as.matrix(dist(site_sign$MedianBP))
-ut       <- upper.tri(D_jac)
-pairs_ts <- data.frame(
-  lag_ka     = D_lag[ut] / 1000,
-  jac        = D_jac[ut],
-  same_phase = (outer(site_sign$phase2, site_sign$phase2, `==`))[ut]
-)
-n_pairs_ts <- nrow(pairs_ts)
-ts_rho_all    <- unname(cor.test(pairs_ts$lag_ka, pairs_ts$jac, method = "spearman")$estimate)
-ts_p_all      <- cor.test(pairs_ts$lag_ka, pairs_ts$jac, method = "spearman")$p.value
-ts_rho_within <- unname(cor.test(pairs_ts$lag_ka[pairs_ts$same_phase],
-                                 pairs_ts$jac[pairs_ts$same_phase], method = "spearman")$estimate)
-ts_p_within   <- cor.test(pairs_ts$lag_ka[pairs_ts$same_phase],
-                           pairs_ts$jac[pairs_ts$same_phase], method = "spearman")$p.value
-mean_jac_between <- mean(pairs_ts$jac[!pairs_ts$same_phase])
-mean_jac_within  <- mean(pairs_ts$jac[pairs_ts$same_phase])
+# Site-level time-lag check (S5.12), computed once in functions.R.
+tl <- time_lag_pairs(signbase_full_clean)
+n_sites_ts        <- tl$n_sites
+n_pairs_ts        <- tl$n_pairs
+ts_rho_all        <- tl$rho_all
+ts_p_all          <- tl$p_all
+ts_rho_within     <- tl$rho_within
+ts_p_within       <- tl$p_within
+mean_jac_between  <- tl$mean_jac_between
+mean_jac_within   <- tl$mean_jac_within
 ```
 
 Ages of the objects were determined by calibrating the uncalibrated ages provided by SignBase using the rcarbon package [@Crema_Bevan_2021]. The calibrated radiocarbon dates of the sampled data range from approximately `r round(date_min_ka, 3)` to `r round(date_max_ka, 3)` ka cal BP, spanning an overall time range of `r round(date_range_ka, 3)` ka. Each object was assigned to a chronological phase following specialist technological attributions from the published literature, supplemented by calibrated radiocarbon dates where technological attribution is unavailable (@tbl-aur-table and see our S2 "Site Phase Assignments" for more details about specific sites). The Aur-P1 phase has `r aurp1_site_count` sites and `r aurp1_sign_count` sign types, and the Aur-P2 phase has `r aurp2_site_count` sites and `r aurp2_sign_count` sign types. A Mantel test to evaluate the correlation between distance in time and distribution of sign types found a weak but nominally statistically significant correlation (R = `r chron_r`, p = `r chron_p`). The very small effect size (R ≈ 0.06) indicates that temporal distance explains only a small fraction of the variation in sign-type distribution. This weak association shows only that time has little explanatory power for sign composition; it does not demonstrate whether substantial change in sign types did or did not occur through time. We tested this inference more directly with a time-lag analysis (S1 "Sensitivity Analyses" S5.12): we binned all `r n_sites_ts` sites (`r n_pairs_ts` site pairs) by their absolute temporal separation (|ΔMedianBP|) and asked whether Jaccard sign dissimilarity rises with lag. It does not — the Spearman correlation between temporal lag and dissimilarity is `r round(ts_rho_all, 2)` (p = `r round(ts_p_all, 2)`) overall and `r round(ts_rho_within, 2)` (p = `r round(ts_p_within, 2)`) within phase, and sites in different phases are no more dissimilar (mean Jaccard `r round(mean_jac_between, 2)`) than sites within the same phase (`r round(mean_jac_within, 2)`). As with the temporal Mantel, this flat trend is a lack of evidence for time-structured change in sign repertoires, not evidence that change was absent. 
@@ -807,7 +714,7 @@ In Aur-P2 the two-group pattern is again somewhat evident, with a broad-range gr
 
 @fig-neighbor-net-stats shows the results of permutation tests (n = `r sci_md(nperm)`) assessing whether the observed statistics differ from a phase-randomized null distribution, and pairwise randomisation tests comparing the two phases. Under phase randomization, none of the tested statistics — edge density, modularity (Louvain), mean betweenness, or component count — differs significantly from its null distribution in either phase: all observed values fall within the null 95% confidence intervals and all Benjamini–Hochberg-adjusted p-values are ≥ 0.05. The restricted/broad grouping is instead supported by the model-based and null-benchmarked community-structure analyses in our S1 "Sensitivity Analyses" (S5.1, S5.3, S5.9), which evaluate the observed structure net of network size. Pairwise permutation tests with Benjamini–Hochberg correction show that the phases do not differ significantly in any of the tested network statistics — edge density (p = `r pairwise_p_density`), modularity (p = `r pairwise_p_modularity`), mean betweenness (p = `r pairwise_p_betweenness`), or component count (p = `r pairwise_p_components`). The Aur-P1–Aur-P2 contrast is therefore primarily one of network scale rather than a statistically distinguishable community structure.
 
-We assessed the sensitivity of our two-phase framework to site assignment criteria in three ways: (1) reverting to purely date-based assignment (S8 Analysis A); (2) excluding the stratigraphically mixed site Vogelherd entirely (S8 Analysis B); (3) excluding figurines concentrated at Vogelherd (S7). Under all conditions, the Aur-P1 > Aur-P2 connectivity ordering is preserved (Aur-P1 mean degree: 7.50 baseline, 7.26 no Vogelherd, 7.40 no figurines; Aur-P2: 4.22). Excluding Vogelherd reduces Aur-P1 edges by 8% and mean degree by 3.2%, but does not alter the phase contrast or the within-phase two-group pattern (S8.3, S7.5). Because the principal results are unchanged when Vogelherd is excluded entirely, our conclusions do not depend on its inclusion or on its precise archaeological attribution.
+We assessed the sensitivity of our two-phase framework to site assignment criteria in three ways: (1) reverting to purely date-based assignment (S8 Analysis A); (2) excluding the stratigraphically mixed site Vogelherd entirely (S8 Analysis B); (3) excluding figurines concentrated at Vogelherd (S7). Under all conditions, the Aur-P1 > Aur-P2 connectivity ordering is preserved (Aur-P1 mean degree: `r round(md_base_p1, 2)` baseline, `r round(md_novog_p1, 2)` no Vogelherd, `r round(md_nofig_p1, 2)` no figurines; Aur-P2: `r round(md_base_p2, 2)`). Excluding Vogelherd reduces Aur-P1 edges by `r edge_pct`% and mean degree by `r md_pct`%, but does not alter the phase contrast or the within-phase two-group pattern (S8.3, S7.5). Because the principal results are unchanged when Vogelherd is excluded entirely, our conclusions do not depend on its inclusion or on its precise archaeological attribution.
 
 ```{r fig.height= 8, fig.width=10}
 #| label: fig-group-map
@@ -930,7 +837,7 @@ Because this perMANOVA is circular, we applied independent tests of whether the 
 
 Our first aim was to determine whether any structure in sign type composition exists within each phase, and how diversity, size, connectivity, and distribution vary between the phases. The results from @fig-seriation show that each phase initially suggests two main sign-use groups, with sign type frequency and diversity serving as the major dividing factor. However, quantitative investigation of these groups indicates the contrast is a recoverable gradual axis rather than a sharp partition, so this must be taken as a descriptive pattern rather than a robust structure. Group size differed between phases: in Aur-P1 the restricted-range group (`r aurp1_restricted_n` sites) was slightly smaller than the broad-range group (`r aurp1_broad_n` sites), whereas in the much smaller Aur-P2 the restricted-range group (`r aurp2_restricted_n` sites) exceeded the broad-range group (`r aurp2_broad_n` sites). Because of documented mixing at Vogelherd, we test our network models both with and without the site in our S1 "Sensitivity Analyses". The removal of Vogelherd does not change the fundamental restricted/broad group pattern.
 
-@fig-neighbor-net shows that connectivity also differs between the phases. Aur-P1 produced the more edge-rich network with the higher mean degree (`r round(aurp1_deg,1)`) and a hub structure centred on key sites, while Aur-P2 shows fewer edges and a lower mean degree (`r round(aurp2_deg,1)`). Pairwise permutation tests indicate that the phases do not differ significantly in any of the tested network statistics (edge density, modularity, mean betweenness, or component count), so the Aur-P1–Aur-P2 contrast is best described as a difference in network scale rather than in overall connectedness or community structure. An exploratory PerMANOVA returns a nominal separation of the restricted- and broad-range groups in Aur-P1 sign composition (R² = `r aurp1_perm_r`, p = `r aurp1_perm_p`) but not in Aur-P2 (R² = `r aurp2_perm_r`, p = `r aurp2_perm_p`), consistent with the smaller Aur-P2 sample. However, our sensitivity analyses show that this result is best taken as a gradual axis of variation.
+@fig-neighbor-net suggests apparent differences in connectivity between the phases. At first glance, Aur-P1 appears the more edge-rich network with the higher mean degree (`r round(aurp1_deg,1)`) and a hub structure centred on key sites, while Aur-P2 shows fewer edges and a lower mean degree (`r round(aurp2_deg,1)`). However, pairwise permutation tests indicate that the phases do not differ significantly in any of the tested network statistics (edge density, modularity, mean betweenness, or component count), so the Aur-P1–Aur-P2 contrast is best described as a difference in network scale rather than in overall connectedness or community structure. An exploratory PerMANOVA returns a nominal separation of the restricted- and broad-range groups in Aur-P1 sign composition (R² = `r aurp1_perm_r`, p = `r aurp1_perm_p`) but not in Aur-P2 (R² = `r aurp2_perm_r`, p = `r aurp2_perm_p`), consistent with the smaller Aur-P2 sample. That said, our sensitivity analyses show that this result is best taken as a gradual axis of variation (see our S1 "Sensitivity Analyses").
 
 ```{r}
 # object count vs sign-type count per site (sampling-effort check)
