@@ -1795,9 +1795,7 @@ The methods below answer one general question, whether the restricted/broad diff
 **Question 3 (strategy C):** If we abandon the discrete two-group partition entirely and instead ask whether sign composition varies continuously along the main compositional axis, is that gradient significant?
 - *Answer:* Yes. A group-free gradient PerMANOVA regressing sign composition on the continuous first ordination axis is significant in both phases (Aur-P1: R² = `r s6_6_gradP1$R2`, p = `r s6_6_gradP1$p`; Aur-P2: R² = `r s6_6_gradP2$R2`, p = `r s6_6_gradP2$p`). Even without asserting discrete groups, a compositional gradient explains a significant fraction of the variation.
 
-**Summary.** Strategies B and C provide the strongest evidence that the
-restricted/broad contrast is not a circularity artefact: the grouping is
-recovered from withheld data (strategy B) and a continuous gradient is significant without any group definition (strategy C). Strategy A, the most conservative test, is consistent with a gradual rather than sharp partition and does not contradict the recoverability established by B and C. We therefore present the main-text PerMANOVA as descriptive and exploratory, and we rely on the cross-validation results (strategy B) as the appropriate independent confirmation that the grouping is not a circularity artefact.
+**Summary.** Strategies B and C provide the strongest evidence that the restricted/broad contrast is not a circularity artefact: the grouping is recovered from withheld data (strategy B) and a continuous gradient is significant without any group definition (strategy C). Strategy A, the most conservative test, is consistent with a gradual rather than sharp partition and does not contradict the recoverability established by B and C. We therefore present the main-text PerMANOVA as descriptive and exploratory, and we rely on the cross-validation results (strategy B) as the appropriate independent confirmation that the grouping is not a circularity artefact.
 # S7. Object-Type Sensitivity: Figurine Exclusion {#sec-s7}
 
 

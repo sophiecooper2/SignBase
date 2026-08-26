@@ -50,9 +50,9 @@ BM: We removed the degree symbol from all inline mean degree values (e.g., chang
 
 BM: We changed the Methods section heading from "PerMANOVA for Cultural Connection Strength" to "PerMANOVA for Sign Composition Differences Between Groups." We added that PerMANOVA is used here as exploratory rather than confirmatory, and explicitly stated that because the restricted/broad groups were derived from visual inspection of the seriation using the same sign data, the PerMANOVA p-values cannot be presented as independent confirmation that the groups differ. 
 
-BM: In the Results section, we noted the analysis is exploratory only and added betadisper results showing homogeneous dispersions (Aur-P1: p = 0.124, Aur-P2: p = 0.771). We added cross-validation methods from S1 S6.6: leave-one-out cross-validation (re-identifies manual labels for majority of sites, permutation p < 0.05), object-half holdout PerMANOVA (Fisher-combined p < 0.05), group-free gradient PerMANOVA (significant in both phases), and maximally-selected achieved-significance test (does not reach significance). 
+BM: We added cross-validation methods from S1 S6.6: leave-one-out cross-validation (re-identifies manual labels for majority of sites, permutation p < 0.05), object-half holdout PerMANOVA (Fisher-combined p < 0.05), group-free gradient PerMANOVA (significant in both phases), and maximally-selected achieved-significance test (does not reach significance). 
 
-BM: In S1 "Sensitivity Analyses" S5.1, we added a Louvain vs manual ARI comparison table and PerMANOVA comparison showing Louvain partitions explain more variance than manual ones. In S1 S6, we added bootstrap consensus clustering and stochastic block models with ICL model selection.
+BM: In S1 "Sensitivity Analyses" S5.1, we added a Louvain vs manual ARI comparison table and PerMANOVA comparison showing Louvain partitions explain more variance than manual ones. In S1 S6, we added bootstrap consensus clustering and stochastic block models with ICL model selection. All of this shows that the restricted/broad contrast is not a circularity artefact: the grouping is recovered from withheld data and a continuous gradient is significant without any group definition 
 
 ### E5 — Figure 6 interpretation
 
