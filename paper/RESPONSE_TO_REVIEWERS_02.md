@@ -60,7 +60,7 @@ BM: In S1 "Sensitivity Analyses" S5.1, we added a Louvain vs manual ARI comparis
 
 BM: We rewrote the Figure 6 caption to state: "Observed geometric sign diversity at each site compared with expectations derived from randomised assemblages controlling for sample size. The blue expectation curve is the mean simulated diversity index per sample size. The red lines enclose a band that is the 95% confidence interval of the null distribution (no sites exceed this interval). Sites above the blue expectation curve have higher than average diversity, given their sample size." 
 
-BM: In the Discussion section, we changed "Sites with a higher than expected sign diversity index may represent diverse groups coming together at a single location" to "Sites with a higher than expected sign diversity index may be consistent with aggregation, but could also reflect sample size, recovery history, or site function; this is a possible archaeological interpretation, not a statistical result." We also qualified the limitation statement and changed "Sites above the blue expectation curve are candidate aggregation sites" to "Sites above the blue expectation curve have higher than average diversity, given their sample size." We replaced "the sites we identify as aggregation candidates on the basis of elevated sign diversity" with "the sites whose diversity lies above the simulated mean (a possible indicator of aggregation)."
+BM: In the Discussion section, we removed "unusually diverse", we changed "Sites with a higher than expected sign diversity index may represent diverse groups coming together at a single location" to "Sites with a higher than expected sign diversity index may be consistent with aggregation, but could also reflect sample size, recovery history, or site function; this is a possible archaeological interpretation, not a statistical result." We also qualified the limitation statement and changed "Sites above the blue expectation curve are candidate aggregation sites" to "Sites above the blue expectation curve have higher than average diversity, given their sample size." We replaced "the sites we identify as aggregation candidates on the basis of elevated sign diversity" with "the sites whose diversity lies above the simulated mean (a possible indicator of aggregation)."
 
 ### E6 — Correlation interpretation
 
@@ -90,13 +90,11 @@ BM: We changed:
 
 - "Our results do not identify geographically distinct cultural groups" to "Our results do not identify geographically distinct groups differentiated by sign repertoire." 
 
-BM: We rewrote the contrast with personal ornaments to state that the null result does not by itself establish the signs' function, and that speculative possibilities remain untested hypotheses. 
-
-BM: We changed:  
-
 - "ritual gatherings or ceremonial exchange" to "ritual gatherings or ceremonial exchange remain speculative possibilities, not demonstrated mechanisms." 
 
-- "interpreting the social organisation patterns discussed above" to "interpreting the inferred social organisation patterns discussed above." 
+- "interpreting the social organisation patterns discussed above" to "interpreting the inferred social organisation patterns discussed above."
+
+BM: We rewrote the contrast with personal ornaments to state that the null result does not by itself establish the signs' function, and that speculative possibilities remain untested hypotheses. 
 
 BM We qualified the social structure speculation with "we speculate that... may be consistent with variation in social structure" and "plausibly indicate communities with a greater variety of formalized social roles" rather than asserting direct evidence.
 
@@ -120,7 +118,7 @@ BM: In S1 "Sensitivity Analyses" S5.12, we added a time-lag analysis binning all
 
 > "I would also ask the authors to compare the response letter carefully with the revised manuscript. In a few places, the response describes changes more strongly than they appear in the paper itself. This is not a major scientific issue, but the response should state exactly what has been changed and where."
 
-BM: This response letter now carefully and modestly describes each change with specific locations matching the revised manuscript content. 
+BM: This response letter now carefully and modestly describes each change with specific locations matching the revised manuscript content. We enclose a Microsoft Word document with track changes for convenient verification of our claimed revisions. 
 
 ### E12 — Reference list verification
 
@@ -128,15 +126,15 @@ BM: This response letter now carefully and modestly describes each change with s
 
 BM: We corrected Bentz & Dutkiewicz from 2025 to 2026, Rogers from 2013 to 2018, Romano et al. (2024) Biological Reviews 95:1020–1035 (was Allen J. 2018 Biological Reviews 59:2527–2546), Eerkens & Lipo (2005) Journal of Anthropological Archaeology 24:316–334, Bacon et al. Cambridge Archaeological Journal 33(3):371–389, and Henrich (2004) American Antiquity 69(2):197–214. 
 
-BM: We fixed all duplicated DOI prefixes (removed "https://doi.org/https://doi.org/" to "https://doi.org/"), updated all inline citations to match corrected bibliography keys, and verified all entries against Crossref/DOI for author names, year, title, journal, volume, issue, pages, and DOI.
+BM: We fixed all duplicated DOI prefixes (removed "https://doi.org/https://doi.org/" to "https://doi.org/"), 
 
-BM: We thoroughly reviewed all items in our reference list against the original publication several times over, and made many further corrections.
+BM: We thoroughly reviewed every item in our reference list against the original publication multiple times, updated all inline citations to match corrected bibliography keys, and verified all entries against Crossref and Semantic Scholar for author names, year, title, journal, volume, issue, pages, and DOI. The complete set of corrections are visible in our enclosed Microsoft Word document showing tracked changes.
 
 ### E13 — Language editing
 
 > "Finally, the manuscript would benefit from one more careful language edit. The paper has been extensively restructured and some editorial residue remains, including incomplete or awkward sentences. These are minor issues individually, but there are enough of them to warrant a final systematic check."
 
-BM: We fixed awkward phrasing throughout (e.g., "the raw differences in inter-site connectivity mainly reflect the early Aurignacian (Aur-P1) having more sites" instead of "was characterised by denser inter-site connectivity"). We changed "is instead somewhat evident" to "is again somewhat evident" for consistency, removed redundant phrases, and restructured for clarity. We restructured the paragraph on sampling effort for better flow, restructured the diversity interpretation paragraph to clearly separate statistical results from archaeological interpretations, rewrote the opening paragraph of the Interpreting Network Patterns section for precision, restructured the contrast with personal ornaments paragraph for accuracy, added "These interpretations are speculative" qualifier, and rewrote all four limitations paragraphs for clarity and precision.
+BM: We fixed awkward phrasing throughout (e.g., "the raw differences in inter-site connectivity mainly reflect the early Aurignacian (Aur-P1) having more sites" instead of "was characterised by denser inter-site connectivity"). We changed "is instead somewhat evident" to "is again somewhat evident" for consistency, removed redundant phrases, and restructured for clarity. We restructured the paragraph on sampling effort for better flow, restructured the diversity interpretation paragraph to clearly separate statistical results from archaeological interpretations, rewrote the opening paragraph of the Interpreting Network Patterns section for precision, restructured the contrast with personal ornaments paragraph for accuracy, added "These interpretations are speculative" qualifier, and rewrote all four limitations paragraphs for clarity and precision. These changes can be inspected in detail in our enclosed Microsoft Word document showing tracked changes.
 
 ---
 
