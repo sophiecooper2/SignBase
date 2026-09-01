@@ -9,3 +9,12 @@ paper/PEER_REVIEWS.md
 paper/CLAUDE.md
 paper/paper.knit.md
 paper/paper_files/
+
+# Open ScholarPeer working files (may contain confidential paper content)
+.brain/
+
+# Open ScholarPeer MCP runtime (venv + server, gitignored)
+.open-scholar-peer/
+
+# API keys (never commit)
+.env
