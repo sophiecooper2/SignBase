@@ -70,7 +70,7 @@ ncountries <- signbase_full %>%
   pull(country) %>% 
   unique() %>% 
   length()
-nsigntypes <- ncol(signbase_full)
+nsigntypes <- length(SIGN_COLS)
 
 signbase_full_clean <- clean_signbase(signbase_full, date_variant = "older")
 lat_long_df <- site_latlong(signbase_full_clean)
@@ -84,7 +84,7 @@ ncountries_clean <- signbase_full_clean %>%
   pull(country) %>% 
   unique() %>% 
   length()
-nsigntypes_clean <- nsigntypes - 1
+nsigntypes_clean <- length(SIGN_COLS) - 1
 
 date_min <- min(signbase_full_clean$MedianBP)
 date_max <- max(signbase_full_clean$MedianBP)
