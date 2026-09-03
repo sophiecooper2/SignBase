@@ -2706,7 +2706,7 @@ cov_tab %>%
                 richness_at_target, rt_LCL, rt_UCL, chao2, at_target_method) %>%
   kable(col.names = c("Phase", "Site", "Group", "Objects",
                       "Richness (full)", "Coverage (Chao)", "Cov LCL", "Cov UCL",
-                      "Richness @0.9 cov.", "Rt LCL", "Rt UCL", "Chao2", "Target method"),
+                      "Richness at 0.9 cov.", "Rt LCL", "Rt UCL", "Chao2", "Target method"),
         digits = 2)
 ```
 
