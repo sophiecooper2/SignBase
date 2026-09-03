@@ -910,6 +910,121 @@ run_betadisper <- function(phase_df, groups) {
   )
 }
 
+# ── S5.13 Objective regional grouping (geography-first, country-free analogue) ───
+# Geography chooses its own borders via PAM on geodesic distances; signs are
+# tested across them. Primary = PAM on sf::st_distance (km); sensitivity =
+# k-means on cbind(lon, lat). Mirrors S3 geodesic correction (S3 rs).
+
+# PAM on geodesic distances (km) for one phase.
+# df: per-phase site-level data frame with site_name, longitude, latitude
+# k_range: integer vector of k to try (e.g. 2:5)
+objective_region_pam <- function(df, k_range = 2:5, seed = 42) {
+  set.seed(seed)
+  pts <- df %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+  gdist <- as.dist(sf::st_distance(pts) / 1000)
+  gmat <- as.matrix(gdist)
+  out <- list()
+  for (k in k_range) {
+    if (k >= nrow(df)) {
+      out[[as.character(k)]] <- list(k = k, mean_sil = NA_real_, assignment = NULL, n_per_region = NA)
+      next
+    }
+    pam_fit <- cluster::pam(gdist, k = k, diss = TRUE)
+    sil <- cluster::silhouette(pam_fit$clustering, gdist)
+    mean_sil <- mean(sil[, "sil_width"], na.rm = TRUE)
+    cl <- pam_fit$clustering
+    names(cl) <- df$site_name
+    npr <- as.integer(table(factor(cl, levels = 1:k)))
+    stable <- !any(npr == 1 & nrow(df) <= 12) # flag singleton regions in very small phases
+    out[[as.character(k)]] <- list(k = k, mean_sil = mean_sil, assignment = cl,
+                                   n_per_region = paste(npr, collapse = "/"),
+                                   n_per_region_vec = npr,
+                                   pam_fit = pam_fit, gdist = gdist,
+                                   unstable = any(npr == 1) && nrow(df) <= 10)
+  }
+  out
+}
+
+# k-means on flat lon/lat (sensitivity row).
+objective_region_kmeans <- function(df, k_range = 2:5, seed = 42, nstart = 50) {
+  set.seed(seed)
+  coords <- cbind(as.numeric(df$longitude), as.numeric(df$latitude))
+  rownames(coords) <- df$site_name
+  # Euclidean on lon/lat — intentionally flat for sensitivity
+  out <- list()
+  for (k in k_range) {
+    if (k >= nrow(df)) {
+      out[[as.character(k)]] <- list(k = k, mean_sil = NA_real_, assignment = NULL)
+      next
+    }
+    km <- stats::kmeans(coords, centers = k, nstart = nstart)
+    cl <- km$cluster
+    # silhouette on Euclidean lon/lat for comparability within method
+    edist <- dist(coords)
+    sil <- cluster::silhouette(cl, edist)
+    mean_sil <- mean(sil[, "sil_width"], na.rm = TRUE)
+    npr <- as.integer(table(factor(cl, levels = 1:k)))
+    out[[as.character(k)]] <- list(k = k, mean_sil = mean_sil, assignment = cl,
+                                   n_per_region = paste(npr, collapse = "/"),
+                                   n_per_region_vec = npr,
+                                   kmeans_fit = km)
+  }
+  out
+}
+
+# PERMANOVA of Jaccard composition across an objective region partition.
+# art: site x sign matrix (rownames = site_name), df: site-level df, region_factor: named factor
+adonis_region_marginal <- function(art, uniq_df, region_factor, seed = 500) {
+  # Align
+  common <- intersect(rownames(art), names(region_factor))
+  if (length(common) < 4) return(NULL)
+  art_sub <- art[common, , drop = FALSE]
+  # Jaccard
+  J <- vegan::vegdist(art_sub %>% mutate(across(everything(), ~ as.numeric(. > 0))),
+                      "jaccard", binary = TRUE)
+  region_f <- factor(region_factor[common])
+  group_f <- factor(manual_groups[[ unique(uniq_df$time_period)[1] ]][common])
+  # If uniq$time_period is NA (called via art_list), fall back to manual lookup by site
+  if (any(is.na(group_f))) {
+    # try both phases
+    g_all <- c(manual_groups[["Aur-P1"]], manual_groups[["Aur-P2"]])
+    group_f <- factor(g_all[common])
+  }
+  set.seed(seed)
+  fit_region <- vegan::adonis2(J ~ region_f, sqrt.dist = TRUE, permutations = 999)
+  fit_country <- NULL
+  # Country lives in signbase_full_clean, not in the site-level uniq (which drops it during summarize);
+  # retrieve via global if available, otherwise try uniq_df$country
+  country_vec <- NULL
+  if (exists("signbase_full_clean", inherits = TRUE)) {
+    sc <- get("signbase_full_clean", inherits = TRUE)
+    if ("country" %in% names(sc)) {
+      country_vec <- sc %>% distinct(site_name, country) %>% tibble::deframe()
+      country_vec <- country_vec[common]
+    }
+  }
+  if (is.null(country_vec) && "country" %in% names(uniq_df)) {
+    country_vec <- uniq_df$country[match(common, uniq_df$site_name)]
+    names(country_vec) <- common
+  }
+  if (!is.null(country_vec) && length(na.omit(country_vec)) >= 4) {
+    country_f <- factor(country_vec)
+    if (nlevels(droplevels(country_f)) >= 2) {
+      set.seed(seed)
+      fit_country <- vegan::adonis2(J ~ country_f, sqrt.dist = TRUE, permutations = 999)
+    }
+  }
+  set.seed(seed)
+  fit_marginal <- vegan::adonis2(J ~ region_f + group_f, by = "margin", sqrt.dist = TRUE, permutations = 999)
+  # betadisper for region
+  bd_region <- tryCatch({
+    bd <- vegan::betadisper(J, region_f)
+    anova(bd)$`Pr(>F)`[1]
+  }, error = function(e) NA_real_)
+  list(J = J, region = fit_region, country = fit_country, marginal = fit_marginal,
+       betadisper_p = bd_region, n = length(common))
+}
+
 # ── Circularity-breaking validation for the restricted/broad PERMANOVA ─────────
 # These functions answer the editor's concern (response-plan line 17) that the
 # restricted/broad groups were defined from the same sign data tested in the
