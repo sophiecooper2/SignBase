@@ -1586,33 +1586,49 @@ s6_sbm <- s6_fit_sbm_all(
 # ── Inline-accessor helpers for the S6.3/S6.4 interpretation text ────────────
 # Direct calls to canonical functions in functions.R with local S6 objects.
 # These are simple aliases to avoid rewriting inline code.
-s6_bestK_wrap   <- function(ph) s6_bestK(s6_sbm, ph)
-s6_gap_wrap     <- function(ph) s6_gap(s6_sbm, ph)
-s6_global_minPost <- s6_global_minPost(s6_sbm)
-s6_mismatch_wrap <- function(ph) s6_mismatch(s6_sbm, s6_boot, s6_groups, ph)
-s6_minPost <- function(ph) if (ph %in% names(s6_sbm)) min(apply(s6_sbm[[ph]]$Z, 1, max)) else NA_real_
-s6_maxICL  <- function(ph) if (ph %in% names(s6_sbm)) max(s6_sbm[[ph]]$icl, na.rm = TRUE) else NA_real_
+# Default to bernoulli model; can specify "gaussian" for the weighted model.
+s6_bestK_wrap   <- function(ph, model = "bernoulli") s6_bestK(s6_sbm, ph, model)
+s6_gap_wrap     <- function(ph, model = "bernoulli") s6_gap(s6_sbm, ph, model)
+s6_global_minPost <- function(model = "bernoulli") s6_global_minPost(s6_sbm, model)
+s6_mismatch_wrap <- function(ph, model = "bernoulli") s6_mismatch(s6_sbm, s6_boot, s6_groups, ph, model)
+s6_minPost <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) min(apply(s6_sbm[[ph]][[model]]$Z, 1, max)) else NA_real_
+s6_maxICL  <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) max(s6_sbm[[ph]][[model]]$icl, na.rm = TRUE) else NA_real_
+s6_icl     <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$icl else rep(NA_real_, 5)
+s6_Z       <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$Z else NULL
+s6_bestK_val <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$bestK else NA_integer_
 ```
 
 ```{r}
 #| label: tbl-sbm-icl
-#| tbl-cap: "Integrated Classification Likelihood (ICL) for stochastic block models with K = 1 to 5 blocks, by phase. The best-supported number of blocks (maximum ICL) is bolded. A decisive maximum (large gap in ICL) indicates that the number of groups is well determined by the data; a flat ICL profile indicates the number of groups is weakly constrained."
+#| tbl-cap: "Integrated Classification Likelihood (ICL) for stochastic block models with K = 1 to 5 blocks, by phase and model family. The best-supported number of blocks (maximum ICL) is bolded. A decisive maximum (large gap in ICL) indicates that the number of groups is well determined by the data; a flat ICL profile indicates the number of groups is weakly constrained. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard)."
 #| tbl-cap-location: bottom
 
 if (length(s6_sbm)) {
-  maxK <- max(vapply(s6_sbm, function(z) length(z$icl), integer(1)))
-  icl_tab <- map_dfr(names(s6_sbm), function(ph) {
-    z <- s6_sbm[[ph]]
-    data.frame(Phase = ph, K = seq_along(z$icl), ICL = round(z$icl, 1))
-  }) %>%
+  maxK <- 5
+  # Bernoulli model
+  icl_bern <- map_dfr(names(s6_sbm), function(ph) {
+    z <- s6_sbm[[ph]][["bernoulli"]]
+    data.frame(Phase = ph, Model = "Bernoulli", K = seq_along(z$icl), ICL = round(z$icl, 1))
+  })
+  best_ks_bern <- sapply(s6_sbm, function(z) z[["bernoulli"]]$bestK)
+  icl_bern$`Best K` <- NA_real_
+  for (ph in names(best_ks_bern)) {
+    icl_bern$`Best K`[icl_bern$Phase == ph] <- best_ks_bern[[ph]]
+  }
+  # Gaussian model
+  icl_gauss <- map_dfr(names(s6_sbm), function(ph) {
+    z <- s6_sbm[[ph]][["gaussian"]]
+    data.frame(Phase = ph, Model = "Gaussian", K = seq_along(z$icl), ICL = round(z$icl, 1))
+  })
+  best_ks_gauss <- sapply(s6_sbm, function(z) z[["gaussian"]]$bestK)
+  icl_gauss$`Best K` <- NA_real_
+  for (ph in names(best_ks_gauss)) {
+    icl_gauss$`Best K`[icl_gauss$Phase == ph] <- best_ks_gauss[[ph]]
+  }
+  icl_tab <- bind_rows(icl_bern, icl_gauss) %>%
     filter(K <= maxK) %>%
     pivot_wider(names_from = K, values_from = ICL, names_prefix = "K = ")
-  best_ks <- sapply(s6_sbm, function(z) z$bestK)
-  icl_tab$`Best K` <- NA_real_
-  for (ph in names(best_ks)) {
-    icl_tab$`Best K`[icl_tab$Phase == ph] <- best_ks[[ph]]
-  }
-  kable(icl_tab, col.names = c("Phase", paste0("K = ", seq_len(maxK)), "Best K"),
+  kable(icl_tab, col.names = c("Phase", "Model", paste0("K = ", seq_len(maxK)), "Best K"),
         digits = 1, align = "lcccccc")
 } else {
   cat("S6.3 requires the `blockmodels` package. Run `renv::install(\"blockmodels\")` and re-render.")
@@ -1621,22 +1637,27 @@ if (length(s6_sbm)) {
 
 ```{r}
 #| label: tbl-sbm-membership
-#| tbl-cap: "Posterior block-membership probabilities and modal (hard) assignment from the best-fitting stochastic block model for each phase. Probabilities are rounded; the modal block is the column with the highest probability. Sites with probability spread across blocks (e.g. no entry above 0.7) have ambiguous membership."
+#| tbl-cap: "Posterior block-membership probabilities and modal (hard) assignment from the best-fitting stochastic block model for each phase and model family. Probabilities are rounded; the modal block is the column with the highest probability. Sites with probability spread across blocks (e.g. no entry above 0.7) have ambiguous membership. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard)."
 #| tbl-cap-location: bottom
 
 if (length(s6_sbm)) {
   s6_mem_tab <- map_dfr(names(s6_sbm), function(ph) {
-    z <- s6_sbm[[ph]]
-    m <- as.data.frame(z$Z)
-    m$Site <- rownames(z$Z)
-    m$Phase <- ph
-    m$Modal <- apply(z$Z, 1, which.max)
-    m %>% dplyr::select(Phase, Site, Modal, everything())
+    bind_rows(
+      map_dfr(c("bernoulli", "gaussian"), function(model) {
+        z <- s6_sbm[[ph]][[model]]
+        m <- as.data.frame(z$Z)
+        m$Site <- rownames(z$Z)
+        m$Phase <- ph
+        m$Model <- model
+        m$Modal <- apply(z$Z, 1, which.max)
+        m %>% dplyr::select(Phase, Model, Site, Modal, everything())
+      })
+    )
   })
   kable(s6_mem_tab,
-        col.names = c("Phase", "Site", "Modal block",
-                      paste0("P(", gsub("Block", "B", names(s6_mem_tab)[4:(ncol(s6_mem_tab))]), ")")),
-        digits = 2, align = "llc")
+        col.names = c("Phase", "Model", "Site", "Modal block",
+                      paste0("P(", gsub("Block", "B", names(s6_mem_tab)[5:(ncol(s6_mem_tab))]), ")")),
+        digits = 2, align = "lllcc")
 } else {
   cat("S6.3 requires the `blockmodels` package. Run `renv::install(\"blockmodels\")` and re-render.")
 }
@@ -1644,9 +1665,13 @@ if (length(s6_sbm)) {
 
 ### Interpretation
 
-The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase, providing a model-based counterpart to the seriation. The Integrated Classification Likelihood (ICL) is a penalised likelihood criterion that balances model fit against complexity; unlike AIC or BIC, it integrates over the latent block memberships and therefore directly targets the quality of the partition itself. In **Aur-P1** the best-supported model contains `r s6_bestK_wrap("Aur-P1")` block (ICL = `r n2(s6_maxICL("Aur-P1"))`), while the two-block solution scores `r n2(s6_sbm[["Aur-P1"]]$icl[2])` and the three-block solution `r n2(s6_sbm[["Aur-P1"]]$icl[3])`. The ICL gap between the best and second-best model is `r n2(s6_gap_wrap("Aur-P1"))`, indicating that the one-block model is preferred but the preference is modest—the data do not strongly discriminate among one, two, or three blocks. In **Aur-P2** the ICL profile is similarly flat: the one-block model scores `r n2(s6_sbm[["Aur-P2"]]$icl[1])`, the two-block model `r n2(s6_sbm[["Aur-P2"]]$icl[2])`, and the gap is only `r n2(s6_gap_wrap("Aur-P2"))`. In both phases the sparse sign-sharing networks (Aur-P1: 20 sites, `r nrow(aurp1_artifact_data)` edges at threshold 0.2; Aur-P2: 9 sites, `r nrow(aurp2_artifact_data)` edges) lack the information to decisively support any block structure beyond a single group. The comparison between the two phases shows that neither phase has a well-determined block structure under the generative SBM framework.
+The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase for two model families: a Bernoulli SBM on binarized adjacency (edge if Jaccard similarity ≥ 0.2) and a Gaussian SBM on unthresholded weighted similarities (1 − Jaccard). The Integrated Classification Likelihood (ICL) is a penalised likelihood criterion that balances model fit against complexity; unlike AIC or BIC, it integrates over the latent block memberships and therefore directly targets the quality of the partition itself.
 
-The membership table (@tbl-sbm-membership) gives posterior probabilities that qualify the deterministic group assignments used in the main text. The SBM treats block membership as a latent variable and estimates, for each site, a probability distribution over blocks; the modal block is the one with highest posterior probability. With a single block selected in both phases, every site is assigned to that sole block with posterior probability 1.0. The informative quantity is therefore not the partition (which is trivial) but the fact that the generative model finds no evidence for multiple blocks in either phase. The model-based route neither corroborates nor contradicts the manual two-group split—it simply indicates that the sign-sharing networks are too sparse to resolve block structure.
+In **Aur-P1**, the Bernoulli model's best-supported solution contains `r s6_bestK_wrap("Aur-P1", "bernoulli")` block (ICL = `r n2(s6_maxICL("Aur-P1", "bernoulli"))`), while the two-block solution scores `r n2(s6_icl("Aur-P1", "bernoulli")[2])` and the three-block solution `r n2(s6_icl("Aur-P1", "bernoulli")[3])`. The ICL gap between the best and second-best model is `r n2(s6_gap_wrap("Aur-P1", "bernoulli"))`, indicating that the one-block model is preferred but the preference is modest—the data do not strongly discriminate among one, two, or three blocks. The Gaussian model shows a similar profile: best K = `r s6_bestK_wrap("Aur-P1", "gaussian")` (ICL = `r n2(s6_maxICL("Aur-P1", "gaussian"))`), with two-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[2])` and three-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[3])`, gap = `r n2(s6_gap_wrap("Aur-P1", "gaussian"))`.
+
+In **Aur-P2**, the Bernoulli model ICL profile is similarly flat: the one-block model scores `r n2(s6_icl("Aur-P2", "bernoulli")[1])`, the two-block model `r n2(s6_icl("Aur-P2", "bernoulli")[2])`, and the gap is only `r n2(s6_gap_wrap("Aur-P2", "bernoulli"))`. The Gaussian model: one-block `r n2(s6_icl("Aur-P2", "gaussian")[1])`, two-block `r n2(s6_icl("Aur-P2", "gaussian")[2])`, gap `r n2(s6_gap_wrap("Aur-P2", "gaussian"))`. In both phases the sparse sign-sharing networks (Aur-P1: 20 sites, `r s6_sbm[["Aur-P1"]]$edge_count_bernoulli` edges at threshold 0.2; Aur-P2: 9 sites, `r s6_sbm[["Aur-P2"]]$edge_count_bernoulli` edges) lack the information to decisively support any block structure beyond a single group. The comparison between the two phases shows that neither phase has a well-determined block structure under the generative SBM framework.
+
+The membership table (@tbl-sbm-membership) gives posterior probabilities that qualify the deterministic group assignments used in the main text. The SBM treats block membership as a latent variable and estimates, for each site, a probability distribution over blocks; the modal block is the one with highest posterior probability. With a single block selected in both phases under both model families, every site is assigned to that sole block with posterior probability 1.0. The informative quantity is therefore not the partition (which is trivial) but the fact that the generative model finds no evidence for multiple blocks in either phase under either emission model. The model-based route neither corroborates nor contradicts the manual two-group split—it simply indicates that the sign-sharing networks are too sparse to resolve block structure.
 
 Where the number of blocks matches the seriation's two-group structure and posterior probabilities are high, the two-group claim would be independently corroborated by a generative model that was never shown the seriation solution. Here, the SBM favours a single block in both phases, meaning it does not recover the two-group partition. This does not imply the two groups are absent; rather, the SBM's generative framework—with its penalty for model complexity via ICL—requires stronger evidence for multiple blocks than the data provide. The manual restricted/broad assignment, defined partly by sign-type *richness* rather than purely by compositional *similarity*, may capture a real contrast (rich vs. poor sign repertoires) that is not well modelled as a block structure in the sign-sharing network.
 
@@ -1678,12 +1703,13 @@ s6_ari_tab <- map_dfr(names(s6_boot), function(ph) {
   manual <- s6_groups[[ph]][sit]
   boot_m <- s6_boot[[ph]]$modal[names(manual)]
   # SBM modal assignments: intersect site names to handle any missing sites
+  # Use Bernoulli model for SBM (binarized adjacency)
   sbm_m <- NULL
-  if (length(s6_sbm) && ph %in% names(s6_sbm)) {
-    sbm_sites <- rownames(s6_sbm[[ph]]$Z)
+  if (length(s6_sbm) && ph %in% names(s6_sbm) && "bernoulli" %in% names(s6_sbm[[ph]])) {
+    sbm_sites <- rownames(s6_sbm[[ph]][["bernoulli"]]$Z)
     common_sites <- intersect(sit, sbm_sites)
     if (length(common_sites) >= 2) {
-      sbm_m <- apply(s6_sbm[[ph]]$Z[common_sites, , drop = FALSE], 1, which.max)
+      sbm_m <- apply(s6_sbm[[ph]][["bernoulli"]]$Z[common_sites, , drop = FALSE], 1, which.max)
       # Align manual and boot_m to common sites for ARI comparison
       manual <- manual[common_sites]
       boot_m <- boot_m[common_sites]
@@ -1718,11 +1744,11 @@ kable(s6_ari_tab,
 
 The ARI values summarise how far the three routes to the two-group partition agree, and the agreement is informative precisely because it varies by phase and method (@tbl-s6-ari). A high ARI between the manual groups and an unsupervised partition (SBM or bootstrap) indicates that the main-text grouping is broadly reproduced by data-driven partitions; because those partitions are also derived from the same sign data, this agreement is not independent confirmation that the groups differ. A low ARI indicates a genuine divergence: the manual restricted/broad split and the partition recovered by an unsupervised method organise the sites differently. Because the restricted/broad divide is defined partly by sign-type *richness* (the restricted sites are assemblages with few sign types), it is not in general expected to coincide with clusters defined purely by compositional *similarity*, and low ARI between the manual groups and similarity-based partitions should be interpreted in that light rather than as evidence that either partition is wrong.  
 
-**Implications for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-s6-ari). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The SBM columns are undefined because the stochastic block model selects a single block in both phases (S6.3); the SBM therefore provides no two-group ARI, and its result that the sign-sharing networks are too sparse to support more than one block is consistent with the bootstrap finding that the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s6-6.
+**Implications for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-s6-ari). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The SBM columns are undefined for the Bernoulli model (and Gaussian model) because both select a single block in both phases (S6.3), yielding a trivial partition where all sites share the same block assignment; consequently no meaningful two-group ARI can be computed. The SBM's result that the sign-sharing networks are too sparse to support more than one block is consistent with the bootstrap finding that the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s6-6.
 
 ## S6.5 Summary of Implications {#sec-s6-5}
 
-Taken together, S6 provides three converging but graded lines of evidence for the main-text two-group claim. (1) **Resampling stability**: within-block co-clustering exceeds across-block co-clustering in every phase (@fig-bootstrap-consensus, @tbl-bootstrap-summary), so the partition does not arise from a particular sample of sites. (2) **Model selection**: the SBM attaches posterior probabilities to each site's membership (@tbl-sbm-membership) and reports the number of blocks best supported by the sign-sharing network in each phase (@tbl-sbm-icl). The SBM selects a single block in both Aur-P1 and Aur-P2, indicating that the sparse sign-sharing networks do not provide sufficient evidence for a multi-block generative model—this is a null result for block structure, not a contradiction of the two-group contrast. (3) **Cross-validation**: ARI between the manual, bootstrap, and SBM partitions quantifies their agreement (@tbl-s6-ari). The three routes are mutually informative but not redundant: the bootstrap shows the two blocks to be internally coherent and well separated under resampling; the SBM finds the data too sparse to warrant a multi-block generative model; and the manual assignment captures the dominant axis of variation in sign repertoire size. The circularity of the main-text PerMANOVA itself is addressed separately in @sec-s6-6, which validates the grouping on withheld data rather than on the data used to define it.
+Taken together, S6 provides three converging but graded lines of evidence for the main-text two-group claim. (1) **Resampling stability**: within-block co-clustering exceeds across-block co-clustering in every phase (@fig-bootstrap-consensus, @tbl-bootstrap-summary), so the partition does not arise from a particular sample of sites. (2) **Model selection**: the SBM attaches posterior probabilities to each site's membership (@tbl-sbm-membership) and reports the number of blocks best supported by the sign-sharing network in each phase for two emission models—Bernoulli (binarized adjacency) and Gaussian (unthresholded similarities) (@tbl-sbm-icl). Both model families select a single block in both Aur-P1 and Aur-P2, indicating that the sparse sign-sharing networks do not provide sufficient evidence for a multi-block generative model—this is a null result for block structure, not a contradiction of the two-group contrast. (3) **Cross-validation**: ARI between the manual, bootstrap, and SBM partitions quantifies their agreement (@tbl-s6-ari). The three routes are mutually informative but not redundant: the bootstrap shows the two blocks to be internally coherent and well separated under resampling; the SBM finds the data too sparse to warrant a multi-block generative model under either emission model; and the manual assignment captures the dominant axis of variation in sign repertoire size. The circularity of the main-text PerMANOVA itself is addressed separately in @sec-s6-6, which validates the grouping on withheld data rather than on the data used to define it.
 
 # S6.6 Circularity-Breaking Validation of the Restricted/Broad Group Difference {#sec-s6-6}
 

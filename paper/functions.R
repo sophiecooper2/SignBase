@@ -1209,9 +1209,13 @@ sci_md <- function(x, digits = 2) {
 
 # ── SBM fitting (S1 S6.3) ────────────────────────────────────────────────────────
 # Fit stochastic block models for K = 1:5 blocks on a binary site x sign matrix.
-# Uses the `blockmodels` package with Bernoulli SBM for undirected networks ("SBM_sym").
-# Uses *weighted* adjacency (1 - Jaccard similarity, thresholded at 0.2), not binarized.
-# Returns a list with: $icl (numeric vector length 5), $bestK (int), $Z (n_sites x bestK matrix of posteriors).
+# Fits two model families:
+#   1. Bernoulli SBM on binarized adjacency (edge if Jaccard similarity >= 0.2)
+#   2. Gaussian SBM on unthresholded weighted similarities (1 - Jaccard)
+# Both use "SBM_sym" for undirected networks.
+# Returns a list with $bernoulli and $gaussian elements, each containing:
+#   $icl (numeric vector length 5), $bestK (int), $Z (n_sites x bestK matrix of posteriors)
+# Also returns $edge_count_bernoulli (number of edges in binarized graph).
 # Saves results to file if `save_path` is provided (default NULL: no caching).
 fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   if (!is.null(seed)) set.seed(seed)
@@ -1219,24 +1223,63 @@ fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   present <- intersect(sign_names, colnames(artifact_data))
   mat <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat <- mat[, colSums(mat) > 0, drop = FALSE]
-  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
+  # Preserve row names when converting to binary
+  rownames_mat <- rownames(mat)
+  mat <- as.matrix(mat)
+  mat <- matrix(as.numeric(mat > 0), nrow = nrow(mat), ncol = ncol(mat))
+  rownames(mat) <- rownames_mat
+  colnames(mat) <- colnames(artifact_data)[present][colSums(artifact_data[, present, drop = FALSE] > 0) > 0]
+  mat <- as.data.frame(mat)
   jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
-  adj <- 1 - jac
-  adj[adj < 0.2] <- 0
-  diag(adj) <- 0
-  # blockmodels expects a symmetric adjacency matrix for SBM_sym
+  
+  # Binarized adjacency for Bernoulli SBM (edge if similarity >= 0.2)
+  adj_bin <- 1 - jac
+  adj_bin[adj_bin < 0.2] <- 0
+  adj_bin[adj_bin >= 0.2] <- 1
+  diag(adj_bin) <- 0
+  edge_count_bernoulli <- sum(adj_bin > 0) / 2
+  
+  # Unthresholded weighted adjacency for Gaussian SBM (similarities in [0, 1])
+  adj_gauss <- 1 - jac
+  diag(adj_gauss) <- 0
+  
   # Suppress verbose output from blockmodels estimation
   sink(tempfile()); on.exit(sink())
-  bm <- blockmodels::BM_bernoulli("SBM_sym", adj, verbosity = 0, explore_min = 1)
-  bm$estimate()
+  
+  # Bernoulli SBM on binarized adjacency
+  bm_bern <- blockmodels::BM_bernoulli("SBM_sym", adj_bin, verbosity = 0,
+                                        explore_min = 1, explore_max = max_K)
+  bm_bern$estimate()
+  
+  # Gaussian SBM on weighted adjacency
+  bm_gauss <- blockmodels::BM_gaussian("SBM_sym", adj_gauss, verbosity = 0,
+                                        explore_min = 1, explore_max = max_K)
+  bm_gauss$estimate()
+  
   sink()
-  icl <- bm$ICL[1:max_K]
-  bestK <- which.max(icl)
-  # Get posterior membership matrix Z for the best K
-  Z <- bm$memberships[[bestK]]$Z
-  rownames(Z) <- rownames(adj)
-  colnames(Z) <- paste0("Block", seq_len(bestK))
-  res <- list(icl = icl, bestK = bestK, Z = Z)
+  
+  # Extract ICL for both models (length max_K)
+  icl_bern <- bm_bern$ICL[1:max_K]
+  icl_gauss <- bm_gauss$ICL[1:max_K]
+  
+  bestK_bern <- which.max(icl_bern)
+  bestK_gauss <- which.max(icl_gauss)
+  
+  # Get posterior membership matrices Z for best K
+  Z_bern <- bm_bern$memberships[[bestK_bern]]$Z
+  Z_gauss <- bm_gauss$memberships[[bestK_gauss]]$Z
+  
+  # Preserve site names (rownames)
+  rownames(Z_bern) <- rownames(adj_bin)
+  colnames(Z_bern) <- paste0("Block", seq_len(bestK_bern))
+  rownames(Z_gauss) <- rownames(adj_gauss)
+  colnames(Z_gauss) <- paste0("Block", seq_len(bestK_gauss))
+  
+  res <- list(
+    bernoulli = list(icl = icl_bern, bestK = bestK_bern, Z = Z_bern),
+    gaussian  = list(icl = icl_gauss, bestK = bestK_gauss, Z = Z_gauss),
+    edge_count_bernoulli = edge_count_bernoulli
+  )
   if (!is.null(save_path)) {
     saveRDS(res, save_path)
   }
@@ -1262,15 +1305,17 @@ s6_fit_sbm_all <- function(art_list, max_K = 5, save_path = NULL) {
 # ── SBM vs manual group mismatch (S1 S6.3) ──────────────────────────────────────
 # Compute sites where SBM modal assignment diverges from manual restricted/broad
 # groups after optimal block-to-group mapping.
-# `sbm_list`: output of s6_sbm (list per phase with $Z matrix and $bestK)
+# `sbm_list`: output of s6_fit_sbm_all (list per phase with $bernoulli and $gaussian)
 # `boot_list`: output of s6_boot (list per phase with $consistency)
 # `groups_list`: manual groups (manual_groups) per phase
+# `model`: which SBM model to use ("bernoulli" or "gaussian")
 # Returns character vector of site names that diverge.
-s6_mismatch <- function(sbm_list, boot_list, groups_list, ph) {
+s6_mismatch <- function(sbm_list, boot_list, groups_list, ph, model = "bernoulli") {
   if (!length(sbm_list) || !ph %in% names(sbm_list)) return(character())
   sit <- names(boot_list[[ph]]$consistency)
   m   <- groups_list[[ph]][sit]
-  nm  <- apply(sbm_list[[ph]]$Z[sit, , drop = FALSE], 1, which.max)
+  Z <- sbm_list[[ph]][[model]]$Z
+  nm  <- apply(Z[sit, , drop = FALSE], 1, which.max)
   K <- max(nm); best_agree <- -1; best_map <- rep(1L, K)
   for (code in 0:(2^K - 1)) {
     mp <- ((code %/% (2^(0:(K-1)))) %% 2) + 1L
@@ -1280,25 +1325,30 @@ s6_mismatch <- function(sbm_list, boot_list, groups_list, ph) {
   names(m)[best_map[nm] != as.integer(m)]
 }
 
-# Compute SBM best K per phase
-s6_bestK <- function(sbm_list, ph) {
-  if (ph %in% names(sbm_list)) sbm_list[[ph]]$bestK else NA_integer_
+# Compute SBM best K per phase for a given model
+# `model`: which SBM model to use ("bernoulli" or "gaussian")
+s6_bestK <- function(sbm_list, ph, model = "bernoulli") {
+  if (ph %in% names(sbm_list) && model %in% names(sbm_list[[ph]]))
+    sbm_list[[ph]][[model]]$bestK else NA_integer_
 }
 
-# ICL gap between best and second-best model
-s6_gap <- function(sbm_list, ph) {
-  if (!length(sbm_list) || !ph %in% names(sbm_list)) return(NA_real_)
-  icl <- sbm_list[[ph]]$icl
+# ICL gap between best and second-best model for a given model
+# `model`: which SBM model to use ("bernoulli" or "gaussian")
+s6_gap <- function(sbm_list, ph, model = "bernoulli") {
+  if (!length(sbm_list) || !ph %in% names(sbm_list) || !model %in% names(sbm_list[[ph]]))
+    return(NA_real_)
+  icl <- sbm_list[[ph]][[model]]$icl
   if (length(icl) < 2) return(NA_real_)
   sorted <- sort(icl, decreasing = TRUE)
   sorted[1] - sorted[2]
 }
 
-# Global minimum posterior probability across all phases/sites
-s6_global_minPost <- function(sbm_list) {
+# Global minimum posterior probability across all phases/sites for a given model
+# `model`: which SBM model to use ("bernoulli" or "gaussian")
+s6_global_minPost <- function(sbm_list, model = "bernoulli") {
   if (!length(sbm_list)) return(NA_real_)
   min(unlist(lapply(sbm_list, function(x) {
-    if (!is.null(x$Z)) min(x$Z) else NA_real_
+    if (model %in% names(x) && !is.null(x[[model]]$Z)) min(x[[model]]$Z) else NA_real_
   })), na.rm = TRUE)
 }
 
