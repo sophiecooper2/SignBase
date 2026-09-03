@@ -28,6 +28,7 @@ suppressPackageStartupMessages({
   library(knitr)
   library(readxl)
   library(ape)
+  library(iNEXT)
 })
 
 # Canonical 29 sign-type columns (matches get_louvain_groups / network_stats).
@@ -1639,6 +1640,59 @@ s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
        group_coef = group_coef,
        group_rate_ratio = exp(group_coef),
        group_p = summary(fit)$coefficients["groupbroad", "Pr(>|z|)"])
+}
+
+# ── Equal-effort pool comparison with iNEXT (S1 S9.5 / PEER_REVIEW 3.4) ──────────
+# incidence_raw rarefaction/extrapolation of sign-type richness to a common
+# number of objects. Each object is a sampling unit; each sign type is a
+# species. Incidence frequency of a sign type = number of objects that carry it.
+# This corrects the 26 vs 15 raw-pool contrast for 346 vs 63 objects and for
+# object-class confound (limestone blocs, tubes, figurines only in Aur-P1).
+# Uses Chao & Jost 2012 and Hsieh et al. 2016.
+
+build_incidence_list <- function(signbase_clean) {
+  sc <- intersect(SIGN_COLS, colnames(signbase_clean))
+  lapply(c("Aur-P1", "Aur-P2"), function(ph) {
+    df <- signbase_clean %>% filter(phase2 == ph)
+    n_objects <- nrow(df)
+    if (n_objects == 0) return(NULL)
+    # incidence frequency per sign type = number of objects containing it
+    inc <- vapply(sc, function(cn) sum(df[[cn]] > 0), integer(1))
+    inc <- inc[inc > 0]
+    c(n_objects, inc)
+  }) %>% setNames(c("Aur-P1", "Aur-P2")) %>% Filter(Negate(is.null), .)
+}
+
+pool_inext_incidence <- function(signbase_clean, target_n = NULL, nboot = 200, seed = 42) {
+  set.seed(seed)
+  inc_list <- build_incidence_list(signbase_clean)
+  inc_list <- lapply(inc_list, unname)
+  if (length(inc_list) < 2) return(NULL)
+  if (is.null(target_n)) target_n <- min(vapply(inc_list, function(x) x[1], numeric(1)))
+  # iNEXT with incidence_freq: first element = T, rest = incidence frequencies
+  # Force estimate at exactly target_n via size argument
+  out <- iNEXT::iNEXT(inc_list, q = 0, datatype = "incidence_freq",
+                      size = sort(unique(c(target_n, seq(1, max(vapply(inc_list, function(x) x[1], numeric(1))) * 2, length.out = 40)))),
+                      endpoint = max(target_n, max(vapply(inc_list, function(x) x[1], numeric(1))) * 2),
+                      nboot = nboot, se = TRUE)
+  # iNEXT >=3.0.0 stores estimates in $iNextEst$size_based
+  est <- if (!is.null(out$iNextEst$size_based)) out$iNextEst$size_based else out$iNextEst
+  # For each assemblage pick the estimate whose t is closest to target_n
+  target_rows <- est %>% group_by(Assemblage) %>%
+    slice(which.min(abs(t - target_n))) %>% ungroup()
+  obs_rows <- est %>% filter(Method == "Observed") %>%
+    group_by(Assemblage) %>% slice_max(t) %>% ungroup()
+  list(iNEXT_obj = out, target_est = target_rows, observed = obs_rows, target_n = target_n, est_all = est)
+}
+
+pool_inext_restricted_incidence <- function(signbase_clean, target_n = NULL, nboot = 200, seed = 42) {
+  # Restrict to object types present in both phases (shared types only)
+  types_p1 <- unique(signbase_clean %>% filter(phase2 == "Aur-P1") %>% pull(object_type))
+  types_p2 <- unique(signbase_clean %>% filter(phase2 == "Aur-P2") %>% pull(object_type))
+  shared <- intersect(types_p1, types_p2)
+  shared <- shared[!is.na(shared)]
+  df_shared <- signbase_clean %>% filter(object_type %in% shared)
+  pool_inext_incidence(df_shared, target_n = target_n, nboot = nboot, seed = seed)
 }
 
 # ── Shared sensitivity (S7 figurine-exclusion + S8 exclude-entire-Vogelherd) ──

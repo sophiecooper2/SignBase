@@ -141,7 +141,7 @@ kable(changing_sites,
       align = "lrclrclc")
 ```
 
-**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase. Sensitivity analyses S5.5, S5.10, S5.12, and S8 should be re-evaluated under each variant; the main text uses the older variant to match the report-based partition (midpoint/younger explored as sensitivity).
+**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase. 
 
 
 ```{r}
@@ -2234,12 +2234,13 @@ Excluding Vogelherd leaves the ordering intact, consistent with S7's finding tha
 
 # S9. Object-Level Downsampling and Coverage-Rarefaction Sensitivity {#sec-s9}
 
-The main-text and supplementary analyses establish the restricted/broad (R/B) division from site-level presence/absence of sign types. This removes the *first-order* effect of differing object counts between sites, but it does not remove a deeper confounding issue: because the number of sign types recorded at a site is bounded by the number of objects recovered, sites represented by many more objects have a greater opportunity to produce a larger repertoire, so the R/B division could partly reflect sampling intensity rather than a genuine cultural contrast. Presence/absence coding controls for the *magnitude* of the object-count difference, not for the fact that richer assemblages are, by construction, more likely to be classified as broad. This section provides an object-level resampling/rareffaction sensitivity analysis. It asks four specific questions:
+The main-text and supplementary analyses establish the restricted/broad (R/B) division from site-level presence/absence of sign types. This removes the *first-order* effect of differing object counts between sites, but it does not remove a deeper confounding issue: because the number of sign types recorded at a site is bounded by the number of objects recovered, sites represented by many more objects have a greater opportunity to produce a larger repertoire, so the R/B division could partly reflect sampling intensity rather than a genuine cultural contrast. Presence/absence coding controls for the *magnitude* of the object-count difference, not for the fact that richer assemblages are, by construction, more likely to be classified as broad. This section provides an object-level resampling/rareffaction sensitivity analysis. It asks five specific questions:
 
 1. **(S9.2)** When objects are resampled to a common count and the network and Louvain partition are re-derived, how often does each site keep its original R/B assignment, and how stable is the community structure?
 2. **(S9.3)** At equal *sample coverage* (rather than equal object count), do restricted and broad sites still differ in sign-type richness?
 3. **(S9.4)** Does the group effect on sign-type richness survive after statistically accounting for object count (sampling effort)?
-4. **(S9.5)** Taken together, is the R/B division independent of sampling intensity, and if not, what limitation must be stated?
+4. **(S9.5)** At equal effort with `iNEXT` (incidence_raw), does the Aur-P1 vs Aur-P2 sign-type pool (26 vs 15) remain larger, or is it not distinguishable from sampling variation at 63 objects, including when restricted to object types present in both phases?
+5. **(S9.6)** Taken together, is the R/B division independent of sampling intensity, and if not, what limitation must be stated?
 
 ```{r}
 #| label: s9-setup
@@ -2482,9 +2483,88 @@ kable(mix_tbl, col.names = c("Term", "log-rate", "rate ratio", "p-value"),
 
 **Question: does the group effect on sign-type richness survive after accounting for sampling effort?** No. With object count entered as an offset, the group coefficient is `r s9_mix_coef` (rate ratio `r s9_mix_rr`, p = `r s9_mix_p`), i.e. non-significant and even slightly *negative*: at equal object count, broad-range sites are not richer than restricted-range sites, and if anything marginally poorer. The strong raw correlation between object count and sign-type richness that motivated the reviewer's concern is therefore explained by object count itself. **Answer:** the richness difference between the groups is largely a sampling-effort artefact; group membership does not independently predict sign-type richness once object count is accounted for.
 
-## S9.5 Synthesis and limitation
+## S9.5 Equal-effort pool comparison (iNEXT) {#sec-s9-5}
 
-The three object-level analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S9.2). (2) Coverage-based rarefaction can compare richness only among the well-sampled sites, and even there the broad/restricted contrast persists — but the majority of sites never reach a comparable coverage, so the method cannot vindicate them (S9.3). (3) Once object count is held constant statistically, group no longer predicts sign-type richness (S9.4). Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered.
+```{r}
+#| label: s95-inline-setup
+#| include: false
+# Precompute numbers for inline prose and tables so no value is hard-coded.
+# Mirrors paper.qmd:994 ct-numbers pattern: define once, use `r ` everywhere.
+s95_n_p1 <- ncol(aurp1_artifact_data)
+s95_n_p2 <- ncol(aurp2_artifact_data)
+s95_obj_p1 <- nrow(signbase_full_clean %>% filter(phase2 == "Aur-P1"))
+s95_obj_p2 <- nrow(signbase_full_clean %>% filter(phase2 == "Aur-P2"))
+s95_sites_p1 <- nrow(aurp1_unique_data)
+s95_sites_p2 <- nrow(aurp2_unique_data)
+# iNEXT pools at equal effort (same nboot as table/figure for consistency)
+s95_pool_all <- pool_inext_incidence(signbase_full_clean, target_n = s95_obj_p2, nboot = 200)
+s95_pool_shared <- pool_inext_restricted_incidence(signbase_full_clean, target_n = s95_obj_p2, nboot = 200)
+```
+
+### Rationale
+
+The Conclusion states that the sign-type pool contracts from Aur-P1 (`r s95_n_p1` types) to Aur-P2 (`r s95_n_p2` types), consistent with cultural drift in small populations. This raw count compares pools sampled with very different effort: `r s95_obj_p1` objects at `r s95_sites_p1` sites in Aur-P1 versus `r s95_obj_p2` objects at `r s95_sites_p2` sites in Aur-P2. It is also confounded with object classes that occur only in Aur-P1, such as limestone blocs, tubes and figurine classes that carry the most frequent Aur-P1-only sign types (vulva, zoomorph, cupule). A smaller pool in Aur-P2 is therefore expected from fewer objects alone, without any phase-level change in cultural repertoire.
+
+We test the contraction at equal effort with incidence-based rarefaction and extrapolation using `iNEXT` [@Chao_Jost_2012; @Hsieh_Ma_Chao_2016]. Each mobile object is a sampling unit and each geometric sign type is a species. For each phase the incidence frequency of a sign type is the number of objects that carry it. `iNEXT` with `datatype = "incidence_freq"` standardises richness by sample completeness and returns 95% confidence intervals from 200 bootstrap replicates. We report two comparisons: (a) all object types and (b) restricted to object types present in both phases, which removes the class confound as a check.
+
+**Question this analysis answers:** at equal object count or equal coverage, does the Aur-P1 pool remain larger than the Aur-P2 pool, or is the raw `r s95_n_p1` vs `r s95_n_p2` difference not distinguishable from sampling variation?
+
+```{r}
+#| label: tbl-s9-pool-inext
+#| tbl-cap: !expr paste0("Equal-effort sign-type pool comparison with iNEXT (incidence_freq, q = 0, 200 bootstraps). Observed pools are ", s95_n_p1, " types (Aur-P1, ", s95_obj_p1, " objects) and ", s95_n_p2, " types (Aur-P2, ", s95_obj_p2, " objects). Rarefied Aur-P1 to ", s95_obj_p2, " objects and extrapolated Aur-P2 are shown with 95% confidence intervals; a second set restricts to object types present in both phases (shared types only).")
+#| tbl-cap-location: bottom
+
+# Reuse precomputed iNEXT objects so prose, table and figure share one 200-bootstrap run
+pool_all <- s95_pool_all
+pool_shared <- s95_pool_shared
+
+# Helper to extract target row from iNextEst
+extract_t <- function(res) {
+  est <- res$target_est
+  est %>% dplyr::select(Assemblage, t, qD, qD.LCL, qD.UCL, SC, Method)
+}
+
+tbl_pool <- bind_rows(
+  extract_t(pool_all) %>% mutate(set = "all types"),
+  extract_t(pool_shared) %>% mutate(set = "shared types only")
+) %>%
+  # Add observed richness for reference
+  bind_rows(
+    pool_all$observed %>% transmute(Assemblage, t, qD, qD.LCL = NA_real_, qD.UCL = NA_real_, SC = NA_real_, Method = "Observed") %>% mutate(set = "all types"),
+    pool_shared$observed %>% transmute(Assemblage, t, qD, qD.LCL = NA_real_, qD.UCL = NA_real_, SC = NA_real_, Method = "Observed") %>% mutate(set = "shared types only")
+  ) %>%
+  arrange(set, Assemblage)
+
+kable(tbl_pool %>%
+        dplyr::select(set, Assemblage, t, qD, qD.LCL, qD.UCL, Method) %>%
+        rename(`Object-type set` = set, Phase = Assemblage, `m (objects)` = t, `Richness (qD)` = qD, LCL = qD.LCL, UCL = qD.UCL, Method = Method),
+      digits = 1)
+```
+
+```{r fig.height=4.5, fig.width=7.5}
+#| label: fig-s9-pool-inext
+#| fig-cap: !expr paste0("iNEXT rarefaction/extrapolation curves for sign-type richness (Hill number q = 0) by phase. Solid segment is rarefaction, dashed is extrapolation; shading is 95% confidence band (200 bootstraps). Vertical line marks ", s95_obj_p2, " objects (Aur-P2 sample size) where Aur-P1 is rarefied. All types (left) and shared types only (right) are shown.")
+#| fig-height: 4.5
+#| fig-width: 7.5
+
+library(ggplot2)
+# ggiNEXT needs the full iNEXT object
+p_all <- iNEXT::ggiNEXT(pool_all$iNEXT_obj, type = 1) + ggplot2::geom_vline(xintercept = s95_obj_p2, linetype = 2) + ggplot2::labs(title = "All types") + ggplot2::theme_minimal()
+p_shared <- iNEXT::ggiNEXT(pool_shared$iNEXT_obj, type = 1) + ggplot2::geom_vline(xintercept = s95_obj_p2, linetype = 2) + ggplot2::labs(title = "Shared types only") + ggplot2::theme_minimal()
+cowplot::plot_grid(p_all, p_shared, ncol = 2)
+```
+
+### Interpretation
+
+**Question: does the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction survive equal effort?** No. When Aur-P1 is rarefied to `r s95_obj_p2` objects, its expected richness drops into the range `r round(pool_all$target_est$qD[pool_all$target_est$Assemblage == "Aur-P1"], 1)` types (95% CI `r round(pool_all$target_est$qD.LCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`–`r round(pool_all$target_est$qD.UCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`), which overlaps the Aur-P2 observed pool of `r round(pool_all$observed$qD[pool_all$observed$Assemblage == "Aur-P2"], 1)` types. The Aur-P2 95% interval extended to the same effort likewise overlaps. This reproduces the reviewer’s direct resampling of `r s95_obj_p2` objects from the `r s95_obj_p1` Aur-P1 objects (expected 16.7, interval 13–20). The phase coefficient in S9.4 at equal object count is also non-significant (rate ratio 1.27, p = 0.462 in the reviewer’s re-run).
+
+When the comparison is restricted to object types present in both phases, the overlap remains (`r round(pool_shared$target_est$qD[pool_shared$target_est$Assemblage == "Aur-P1"], 1)` vs `r round(pool_shared$observed$qD[pool_shared$observed$Assemblage == "Aur-P2"], 1)`), so limestone blocs, tubes and figurines do not create the effect.
+
+**Answer:** the raw pool difference is not distinguishable from sampling variation at equal object count or equal coverage. The raw `r s95_n_p1` vs `r s95_n_p2` count reflects `r s95_obj_p1` vs `r s95_obj_p2` objects and phase-specific object classes, not a demonstrated phase-level contraction. The diversity-pool paragraphs in the Discussion and Conclusion that call this the most robust finding should be rewritten to the not distinguishable from form and the sample-difference caveat stated.
+
+## S9.6 Synthesis and limitation {#sec-s9-6}
+
+The four object-level analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S9.2). (2) Coverage-based rarefaction can compare richness only among the well-sampled sites, and even there the broad/restricted contrast persists — but the majority of sites never reach a comparable coverage, so the method cannot vindicate them (S9.3). (3) Once object count is held constant statistically, group no longer predicts sign-type richness (S9.4). (4) At equal effort with `iNEXT`, the Aur-P1 vs Aur-P2 sign-type pool difference lies inside sampling variation, even when restricted to shared object types (S9.5). Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered, and the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction does not survive equal-effort standardisation.
 
 
 ## References cited
