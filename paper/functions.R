@@ -39,11 +39,17 @@ SIGN_COLS <- c("line","dashline","obline","radline","circumline","notch","obnotc
 
 # ── Canonical data-cleaning pipeline (shared by paper.qmd and S1) ───────────────
 # `signbase_full` is the raw SignBase CSV tibble (read by the calling document).
-# Returns the cleaned object-level table with calibrated `MedianBP`, a
+# Returns the cleaned object-level table with calibrated `MedianBP` (variant
+# selected by `date_variant`: "older", "midpoint", or "younger"), a
 # technology-based three-phase `time_period` and two-phase `phase2` (matching the
 # main-text assignment), a MedianBP-only `time_period_date` (used by S1 sensitivity
 # analyses that revert technology overrides), and a positive `sign_total`.
-clean_signbase <- function(signbase_full) {
+# Non-radiocarbon ages (OSL) bypass calibration; radiocarbon ages (AMS, C14) are
+# calibrated with IntCal20. Both ends of ranges are parsed; the chosen variant
+# determines which calibrated median is used for phase assignment.
+clean_signbase <- function(signbase_full, date_variant = c("midpoint", "older", "younger")) {
+  date_variant <- match.arg(date_variant)
+  
   signbase_full_clean <- signbase_full %>%
     filter(site_name != "Willendorf",
            site_name != "Riparo di Fontana Nuova",
@@ -57,30 +63,65 @@ clean_signbase <- function(signbase_full) {
     mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>%
     mutate(latitude  = ifelse(site_name == "Riparo Bombrini", 43.77083,  latitude))
 
-  signbase_years <- signbase_full_clean %>%
+  # Parse date strings: handle ranges, asymmetric errors, and different dating methods
+  signbase_dates <- signbase_full_clean %>%
     drop_na(date_bp_max_min) %>%
-    mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±"),
-           date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>%
-    separate(date_bp_max_min, sep = " - ", c("date_bp_max", "date_bp_min"), remove = FALSE) %>%
-    mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"), str_extract(date_bp_max, ".*?(?=\\/)"), date_bp_max),
-           date_bp_min = ifelse(str_detect(date_bp_min, "\\/"), str_extract(date_bp_min, ".*?(?=\\/)"), date_bp_min)) %>%
-    separate(date_bp_max, sep = "±", c("date_bp_max_age", "date_bp_max_error")) %>%
-    separate(date_bp_min, sep = "±", c("date_bp_min_age", "date_bp_min_error")) %>%
-    drop_na(date_bp_max_age, date_bp_max_error) %>%
-    mutate(date_bp_max_age = parse_number(date_bp_max_age),
-           date_bp_max_error = parse_number(date_bp_max_error))
+    mutate(
+      # Normalise separators
+      date_str = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±"),
+      date_str = str_replace_all(date_str, "\\+", "±"),
+      # Split range into older (max) and younger (min) ends
+      parts = str_split(date_str, " - "),
+      date_max = map_chr(parts, 1),
+      date_min = map_chr(parts, ~ ifelse(length(.x) > 1, .x[2], .x[1])),
+      # Extract age and error from each end
+      max_age = str_extract(date_max, "^[0-9.]+"),
+      max_err = str_extract(date_max, "±([0-9.]+)"),
+      max_err = str_remove(max_err, "±"),
+      min_age = str_extract(date_min, "^[0-9.]+"),
+      min_err = str_extract(date_min, "±([0-9.]+)"),
+      min_err = str_remove(min_err, "±")
+    ) %>%
+    mutate(
+      max_age = parse_number(max_age),
+      max_err = parse_number(max_err),
+      min_age = parse_number(min_age),
+      min_err = parse_number(min_err),
+      # Determine dating method
+      is_osl = dating_method == "OSL",
+      is_c14 = dating_method %in% c("AMS", "C14", "C14; AMS")
+    )
 
-  signbase_years_cal <-
-    rcarbon::calibrate(signbase_years$date_bp_max_age,
-                        signbase_years$date_bp_max_error,
-                        verbose = FALSE) %>%
-    summary() %>%
-    tibble()
+  # Helper to calibrate a single age/error pair (returns NA if not applicable)
+  calibrate_one <- function(age, error, is_osl, is_c14) {
+    if (is_osl) return(age)
+    if (is_c14 && !is.na(age) && !is.na(error)) {
+      cal <- rcarbon::calibrate(age, error, calCurves = "intcal20", verbose = FALSE)
+      return(summary(cal)$MedianBP)
+    }
+    return(NA_real_)
+  }
 
-  signbase_years$MedianBP <- signbase_years_cal$MedianBP
+  # Calibrate radiocarbon dates; pass OSL dates through as calendar years
+  # Process row by row since rcarbon::calibrate is not vectorized
+  signbase_calibrated <- signbase_dates %>%
+    rowwise() %>%
+    mutate(
+      MedianBP_older = calibrate_one(max_age, max_err, is_osl, is_c14),
+      MedianBP_younger = calibrate_one(min_age, min_err, is_osl, is_c14),
+      MedianBP_midpoint = (MedianBP_older + MedianBP_younger) / 2
+    ) %>%
+    ungroup() %>%
+    dplyr::select(object_id, MedianBP_older, MedianBP_midpoint, MedianBP_younger)
+
+  # Select the requested variant
+  variant_col <- paste0("MedianBP_", date_variant)
+  signbase_dated <- signbase_calibrated %>%
+    dplyr::select(object_id, MedianBP = all_of(variant_col)) %>%
+    drop_na(MedianBP)
 
   signbase_full_clean <- signbase_full_clean %>%
-    inner_join(signbase_years %>% dplyr::select(object_id, MedianBP))
+    inner_join(signbase_dated, by = "object_id")
 
   signbase_full_clean <- signbase_full_clean %>%
     mutate(time_period = case_when(

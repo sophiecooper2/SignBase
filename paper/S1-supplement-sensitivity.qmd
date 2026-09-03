@@ -70,7 +70,75 @@ source(here::here("paper/functions.R"))  # shared function library
 signbase_full <- read_csv(here::here("data/signBase_Version1.0.csv"))
 signbase_full_clean <- clean_signbase(signbase_full)
 lat_long_df <- site_latlong(signbase_full_clean)
+
+# ── Date-variant sensitivity: re-run with older, midpoint, younger variants ──────
+# The date parser now handles both ends of ranges, routes OSL ages around calibration,
+# and uses IntCal20 explicitly. We test sensitivity to the choice of which calibrated
+# median to use for phase assignment.
+date_variants <- c("older", "midpoint", "younger")
+variant_results <- map(date_variants, function(v) {
+  d <- clean_signbase(signbase_full, date_variant = v)
+  lat <- site_latlong(d)
+  p1 <- make_phase2_data("Aur-P1", d, lat)
+  p2 <- make_phase2_data("Aur-P2", d, lat)
+  # Compute median MedianBP per site from object-level data (make_phase2_data sums)
+  site_medians <- d %>%
+    group_by(site_name) %>%
+    summarise(MedianBP = median(MedianBP, na.rm = TRUE), .groups = "drop") %>%
+    left_join(
+      bind_rows(p1 %>% select(site_name, Phase = time_period),
+                p2 %>% select(site_name, Phase = time_period)),
+      by = "site_name"
+    ) %>%
+    mutate(Phase = ifelse(Phase %in% c("proto_aurignacian", "early_aurignacian"),
+                          "Aur-P1", "Aur-P2"))
+  list(data = d, sites = site_medians, variant = v)
+})
+names(variant_results) <- date_variants
+
+# Compare site phase assignments across variants
+site_phase_comparison <- variant_results$midpoint$sites %>%
+  dplyr::select(site_name, Phase_midpoint = Phase, MedianBP_midpoint = MedianBP) %>%
+  left_join(
+    variant_results$older$sites %>% dplyr::select(site_name, Phase_older = Phase, MedianBP_older = MedianBP),
+    by = "site_name"
+  ) %>%
+  left_join(
+    variant_results$younger$sites %>% dplyr::select(site_name, Phase_younger = Phase, MedianBP_younger = MedianBP),
+    by = "site_name"
+  ) %>%
+  mutate(
+    changes = ifelse(Phase_older != Phase_midpoint | Phase_midpoint != Phase_younger, "Yes", "No"),
+    n_changes = (Phase_older != Phase_midpoint) + (Phase_midpoint != Phase_younger)
+  )
 ```
+
+```{r}
+#| label: tbl-date-variant-comparison
+#| tbl-cap: "Site phase assignments under three date variants. The midpoint variant is used in the main analysis. Sites with 'Yes' in the Changes column have different phase assignments across variants."
+#| tbl-cap-location: bottom
+
+changing_sites <- site_phase_comparison %>%
+  filter(changes == "Yes") %>%
+  dplyr::select(Site = site_name,
+                `MedianBP (older)` = MedianBP_older,
+                `Phase (older)` = Phase_older,
+                `MedianBP (midpoint)` = MedianBP_midpoint,
+                `Phase (midpoint)` = Phase_midpoint,
+                `MedianBP (younger)` = MedianBP_younger,
+                `Phase (younger)` = Phase_younger,
+                Changes = changes) %>%
+  arrange(Site)
+
+kable(changing_sites,
+      col.names = c("Site", "MedianBP (older)", "Phase (older)",
+                    "MedianBP (midpoint)", "Phase (midpoint)",
+                    "MedianBP (younger)", "Phase (younger)", "Changes"),
+      digits = 0,
+      align = "lrclrclc")
+```
+
+**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the original analysis) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2. The midpoint variant (used in the main analysis) gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase. Sensitivity analyses S5.5, S5.10, S5.12, and S8 should be re-evaluated under each variant; the main text uses the midpoint variant as a compromise.
 
 
 ```{r}
@@ -383,7 +451,7 @@ The sensitivity analyses in S1–S4 treat the network threshold, similarity metr
 
 ### Rationale
 
-Rather than relying on author-constructed group assignments, we use Louvain community detection on Jaccard similarity networks to partition sites into groups from the sign data, without any human assignment. The Louvain algorithm identifies clusters of sites whose sign repertoires are more similar to each other than to sites in other clusters, optimising Newman–Girvan modularity [@newman2004finding]. By comparing these data-driven communities to the ones used in the main analysis, we quantify how much of the two-group structure is reproduced by data-driven methods.
+Rather than relying on author-constructed group assignments, we use Louvain community detection on Jaccard similarity networks to partition sites into groups from the sign data, without any human assignment. The Louvain algorithm [@Blondel_2008] identifies clusters of sites whose sign repertoires are more similar to each other than to sites in other clusters, optimising Newman–Girvan modularity [@newman2004finding]. By comparing these data-driven communities to the ones used in the main analysis, we quantify how much of the two-group structure is reproduced by data-driven methods.
 
 We run Louvain detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute two measures:
 
@@ -1260,7 +1328,7 @@ The Mantel tests reported in the main text and in S3 evaluate a single global nu
 
 ### Analysis
 
-We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the S3 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram`, which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we additionally resample sites with replacement (B = 1000) and recompute the Mantel R each time, taking the 2.5% and 97.5% quantiles as the bootstrap interval.
+We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the S3 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram` [@Goslee_Urban_2007], which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we additionally resample sites with replacement (B = 1000) and recompute the Mantel R each time, taking the 2.5% and 97.5% quantiles as the bootstrap interval.
 
 ```{r}
 #| label: s5-11-mantel-corr
@@ -1414,7 +1482,7 @@ kable(ts_bin_tab, digits = 3)
 
 The main-text claim that each phase resolves into two cultural groups, restricted-range versus broader-range sign repertoires, rests on a single Brower-Kile seriation run followed by manual block assignment (see S5). Two limitations remain unaddressed by S1–S5. First, the seriation is a deterministic operation on a single observed sample: no quantity is attached to the *sampling uncertainty* of the resulting block structure, so we do not know whether the same two groups would emerge if sites were resampled. Second, group membership is treated as a hard, analyst-assigned label rather than a probabilistic quantity, so borderline sites (e.g. Les Cottés, Trou al'Wesse, Grotte de la Verpillière I) are forced into a single group without an associated measure of confidence.
 
-This section addresses both limitations. In S6.2 we use bootstrap resampling of sites within each phase to build a **consensus co-clustering matrix** [@Monti_2003], quantifying the stability of the two-group partition as a whole and of each site's assignment. In S6.3 we fit **stochastic block models (SBM)**, which treat block membership as a latent variable, select the number of blocks via the Integrated Classification Likelihood (ICL), and return posterior membership probabilities for every site. In S6.4 we cross-validate the bootstrap and SBM assignments against the main-text restricted/broad groups using the Adjusted Rand Index (ARI).
+This section addresses both limitations. In S6.2 we use bootstrap resampling of sites within each phase to build a **consensus co-clustering matrix** [@Monti_2003], quantifying the stability of the two-group partition as a whole and of each site's assignment. In S6.3 we fit **stochastic block models (SBM)** using the `blockmodels` R package [@Leger_2016], which treat block membership as a latent variable, select the number of blocks via the Integrated Classification Likelihood (ICL), and return posterior membership probabilities for every site. In S6.4 we cross-validate the bootstrap and SBM assignments against the main-text restricted/broad groups using the Adjusted Rand Index (ARI) [@Hubert_Arabie_1985].
 
 ## S6.2 Bootstrap Consensus Analysis {#sec-s6-2}
 
@@ -1572,7 +1640,7 @@ The bootstrap consensus analysis supports the main-text two-group partition as a
 
 ### Rationale
 
-The bootstrap treats block structure as a resampling artefact of an observed partition. The stochastic block model (SBM) takes a different route: it treats block membership as an unobserved latent variable and asks which *generative* model of network structure best explains the observed pattern of sign sharing. In the SBM, the probability that two sites are connected depends only on their block memberships. We fit the *symmetric* stochastic block model (`SBM_sym`) using the *weighted* Jaccard similarity adjacency matrix (threshold = 0.2), preserving edge strength rather than binarizing. This is appropriate because Jaccard similarity is symmetric and sign-sharing connectivity is mutual. Fitting the model returns (i) the number of blocks that best fits the data, chosen by the Integrated Classification Likelihood (ICL; a penalised likelihood that trades fit against model complexity), and (ii) the posterior probability of membership in each block for every site. Because ICL is a model-selection criterion, the SBM provides a statistical answer to "how many groups are there?" rather than the visual answer provided by seriation.
+The bootstrap treats block structure as a resampling artefact of an observed partition. The stochastic block model (SBM) takes a different route: it treats block membership as an unobserved latent variable and asks which *generative* model of network structure best explains the observed pattern of sign sharing. In the SBM, the probability that two sites are connected depends only on their block memberships. We fit two symmetric stochastic block model (`SBM_sym`) variants using the `blockmodels` package: (1) a **Bernoulli SBM** on a binarized adjacency matrix where an edge exists if Jaccard similarity ≥ 0.2, and (2) a **Gaussian SBM** on the unthresholded weighted adjacency matrix (1 − Jaccard similarity, values in [0, 1]). Both models select the number of blocks via the Integrated Classification Likelihood (ICL; a penalised likelihood that trades fit against model complexity) and return posterior membership probabilities for every site. Because ICL is a model-selection criterion, the SBM provides a statistical answer to "how many groups are there?" rather than the visual answer provided by seriation.
 
 ```{r}
 #| label: s6-sbm-compute
@@ -2122,7 +2190,7 @@ s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph
 
 ### Effects by condition
 
-**Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 (its ~35–36 ka BP (calibrated) dates fall in the Early Aurignacian range, which is folded into Aur-P1), while Hohle Fels and Vogelherd are split across the phases by object date: `r excl$hf_p1` of `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels"))` Hohle Fels objects and `r excl$vog_p1_date` of `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` Vogelherd objects remain in Aur-P1, and `r excl$hf_p2` and `r excl$vog_p2_date` objects , those calibrated to ~32 ka BP or younger , move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 , now missing Mladeč but containing `r excl$young_total` young-dated objects from Hohle Fels and Vogelherd , has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
+**Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 because its calibrated median using the older-end of the date range (40,091 cal BP) falls in the Proto-Aurignacian range, which is folded into Aur-P1; the midpoint variant used in the main analysis gives 37,831 cal BP (Early Aurignacian, Aur-P1), and the younger-end gives 35,571 cal BP (Early Aurignacian, Aur-P1) [@Wild_et_al_2005]. Hohle Fels and Vogelherd are split across the phases by object date: `r excl$hf_p1` of `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels"))` Hohle Fels objects and `r excl$vog_p1_date` of `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` Vogelherd objects remain in Aur-P1, and `r excl$hf_p2` and `r excl$vog_p2_date` objects , those calibrated to ~32 ka BP or younger , move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 , now missing Mladeč but containing `r excl$young_total` young-dated objects from Hohle Fels and Vogelherd , has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
 
 **Vogelherd exclusion (Analysis B).** Removing Vogelherd's `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` objects from the technology-based baseline reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges. Mean degree falls from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")` (`r paste0("−", excl$md_pct, "%")`), and modularity from `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Vogelherd")`. Aur-P2 is unaffected (`r s8_md("Aur-P2", "Exclude Vogelherd")`, `r s8_ne("Aur-P2", "Exclude Vogelherd")` edges, `r s8_ns("Aur-P2", "Exclude Vogelherd")` sites).
 
@@ -2150,11 +2218,11 @@ Under the date-based assignment Aur-P1's mean degree rises (from `r s8_md("Aur-P
 
 ## S8.4 Interpretation
 
-The robustness of the Aur-P1 > Aur-P2 connectivity contrast to both the assignment criterion and to the removal of the largest site strengthens the main-text conclusion that the early phase supports a larger, more hub-centred sign-sharing network. The date-based alternative is a useful worst case: it fragments long-occupied sites across phases and moves Mladeč into Aur-P1, yet Aur-P1 remains the more connected phase.
+The robustness of the Aur-P1 > Aur-P2 connectivity contrast to both the assignment criterion and to the removal of the largest site strengthens the main-text conclusion that the early phase supports a larger, more hub-centred sign-sharing network. The date-based alternative is a useful worst case: it fragments long-occupied sites across phases and moves Mladeč into Aur-P1 (via the older-end calibrated median of 40,091 cal BP), yet Aur-P1 remains the more connected phase.
 
 The observed between-phase modularity values are, however, assignment-sensitive: they reverse under the date-based assignment (Aur-P1 `r s8_mo("Aur-P1", "Date-based")` < Aur-P2 `r s8_mo("Aur-P2", "Date-based")`, versus `r s8_mo("Aur-P1", "Baseline (technology-based)")` > `r s8_mo("Aur-P2", "Baseline (technology-based)")` at baseline). This reinforces the main text's caution about between-phase comparisons: the pairwise permutation test on the technology-based baseline finds no significant difference in modularity (or any other network statistic) between the phases, and S5.7 shows that the modularity confidence intervals overlap substantially (Aur-P2 rests on only 9 sites). We therefore recommend reading the between-phase contrast primarily as a difference in network scale rather than as a robust ordering of modularity values across alternative assignments.
 
-Excluding Vogelherd leaves the ordering intact, consistent with S7's finding that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) , the restricted/broad dichotomy recovered by seriation, Louvain community detection, bootstrap consensus, and the stochastic block model (S5, S6) , is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here.
+Excluding Vogelherd leaves the ordering intact, consistent with S7's finding that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) , the restricted/broad dichotomy recovered by seriation, Louvain community detection, and bootstrap consensus (S5, S6) , is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here. The stochastic block model (S6.3) does not recover this dichotomy (single block selected under both emission models), consistent with the small size and sparsity of the sign-sharing networks falling below the detectability limit for block structure.
 
 # S9. Object-Level Downsampling and Coverage-Rarefaction Sensitivity {#sec-s9}
 

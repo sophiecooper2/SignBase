@@ -51,7 +51,7 @@ This supplement documents the rationale and procedure for assigning archaeologic
 
 ## Data pipeline
 
-The following code loads the raw SignBase dataset, parses radiocarbon dates, calibrates them, and assigns objects to phases. Sites excluded from the main analysis are filtered out, and sites reassigned based on technological attribution are overrides in the `case_when()`.
+The following code loads the raw SignBase dataset, parses radiocarbon dates, calibrates them, and assigns objects to phases. Sites excluded from the main analysis are filtered out, and sites reassigned based on technological attribution are overrides in the `case_when()`. Date parsing now handles both ends of date ranges, routes OSL ages around radiocarbon calibration, and uses IntCal20 explicitly. The default `date_variant = "midpoint"` is used here; sensitivity to variant choice is explored in Supplement S1.
 
 ```{r}
 #| label: load-data
@@ -59,66 +59,14 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 library(readr)
-library(rcarbon)
 library(here)
 
 signbase_full <- read.csv(here("data/signBase_Version1.0.csv"), header = TRUE)
 
-signbase_full_clean <- signbase_full %>%
-  filter(site_name != "Willendorf",
-         site_name != "Riparo di Fontana Nuova",
-         site_name != "Muralovka",
-         site_name != "Shanidar Cave",
-         site_name != "Hayonim Cave",
-         site_name != "El Salitre",
-         site_name != "Grotte De La Princesse Pauline",
-         site_name != "Šandalja II") %>%
-  dplyr::select(-other, -rectangle) %>%
-  mutate(longitude = ifelse(site_name == "Riparo Bombrini", 7.437500, longitude)) %>%
-  mutate(latitude = ifelse(site_name == "Riparo Bombrini", 43.77083, latitude))
-```
+# Source shared functions (includes clean_signbase with corrected date parsing)
+source(here("paper/functions.R"))
 
-```{r}
-#| label: parse-dates
-signbase_years <- signbase_full_clean %>%
-  drop_na(date_bp_max_min) %>%
-  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+\\/\\-", "±")) %>%
-  mutate(date_bp_max_min = str_replace_all(date_bp_max_min, "\\+", "±")) %>%
-  separate(date_bp_max_min,
-           sep = " - ",
-           c("date_bp_max", "date_bp_min"),
-           remove = FALSE) %>%
-  mutate(date_bp_max = ifelse(str_detect(date_bp_max, "\\/"),
-                              str_extract(date_bp_max, ".*?(?=\\/)"),
-                              date_bp_max)) %>%
-  mutate(date_bp_min = ifelse(str_detect(date_bp_min, "\\/"),
-                              str_extract(date_bp_min, ".*?(?=\\/)"),
-                              date_bp_min)) %>%
-  separate(date_bp_max,
-           sep = "±",
-           c("date_bp_max_age",
-             "date_bp_max_error")) %>%
-  separate(date_bp_min,
-           sep = "±",
-           c("date_bp_min_age",
-             "date_bp_min_error")) %>%
-  drop_na(date_bp_max_age,
-          date_bp_max_error) %>%
-  mutate(date_bp_max_age = parse_number(date_bp_max_age),
-         date_bp_max_error = parse_number(date_bp_max_error))
-
-signbase_years_cal <-
-  rcarbon::calibrate(signbase_years$date_bp_max_age,
-                     signbase_years$date_bp_max_error,
-                     verbose = FALSE) %>%
-  summary() %>%
-  tibble()
-
-signbase_years$MedianBP <- signbase_years_cal$MedianBP
-
-signbase_full_clean <- signbase_full_clean %>%
-  inner_join(signbase_years %>%
-              dplyr::select(object_id, MedianBP))
+signbase_full_clean <- clean_signbase(signbase_full)
 ```
 
 ```{r}
@@ -296,6 +244,7 @@ Vogelherd is kept as a single site-level Aur-P1 unit rather than split by layer:
 ### Mladeč → Evolved Aurignacian
 
 - @Oliva_2006 : Technological and typological analysis assigns Mladeč to the Evolved Aurignacian.
+- @Wild_et_al_2005 : Direct AMS dates of ~31 ka ¹⁴C BP (~35–36 ka cal BP) support an Evolved Aurignacian attribution.
 
 ### Spy → Excluded
 
