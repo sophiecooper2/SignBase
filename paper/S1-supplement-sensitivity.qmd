@@ -1841,8 +1841,10 @@ aurp2_grp <- aurp2_unique_data$group[match(rownames(aurp2_artifact_data),
 sign_cols_all <- intersect(colnames(aurp1_artifact_data), colnames(aurp2_artifact_data))
 
 # (A) Maximally-selected achieved-significance test
-s6_6_bestP1 <- best_split_permtest(aurp1_artifact_data, group = aurp1_grp, B = 999, seed = 1)
-s6_6_bestP2 <- best_split_permtest(aurp2_artifact_data, group = aurp2_grp, B = 999, seed = 1)
+s6_6_bestP1 <- best_split_permtest(aurp1_artifact_data, group = aurp1_grp, B = 999, seed = 1,
+                                   null_type = "curveball")
+s6_6_bestP2 <- best_split_permtest(aurp2_artifact_data, group = aurp2_grp, B = 999, seed = 1,
+                                   null_type = "curveball")
 
 # (B-i) Site-level leave-one-out cross-validated group recovery
 s6_6_cvP1 <- cv_group_accuracy(aurp1_artifact_data, aurp1_grp, k = 1, B = 999, seed = 1)
@@ -1893,8 +1895,9 @@ kable(s6_6_tab, digits = 3, align = "llc")
 
 The methods below answer one general question, whether the restricted/broad difference is a genuine pattern recoverable from data independent of how the groups were originally defined, through three specific questions, each answered by a different route.
 
-**Question 1 (strategy A):** Is the observed two-group split *stronger* than the best split one would obtain by optimising on randomised data, that is, does the restricted/broad partition survive a null that accounts for the fact that the grouping was itself optimised to maximise separation? Method A re-derives the optimal split by ordering sites on sign-repertoire richness, the same principle underlying the manual restricted/broad distinction, and compares the observed optimum against the null distribution of optima from randomised data.
-- *Answer:* No. The observed optimal split is **not** significant (Aur-P1 observed optimal pseudo-F = `r round(s6_6_bestP1$observed_best_F, 2)`, permutation p = `r s6_6_bestP1$p_value`; Aur-P2 observed optimal pseudo-F = `r round(s6_6_bestP2$observed_best_F, 2)`, permutation p = `r s6_6_bestP2$p_value`). This is consistent with, not contradictory to, the conclusions from strategies B and C below: because B and C independently show the contrast is recoverable from withheld data, the non-significance of A is best read as evidence against a *sharp discontinuous partition* rather than against the contrast existing. The restricted/broad contrast is therefore a real, recoverable *gradient/axis of variation*, but it is not a sharp partition that survives the most stringent "optimisation-accounted-for" null.
+**Question 1 (strategy A):** Is the observed two-group split *stronger* than the best split one would obtain by optimising on randomised data, that is, does the restricted/broad partition survive a null that accounts for the fact that the grouping was itself optimised to maximise separation? Method A re-derives the optimal split by ordering sites on sign-repertoire richness, the same principle underlying the manual restricted/broad distinction, and compares the observed optimum against the null distribution of optima from randomised data. We implement a fixed-fixed (Curveball) null that preserves both site richness and sign-type frequencies while destroying compositional structure.
+
+*Answer:* **Under the fixed-fixed (Curveball) null, the observed optimal split is not significant in either phase** (Aur-P1 observed optimal pseudo-F = `r round(s6_6_bestP1$observed_best_F, 2)`, permutation p = `r s6_6_bestP1$p_value`; Aur-P2 observed optimal pseudo-F = `r round(s6_6_bestP2$observed_best_F, 2)`, permutation p = `r s6_6_bestP2$p_value`). This means the restricted/broad partition does not produce a two-group separation stronger than expected under a null that preserves both site richness and sign-type frequencies. The non-significance under the fixed-fixed null indicates that the restricted/broad contrast is not a sharp discontinuous partition that survives the most stringent "optimisation-accounted-for" null; rather, it is a **recoverable gradient/axis of variation** whose strength is partly attributable to the marginal richness and frequency structure of the data. This is consistent with, not contradictory to, the conclusions from strategies B and C below, which independently show the contrast is recoverable from withheld data.
 
 **Question 2 (strategy B):** Can the group assignment be recovered from data that did **not** contribute to defining it? 
 - *Site level (B-i):* Can a held-out site's restricted/broad label be predicted from a classifier trained only on the other sites?
@@ -2438,7 +2441,7 @@ ggplot(cov_plot, aes(x = group, y = richness_at_target, colour = group)) +
 
 ### Rationale
 
-The two resampling approaches above ask whether the *partition* and the *richness* survive downsampling. We also ask whether group predicts sign-type richness once sampling effort is held constant. We fit a negative-binomial model of per-site sign-type richness with the manual group and phase as predictors and `log(object count)` as an **offset** (the exposure term), so that the group coefficient estimates the richness difference between restricted and broad sites at equal object count:
+The two resampling approaches above ask whether the *partition* and the *richness* survive downsampling. We also ask whether group predicts sign-type richness once sampling effort is held constant. We fit a negative-binomial model [@Venables_Ripley_2002] of per-site sign-type richness with the manual group and phase as predictors and `log(object count)` as an **offset** (the exposure term), so that the group coefficient estimates the richness difference between restricted and broad sites at equal object count:
 
 $$\text{richness}_i \sim \text{NegativeBinomial}\big(\exp(\beta_0 + \beta_1 \text{group}_i + \beta_2 \text{phase}_i + \log(\text{objects}_i))\big).$$
 

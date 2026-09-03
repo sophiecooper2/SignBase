@@ -217,6 +217,7 @@ Hohle Fels is the only site in the dataset whose internal sequence warrants spli
 ### Geissenklösterle → Early Aurignacian (Aur-P1)
 
 - @Bataille_Conard_2018 : The Geissenklösterle Aurignacian (AH III and II) is assigned to the Early Aurignacian on technological grounds.
+- @Higham_2012 : Radiocarbon chronology of Geißenklösterle provides the direct dating basis for this assignment.
 - Both Geissenklösterle layers remain in Aur-P1: the calibrated median dates of the SignBase radiocarbon determinations for AH II (~40.7 ka BP) and AH III (~42.7 ka BP) fall within the Aur-P1 range, so the technology- and date-based assignments agree for this site. A reassessment [places AH III later (~33–35 ka BP) [@zilhao2003aurignacian], but this conflicts with the site's own radiocarbon chronology and is not adopted here; the weight of the technological and stratigraphic evidence keeps both layers in Aur-P1.
 
 ### Vogelherd → Early Aurignacian (Aur-P1, site-level)
