@@ -209,9 +209,9 @@ kable(changing_sites,
       align = "lrclrclc")
 ```
 
-**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase.
+**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms that single-end calibration systematically biases sites toward the older phase.
 
-# S0. Sample attrition at date parsing (mirrors paper.qmd:257) {#sec-s0}
+# S0. Site rejection {#sec-s0}
 
 ## Rationale
 
@@ -346,9 +346,8 @@ p_grid <- plot_grid(plotlist = plot_list,
                     ncol  = 3,
                     align = "hv")
 
-ggsave(p_grid,
-       filename = here::here("figures/sensitivity-network-plot.png"),
-       h = 10, w = 11, bg = "white")
+ggsave(filename = here::here("figures/sensitivity-network-plot.png"),
+       plot = p_grid, width = 11, height = 10, bg = "white")
 
 knitr::include_graphics(here::here("figures/sensitivity-network-plot.png"))
 ```
@@ -365,7 +364,7 @@ The sensitivity analysis shows that the main findings reported in the text are *
 
 **Threshold-specific effects.** At threshold 0.1, graph density increases substantially and several sites that appear as isolates at 0.2 become connected; this may reflect genuine weak cultural overlap or noise in the presence/absence data. At threshold 0.3, the graph becomes considerably sparser, with `r val(sens_stats, "n_isolates", "Aur-P1", 0.3)` isolates in Aur-P1 in particular. The 0.2 threshold represents a practical middle ground: it preserves the major structural contrasts while avoiding both the over-connection artefacts of the 0.1 threshold and the excessive fragmentation of the 0.3 threshold.
 
-**Isolates.** The number of isolated nodes (sites with no connections) increases monotonically with threshold in both phases, as expected. Sites that appear as isolates at 0.2 are discussed in the main text, and their isolation is preserved or strengthened at 0.3, reinforcing their interpretation as peripheral assemblages. At threshold 0.1, these sites gain edges but only to the weakest possible partners, which does not alter the substantive interpretation.
+**Isolates.** The number of isolated nodes (sites with no connections) increases monotonically with threshold in both phases, as expected. Sites that appear as isolates at 0.2 are preserved or strengthened at 0.3, reinforcing their interpretation as peripheral assemblages. At threshold 0.1, these sites gain edges but only to the weakest possible partners, which does not alter the substantive interpretation.
 
 Together, these results confirm that the threshold of 0.2 used in the main analysis is a defensible and representative choice. Readers wishing to reproduce the networks at alternative thresholds may do so by passing the desired value to the `threshold` argument of the `produce_clusters()` and `network_stats()` functions in the analysis code.
 
@@ -417,9 +416,8 @@ for (ph_name in names(phases)) {
 
 p_metric_grid <- plot_grid(plotlist = plot_metric_list, ncol = 3, align = "hv")
 
-ggsave(p_metric_grid,
-       filename = here::here("figures/sensitivity-metric-plot.png"),
-       h = 10, w = 11, bg = "white")
+ggsave(filename = here::here("figures/sensitivity-metric-plot.png"),
+       plot = p_metric_grid, width = 11, height = 10, bg = "white")
 
 knitr::include_graphics(here::here("figures/sensitivity-metric-plot.png"))
 ```
@@ -1502,7 +1500,7 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
 
 ### Rationale
 
-The main text reports a temporal Mantel test in which sign dissimilarity is correlated with temporal distance (|ΔMedianBP|); that test is weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) yet explains little variation, and the reviewer correctly notes it cannot demonstrate whether substantial change in sign types did or did not occur through time. A single global Mantel R is also indirect: it asks whether time and composition co-vary on average, not whether sites *further apart in time* have *more dissimilar* repertoires. To test temporal turnover more directly we ask three specific questions:
+The main text reports a temporal Mantel test in which sign dissimilarity is correlated with temporal distance (|ΔMedianBP|); that test is weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) yet explains little variation, and it cannot demonstrate whether substantial change in sign types did or did not occur through time. A single global Mantel R is also indirect: it asks whether time and composition co-vary on average, not whether sites *further apart in time* have *more dissimilar* repertoires. To test temporal turnover more directly we ask three specific questions:
 
 1. **Does sign dissimilarity increase with temporal lag?** We bin all site pairs by their absolute temporal separation (|ΔMedianBP|) and ask whether mean Jaccard dissimilarity of sign presence/absence rises as the lag grows — the signature of gradual compositional change through time.
 2. **Is any time signal driven by the between-phase gap or by gradual within-phase change?** Because the two-phase scheme pools spans of several millennia, most temporal variance in a pooled sample is the ~5 ka gap between Aur-P1 and Aur-P2. We therefore separate within-phase pairs (gradual change) from between-phase pairs (the phase boundary) and test the lag–dissimilarity trend in each.
@@ -1718,7 +1716,7 @@ phase_cols <- c("Aur-P1"="#F8766D","Aur-P2"="#00BA38")
 # Region palette: colour-blind safe
 reg_cols <- c("1"="#4477AA","2"="#CC6677","3"="#DDCC77","4"="#117733","5"="#88CCEE")
 
-ggplot(Europe) +
+s513_map <- ggplot(Europe) +
   geom_sf(fill = "grey95", colour = "grey70") +
   geom_sf(data = s513_map_df, aes(colour = region, shape = region), size = 3) +
   geom_text_repel(data = s513_map_df %>% mutate(lon = sf::st_coordinates(geometry)[,1], lat = sf::st_coordinates(geometry)[,2]),
@@ -1731,7 +1729,7 @@ ggplot(Europe) +
   theme(axis.text = element_blank(), axis.title = element_blank(),
         panel.grid = element_blank(), strip.text = element_text(face="bold")) +
   annotation_scale(width_hint = 0.3, height = unit(0.12,"cm"))
-ggsave(here::here("figures/s513-region-map.png"), width = 8, height = 6, dpi = 300, bg = "white")
+ggsave(here::here("figures/s513-region-map.png"), plot = s513_map, width = 8, height = 6, dpi = 300, bg = "white")
 knitr::include_graphics(here::here("figures/s513-region-map.png"))
 ```
 
@@ -1893,8 +1891,8 @@ s6_heatmaps <- cowplot::plot_grid(
     s6_heatmap(ph) + ggtitle(ph)),
   ncol = 1, labels = c("a", "b"), label_size = 14)
 
-ggsave(here::here("figures/bootstrap-consensus-plot.png"),
-       s6_heatmaps, width = 9, height = 10, bg = "white")
+ggsave(filename = here::here("figures/bootstrap-consensus-plot.png"),
+       plot = s6_heatmaps, width = 9, height = 10, bg = "white")
 
 knitr::include_graphics(here::here("figures/bootstrap-consensus-plot.png"))
 ```
@@ -2555,11 +2553,11 @@ for (k in k_levels) for (ph in c("Aur-P1", "Aur-P2")) {
 
 ### Rationale
 
-Before resampling, we must know how many objects each site contributes. Object counts are highly skewed: a handful of sites (e.g. Vogelherd with `r obj_counts$nobjects[obj_counts$site_name == "Vogelherd" & obj_counts$phase == "Aur-P1"]` objects in Aur-P1) dominate, while many sites contribute only one or two objects (Trou al'Wesse and Fumane contribute a single object; Les Cottés and Labeko Koba contribute two). We therefore tally objects per site and, following the reviewer's suggestion, choose common downsampling levels that retain as many sites as possible: **k = 3, 5, and 10 objects per site**. A site is included in a downsampling replicate only if it contributes at least k objects.
+Before resampling, we must know how many objects each site contributes. Object counts are highly skewed: a handful of sites (e.g. Vogelherd with `r obj_counts$nobjects[obj_counts$site_name == "Vogelherd" & obj_counts$phase == "Aur-P1"]` objects in Aur-P1) dominate, while many sites contribute only one or two objects (Trou al'Wesse and Fumane contribute a single object; Les Cottés and Labeko Koba contribute two). We therefore tally objects per site and choose common downsampling levels that retain as many sites as possible: **k = 3, 5, and 10 objects per site**. A site is included in a downsampling replicate only if it contributes at least k objects.
 
 ```{r}
 #| label: tbl-s9-objcount
-#| tbl-cap: "Per-site object counts by phase and manual restricted(1)/broad(2) group. The reviewer notes the strong Spearman correlation (ρ = 0.86) between object count and sign-type richness across sites."
+#| tbl-cap: "Per-site object counts by phase and manual restricted(1)/broad(2) group."
 #| tbl-cap-location: bottom
 
 obj_counts %>%
@@ -2670,7 +2668,7 @@ The same pattern holds in Aur-P2, where even fewer sites qualify at higher k and
 
 ### Rationale
 
-Equal object counts do not equalise *sampling effort* when sites differ in how concentrated their signs are. The reviewer's preferred method is **coverage-based rarefaction**: compare richness at equal *sample coverage* rather than equal object count [@Chao_Jost_2012; @Gotelli_Colwell_2001]. For each site we estimate its sign-type richness at a target coverage of `r cov_target` (a standard "high coverage" benchmark) with `iNEXT::estimateD` on the site's object-by-sign incidence matrix (`datatype = "incidence_raw"`), which returns 95% confidence intervals from `r cov_perm` bootstrap replicates [@Hsieh_Ma_Chao_2016]. Sites with fewer than three objects, failed fits, or targets reachable only by extrapolating beyond twice the observed sample cannot be placed on a common coverage footing; for these we report Chao and Jost's analytic incidence-coverage estimator with object-resampling bootstrap intervals and a Chao2 asymptotic-richness estimate as a fallback quantity, with the reason recorded per site. We then compare restricted and broad sites at that equal coverage.
+Equal object counts do not equalise *sampling effort* when sites differ in how concentrated their signs are. Our method is **coverage-based rarefaction**: compare richness at equal *sample coverage* rather than equal object count [@Chao_Jost_2012; @Gotelli_Colwell_2001]. For each site we estimate its sign-type richness at a target coverage of `r cov_target` (a standard "high coverage" benchmark) with `iNEXT::estimateD` on the site's object-by-sign incidence matrix (`datatype = "incidence_raw"`), which returns 95% confidence intervals from `r cov_perm` bootstrap replicates [@Hsieh_Ma_Chao_2016]. Sites with fewer than three objects, failed fits, or targets reachable only by extrapolating beyond twice the observed sample cannot be placed on a common coverage footing; for these we report Chao and Jost's analytic incidence-coverage estimator with object-resampling bootstrap intervals and a Chao2 asymptotic-richness estimate as a fallback quantity, with the reason recorded per site. We then compare restricted and broad sites at that equal coverage.
 
 **Question this analysis answers:** at equal sample coverage, do restricted and broad sites still differ in sign-type richness?
 
@@ -2862,7 +2860,7 @@ cowplot::plot_grid(p_all, p_shared, ncol = 2)
 
 ### Interpretation
 
-**Question: does the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction survive equal effort?** No. When Aur-P1 is rarefied to `r s95_obj_p2` objects, its expected richness drops into the range `r round(pool_all$target_est$qD[pool_all$target_est$Assemblage == "Aur-P1"], 1)` types (95% CI `r round(pool_all$target_est$qD.LCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`–`r round(pool_all$target_est$qD.UCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`), which overlaps the Aur-P2 observed pool of `r round(pool_all$observed$qD[pool_all$observed$Assemblage == "Aur-P2"], 1)` types. The Aur-P2 95% interval extended to the same effort likewise overlaps. This reproduces the reviewer’s direct resampling of `r s95_obj_p2` objects from the `r s95_obj_p1` Aur-P1 objects (expected 16.7, interval 13–20). The phase coefficient in S9.4 at equal object count is also non-significant (rate ratio 1.27, p = 0.462 in the reviewer’s re-run).
+**Question: does the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction survive equal effort?** No. When Aur-P1 is rarefied to `r s95_obj_p2` objects, its expected richness drops into the range `r round(pool_all$target_est$qD[pool_all$target_est$Assemblage == "Aur-P1"], 1)` types (95% CI `r round(pool_all$target_est$qD.LCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`–`r round(pool_all$target_est$qD.UCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`), which overlaps the Aur-P2 observed pool of `r round(pool_all$observed$qD[pool_all$observed$Assemblage == "Aur-P2"], 1)` types. The Aur-P2 95% interval extended to the same effort likewise overlaps.
 
 When the comparison is restricted to object types present in both phases, the overlap remains (`r round(pool_shared$target_est$qD[pool_shared$target_est$Assemblage == "Aur-P1"], 1)` vs `r round(pool_shared$observed$qD[pool_shared$observed$Assemblage == "Aur-P2"], 1)`), so limestone blocs, tubes and figurines do not create the effect.
 
