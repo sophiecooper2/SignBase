@@ -49,6 +49,7 @@ In the main analysis, edges in the site-to-site networks are drawn only when two
 To confirm that the primary findings reported in the main text are not an artefact of this specific cutoff, we repeated all network analyses at two alternative thresholds , 0.1 (permissive) and 0.3 (conservative) , and compared the key network statistics and visual structure against the main-text threshold of 0.2.
 
 ```{r setup}
+library(MASS)
 library(tidyverse)
 library(readxl)
 library(vegan)
@@ -62,7 +63,6 @@ library(ggpubr)
 library(magrittr)
 library(rcarbon)
 library(blockmodels)
-library(MASS)
 library(ecodist)
 source(here::here("paper/functions.R"))  # shared function library
 
@@ -1443,6 +1443,8 @@ ts_last_n        <- tl$last_n
 ### Analysis
 
 We aggregate the cleaned object-level data to **site level**: for each of the `r n_sites_ts` sites we record the presence/absence of every sign type (any object at the site carrying the sign counts as present) and a single calibrated age taken as the median `MedianBP` (years BP) across the site's objects. Pairwise Jaccard dissimilarity of the binary sign vectors and the absolute temporal lag |ΔMedianBP| (converted to ka) are computed for all `r n_pairs_ts` unordered site pairs. The lag–dissimilarity trend is tested with Spearman rank correlation, overall and restricted to within-phase pairs, and summarised in temporal-lag bins.
+
+```{r}
 n_p1_ts          <- tl$n_p1
 n_p2_ts          <- tl$n_p2
 n_pairs_ts       <- tl$n_pairs
