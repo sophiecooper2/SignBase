@@ -3,6 +3,8 @@ name: Render Manuscript
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -12,21 +14,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker Image
-        run: docker build -t signbase .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: signbase:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Render Quarto Document
-        # We run the container and pass the quarto command directly
-        # The output paper.docx will be created inside the container
         run: |
-          docker run --name render-container signbase \
-          quarto render paper/paper.qmd --to docx
+          docker run --name render-container signbase:latest \
+            quarto render paper/paper.qmd --to docx
 
       - name: Download .docx from Container
-        # Copy the rendered file from the container to the GitHub runner
         run: |
           docker cp render-container:/project/paper/paper.docx ./paper.docx
-
 
       - name: Upload to Summary Page
         uses: actions/upload-artifact@v4
