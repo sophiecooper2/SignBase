@@ -74,6 +74,73 @@ signbase_full <- read_csv(here::here("data/signBase_Version1.0.csv"))
 signbase_full_clean <- clean_signbase(signbase_full, date_variant = "older")
 lat_long_df <- site_latlong(signbase_full_clean)
 
+# ── S0: date-parsing attrition (mirrors paper.qmd:257 disclosure) ─────────────
+# Mirrors the counting logic in paper.qmd:58-98 so the two documents cannot diverge.
+# Uses the same CSV and the same clean_signbase() filter, only partitioned earlier
+# to enumerate what date parsing removes.
+eight_sites <- c("Willendorf", "Riparo di Fontana Nuova", "Muralovka",
+                 "Shanidar Cave", "Hayonim Cave", "El Salitre",
+                 "Grotte De La Princesse Pauline", "Šandalja II")
+# Signed objects = line:star > 0 after dropping other/rectangle, as in clean_signbase()
+.sign_cols <- intersect(SIGN_COLS, colnames(signbase_full))
+raw_signed <- signbase_full %>%
+  # drop other/rectangle before counting, as clean_signbase does
+  dplyr::select(-any_of(c("other", "rectangle"))) %>%
+  filter(rowSums(pick(any_of(.sign_cols)), na.rm = TRUE) > 0)
+after_eight <- raw_signed %>% filter(!site_name %in% eight_sites)
+# Sites/objects lost at date parsing = after_eight minus what survived clean_signbase()
+# Exclude Spy/El Castillo (mixed-assemblage exclusions handled separately in paper.qmd:257)
+dropped_all_vec <- setdiff(unique(after_eight$site_name),
+                           unique(signbase_full_clean$site_name))
+# Date-parsing loss excludes the two mixed sites; they are not a date-parser artefact
+mixed_sites <- c("Spy", "El Castillo")
+dropped_sites_vec <- setdiff(dropped_all_vec, mixed_sites)
+n_dropped_sites <- length(dropped_sites_vec)
+n_dropped_objects <- after_eight %>% filter(site_name %in% dropped_sites_vec) %>% nrow()
+# For reference: total loss from after_eight including mixed sites (should be 29 sites / 86 objects)
+n_dropped_all_sites <- length(dropped_all_vec)
+n_dropped_all_objects <- after_eight %>% filter(site_name %in% dropped_all_vec) %>% nrow()
+# Split by reason: empty date string vs plain x - y without ±
+# Use the raw signbase_full date field for the dropped sites
+dropped_raw_dates <- signbase_full %>%
+  filter(site_name %in% dropped_sites_vec) %>%
+  filter(rowSums(pick(any_of(.sign_cols)), na.rm = TRUE) > 0) %>%
+  filter(!site_name %in% eight_sites) %>%
+  distinct(site_name, date_bp_max_min, dating_method)
+# Classify via the same rule as functions.R:80-86 (requires ± after normalising + to ±)
+# Plain = any non-empty date string that after normalisation contains no ± (i.e. no reported error),
+# whether it is a range "x - y" or a single value "x". Empty strings are missing, not plain.
+is_plain_range <- function(s) {
+  s <- trimws(as.character(s))
+  if (is.na(s) || s == "") return(FALSE)
+  # Mirror functions.R:73-74 normalisation:  + -> ±  before checking
+  s_norm <- gsub("\\+/-", "±", s, fixed = FALSE)
+  s_norm <- gsub("\\+", "±", s_norm, fixed = FALSE)
+  !grepl("±", s_norm, fixed = TRUE) && grepl("[0-9]", s_norm)
+}
+# Count plain vs missing at object level (after_eight), restricted to date-parsing dropped sites
+plain_mask <- after_eight$site_name %in% dropped_sites_vec &
+  vapply(after_eight$date_bp_max_min, is_plain_range, logical(1))
+missing_mask <- after_eight$site_name %in% dropped_sites_vec & !plain_mask
+n_plain_sites <- length(unique(after_eight$site_name[plain_mask]))
+n_plain_objects <- sum(plain_mask)
+n_missing_sites <- length(unique(after_eight$site_name[missing_mask]))
+n_missing_objects <- sum(missing_mask)
+# Largest plain-range site for prose example (Goyet, 12)
+plain_counts <- after_eight %>% filter(plain_mask) %>% count(site_name, name = "n", sort = TRUE)
+goyet_plain_objects <- plain_counts$n[plain_counts$site_name == "Grotte de Goyet"]
+if (length(goyet_plain_objects) == 0) goyet_plain_objects <- max(plain_counts$n, 0)
+# Retained counts for inline reference (same as paper.qmd:257)
+n_retained_objects <- nrow(signbase_full_clean)
+n_retained_sites <- n_distinct(signbase_full_clean$site_name)
+n_raw_signed_objects <- nrow(raw_signed)
+n_raw_signed_sites <- n_distinct(raw_signed$site_name)
+# Paper-equivalent retained counts for verification (paper.qmd:64-82)
+paper_nartifacts <- nrow(signbase_full)
+paper_nsites <- n_distinct(signbase_full$site_name)
+paper_nartifacts_clean <- n_retained_objects
+paper_nsites_clean <- n_retained_sites
+
 # ── Date-variant sensitivity: re-run with older, midpoint, younger variants ──────
 # The date parser now handles both ends of ranges, routes OSL ages around calibration,
 # and uses IntCal20 explicitly. We test sensitivity to the choice of which calibrated
@@ -141,7 +208,48 @@ kable(changing_sites,
       align = "lrclrclc")
 ```
 
-**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase. 
+**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase.
+
+# S0. Sample attrition at date parsing (mirrors paper.qmd:257) {#sec-s0}
+
+## Rationale
+
+This section expands on the site rejection details notes in the main text. 
+
+## S0.1 Counts
+
+The raw extract contains `r n_raw_signed_objects` signed objects (objects with at least one presence in `line:star` after dropping `other`/`rectangle`, as in `clean_signbase()`) at `r n_raw_signed_sites` sites. After removing the eight sites listed in the main text as examples of low quality data, `r nrow(after_eight)` signed objects at `r n_distinct(after_eight$site_name)` sites remain. A further `r n_dropped_sites` sites carrying `r n_dropped_objects` signed objects are lost at the data cleaning step and do not enter phase assignment. The retained analysed sample is therefore `r n_retained_objects` objects at `r n_retained_sites` unique geographic sites (the `r n_retained_sites` sites are later split into site-phase units in the next chunk).
+
+```{r}
+#| label: tbl-dropped-sites
+#| tbl-cap: "Sites omitted for data quality reasons. Archaeological phase rationale is in S2."
+#| tbl-cap-location: bottom
+
+dropped_tbl <- after_eight %>%
+  filter(site_name %in% dropped_sites_vec) %>%
+  group_by(site_name) %>%
+  summarise(
+    `Signed objects` = n(),
+    `date_bp_max_min (example)` = first(date_bp_max_min),
+    `dating_method (example)` = first(dating_method),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Reason = ifelse(vapply(`date_bp_max_min (example)`, is_plain_range, logical(1)),
+                    "plain interval without ±",
+                    "no date")
+  ) %>%
+  arrange(desc(`Signed objects`), site_name)
+
+kable(dropped_tbl,
+      col.names = c("Site", "Signed objects", "date_bp_max_min (example)",
+                    "dating_method (example)", "Reason"),
+      align = "lclcl")
+```
+
+## S0.2 Interpretation
+
+Because the `r n_dropped_objects` objects include the seventh-largest assemblage (Grotte de Goyet, `r goyet_plain_objects` objects) and ten of the `r n_plain_sites` plain-range sites date to `38–30` ka, the small Aur-P2 sample is disproportionately affected — in the retained sample Aur-P2 rests on only 9 sites (see next chunk). All network, Mantel and PerMANOVA results in S1.1–S9 below are therefore conditional on the retained sample of `r n_retained_objects` objects at `r n_retained_sites` sites. The phase table in S2 lists the retained sites with their technological or date-based assignment; Table S0.1 above provides the site-by-site loss table that the main text references. 
 
 
 ```{r}
