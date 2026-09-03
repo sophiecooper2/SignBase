@@ -775,6 +775,7 @@ While the results of the seriation and network analyses point to two main groups
 #| label: tbl-strength-table
 #| tbl-cap: "Table of the results per phase for the perMANOVA"
 #| tbl-cap-location: bottom
+#| cache: true
 
 aurp1_strength <- strength_function(aurp1_artifact_data, aurp1_unique_data)
 aurp2_strength <- strength_function(aurp2_artifact_data, aurp2_unique_data)
@@ -830,11 +831,22 @@ aurp1_grp <- aurp1_unique_data$group[match(rownames(aurp1_artifact_data), aurp1_
 aurp2_grp <- aurp2_unique_data$group[match(rownames(aurp2_artifact_data), aurp2_unique_data$site_name)]
 s6_6_bestP1 <- best_split_permtest(aurp1_artifact_data, group = aurp1_grp, B = 999, seed = 1, null_type = "curveball")
 s6_6_bestP2 <- best_split_permtest(aurp2_artifact_data, group = aurp2_grp, B = 999, seed = 1, null_type = "curveball")
+# Object-half holdout for inline Brown/median reporting (mirrors S1 S6.6 B-ii)
+# Uses same seeds as S1 so paper and supplement cannot diverge
+sign_cols_all <- intersect(colnames(aurp1_artifact_data), colnames(aurp2_artifact_data))
+s6_6_objP1 <- cv_permanova_objectsplit(
+  signbase_full_clean %>% dplyr::filter(phase2 == "Aur-P1") %>%
+    dplyr::select(site_name, dplyr::all_of(sign_cols_all)),
+  sign_cols_all, B_rep = 100, B_perm = 499, seed = 1)
+s6_6_objP2 <- cv_permanova_objectsplit(
+  signbase_full_clean %>% dplyr::filter(phase2 == "Aur-P2") %>%
+    dplyr::select(site_name, dplyr::all_of(sign_cols_all)),
+  sign_cols_all, B_rep = 100, B_perm = 499, seed = 1)
 ```
 
 Because the restricted/broad groups were defined from the same sign data used for the perMANOVA, it is exploratory only. PerMANOVA attributes approximately `r aurp1_perm_r` of the variance in sign composition to the restricted/broad grouping in the Aur-P1 phase and `r aurp2_perm_r` in the Aur-P2 phase (@tbl-strength-table). The pseudo-F statistic is larger for Aur-P1 (F = `r aurp1_perm_f`) than for Aur-P2 (F = `r aurp2_perm_f`), indicating a stronger nominal separation in the early phase. The betadisper test for homogeneity of multivariate dispersions shows that group dispersion does not differ significantly between restricted and broad groups in either phase (Aur-P1: p = `r aurp1_bd_p`, Aur-P2: p = `r aurp2_bd_p`), so for Aur-P1 the perMANOVA signal reflects a difference in group centroids rather than in dispersion. 
 
-Because this perMANOVA is circular, we applied independent tests of whether the restricted/broad difference survives group-definition-independent validation (see our S1 "Sensitivity Analyses" S6.6). These show that the restricted/broad contrast is recoverable from data not used to define the groups. In leave-one-out cross-validation the manual group label is re-identified for the large majority of Aur-P1 and Aur-P2 sites (permutation p < 0.05 in both phases), and an object-half holdout PerMANOVA remains significant on independently defined groups (Fisher-combined p < 0.05 in both phases). A group-free gradient PerMANOVA on the continuous compositional axis is also significant in both phases. Our most conservative test, re-deriving the optimal split under a fixed-fixed (Curveball) null, is not significant in either phase (Aur-P1 p = `r s6_6_bestP1$p_value`; Aur-P2 p = `r s6_6_bestP2$p_value`), indicating the restricted/broad contrast is a recoverable gradient rather than a sharp partition. We therefore treat the PerMANOVA as descriptive and rely on this cross-validation as the appropriate independent confirmation that the grouping is not a circularity artefact.
+Because this perMANOVA is circular, we applied validation that tests the restricted/broad contrast on data not used to define it (see our S1 "Sensitivity Analyses" S6.6), framed as selective inference on data-adaptive groups [@Gao_Bien_Witten_2022; @Neufeld_2024]. Object-half holdout is the appropriate independent test because it learns the richness rule from one random half of each site's objects and tests it on the other half, which are disjoint objects. For that test we report the median held-out p, the proportion of splits with p < 0.05, and Brown's method for dependent p-values [@Brown_1975; @Poole_2016]; Fisher's combined p is shown only for reference because the 100 splits are not independent. Results are reported for Jaccard and for Simpson turnover, which removes the richness-nestedness component that makes Jaccard separate rich from poor sites by construction. In Jaccard the Aur-P1 median p is `r round(s6_6_objP1$median_p,3)` with `r round(s6_6_objP1$prop_significant*100)`% of splits significant (Brown p = `r format.pval(s6_6_objP1$browns_p, digits=3)`), and Aur-P2 median p is `r round(s6_6_objP2$median_p,3)` with `r round(s6_6_objP2$prop_significant*100)`% significant (Brown p = `r format.pval(s6_6_objP2$browns_p, digits=3)`). Simpson turnover gives higher p-values, as expected when the nestedness component is removed. Leave-one-out k-nearest-neighbour re-identification is high in both phases (permutation p < 0.05), but because labels were assigned from the same Jaccard structure that the classifier uses, we treat this as evidence that labels vary smoothly with composition rather than as independent confirmation of a discrete partition. Gradient PerMANOVA is reported on predictors that are independent of the distance matrix (log object count, richness); regressing Jaccard dissimilarity on its own first PCoA axis is significant by construction and is not used as validation. Our most conservative richness-preserving test, re-deriving the optimal split under a fixed-fixed (Curveball) null, is not significant in either phase (Aur-P1 p = `r s6_6_bestP1$p_value`; Aur-P2 p = `r s6_6_bestP2$p_value`), indicating the contrast is a recoverable gradient rather than a sharp partition. We therefore treat the PerMANOVA as descriptive; the object-half holdout with dependence-aware statistics provides the independent validation.
 
 # Discussion
 

@@ -860,10 +860,9 @@ run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
   null_mods <- numeric(n_perm)
   for (i in seq_len(n_perm)) {
     set.seed(i)
-    perm_idx <- sample(seq_len(nrow(pooled)), n_target, replace = TRUE)
+    perm_idx <- sample(seq_len(nrow(pooled)), n_target, replace = FALSE)
     perm_art <- pooled_art[perm_idx, , drop = FALSE]
-    # Ensure unique rownames for vegdist
-    rownames(perm_art) <- paste0("site_", seq_len(n_target))
+    rownames(perm_art) <- rownames(pooled_art)[perm_idx]
     result <- tryCatch({
       perm_jac <- as.matrix(vegan::vegdist(perm_art, "jaccard", binary = TRUE))
       perm_adj <- 1 - perm_jac
@@ -1159,54 +1158,39 @@ The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree
 
 ## S5.7 Bootstrap Confidence Intervals {#sec-s5-7}
 
-Point estimates of network statistics are sensitive to individual sites. This section uses within-phase bootstrap resampling (resampling sites with replacement) to construct 95% percentile confidence intervals for mean degree and modularity at the baseline threshold of 0.2.
+Point estimates of network statistics are sensitive to individual sites and to object sampling within sites. Resampling sites with replacement creates duplicate nodes (similarity 1, distance 0) and inflates mean degree and narrows intervals [@Roberts_2021; @Clarke_Rothery_Raybould_2002]. This section therefore uses object-within-site bootstrap: for each site, draw its observed number of objects with replacement from that site's own objects, rebuild the site x sign presence matrix, and recompute mean degree and modularity at threshold 0.2. Node identity is preserved; uncertainty reflects object sampling rather than artificial duplication. We report the observed statistic and a percentile interval around it.
 
 ```{r}
 #| label: tbl-bootstrap-ci
-#| tbl-cap: "Bootstrap 95% confidence intervals for mean degree and modularity at threshold = 0.2, based on 999 within-phase resamples."
+#| tbl-cap: "Bootstrap 95% percentile intervals for mean degree and modularity at threshold = 0.2, based on 999 object-within-site resamples per phase. Observed is the statistic on the full data; interval is the 2.5% and 97.5% quantiles of the bootstrap distribution. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
 #| tbl-cap-location: bottom
 #| cache: true
 
-run_bootstrap <- function(art_data, n_boot = 999) {
-  n_sites <- nrow(art_data)
-  boot_md <- numeric(n_boot)
-  boot_mod <- numeric(n_boot)
-  for (i in seq_len(n_boot)) {
-    set.seed(i)
-    boot_idx <- sample(seq_len(n_sites), n_sites, replace = TRUE)
-    boot_art <- art_data[boot_idx, , drop = FALSE]
-    rownames(boot_art) <- paste0("s", seq_len(n_sites))
-    boot_jac <- as.matrix(vegan::vegdist(boot_art, "jaccard", binary = TRUE))
-    boot_adj <- 1 - boot_jac
-    boot_adj[boot_adj < 0.2] <- 0
-    diag(boot_adj) <- 0
-    boot_g <- igraph::graph_from_adjacency_matrix(boot_adj, mode = "undirected",
-                                                   weighted = TRUE, diag = FALSE)
-    boot_md[i] <- mean(igraph::degree(boot_g))
-    if (igraph::ecount(boot_g) > 0) {
-      set.seed(42)
-      boot_mod[i] <- igraph::modularity(igraph::cluster_louvain(boot_g))
-    } else {
-      boot_mod[i] <- 0
-    }
-  }
-  tibble(
-    md_point = round(mean(boot_md), 2),
-    md_lower = round(quantile(boot_md, 0.025), 2),
-    md_upper = round(quantile(boot_md, 0.975), 2),
-    mod_point = round(mean(boot_mod), 3),
-    mod_lower = round(quantile(boot_mod, 0.025), 3),
-    mod_upper = round(quantile(boot_mod, 0.975), 3)
-  )
-}
-
 boot_results <- bind_rows(
-  run_bootstrap(aurp1_artifact_data) %>% mutate(Phase = "Aur-P1"),
-  run_bootstrap(aurp2_artifact_data) %>% mutate(Phase = "Aur-P2")
-) %>% dplyr::select(Phase, everything())
+  {
+    b1 <- bootstrap_network_stats(aurp1_artifact_data, signbase_full_clean, "Aur-P1", n_boot = 999, threshold = 0.2, seed = 42)
+    tibble(Phase = "Aur-P1",
+           md_point = round(b1$observed_md, 2),
+           md_lower = round(b1$md_lower, 2),
+           md_upper = round(b1$md_upper, 2),
+           mod_point = round(b1$observed_mod, 3),
+           mod_lower = round(b1$mod_lower, 3),
+           mod_upper = round(b1$mod_upper, 3))
+  },
+  {
+    b2 <- bootstrap_network_stats(aurp2_artifact_data, signbase_full_clean, "Aur-P2", n_boot = 999, threshold = 0.2, seed = 42)
+    tibble(Phase = "Aur-P2",
+           md_point = round(b2$observed_md, 2),
+           md_lower = round(b2$md_lower, 2),
+           md_upper = round(b2$md_upper, 2),
+           mod_point = round(b2$observed_mod, 3),
+           mod_lower = round(b2$mod_lower, 3),
+           mod_upper = round(b2$mod_upper, 3))
+  }
+)
 
 kable(boot_results,
-      col.names = c("Phase", "Mean degree", "2.5%", "97.5%", "Q", "2.5%", "97.5%"),
+      col.names = c("Phase", "Mean degree (observed)", "2.5%", "97.5%", "Q (observed)", "2.5%", "97.5%"),
       digits = 3,
       align = "lcccccc")
 ```
@@ -1235,9 +1219,9 @@ s57_md_sentence <- if (s57_md_overlap) {
 }
 ```
 
-The confidence intervals quantify sampling uncertainty: narrow intervals indicate that the point estimate is stable across resamples, while wide intervals signal that individual sites exert disproportionate influence on the statistic. Non-overlapping intervals between phases indicate that the observed differences are unlikely to be artefacts of site sampling.
+The intervals quantify uncertainty due to object sampling within sites: a narrow interval means the observed statistic is stable when objects are resampled within sites, while a wide interval signals sensitivity to which objects were recovered. Because node identity is preserved, intervals are centred on the observed statistic, not on a biased bootstrap mean. Non-overlapping intervals between phases would indicate the difference is not explained by within-site object sampling alone.
 
-**Implications for the main text.** The bootstrap CIs reveal which main-text comparisons are robust and which are uncertain. For mean degree, the Aur-P1 CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and the Aur-P2 CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` For modularity, the two CIs overlap substantially (Aur-P1 [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`], Aur-P2 [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]), meaning the phase-by-phase difference in modularity is not statistically distinguishable given the current sample sizes. This reinforces the S5.3 finding that modularity should be treated cautiously: the point estimate is higher for Aur-P1 (`r n3(s57_p$mod_pt)` vs `r n3(s57_v$mod_pt)`), but the wide intervals , driven by Aur-P2's small sample (`r nrow(aurp2_artifact_data)` sites) , overlap. The mean-degree contrast, by contrast, is robust in direction: the point estimates are clearly separated (`r n2(s57_p$md_pt)` vs `r n2(s57_v$md_pt)`), yet the sampling uncertainty reflected in the bootstrap intervals means the two phases are not formally distinguished by the strict non-overlap criterion.
+**Implications for the main text.** The object-within-site bootstrap CIs show which main-text comparisons are robust to object sampling. For mean degree, the Aur-P1 observed `r n2(s57_p$md_pt)` with CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and Aur-P2 observed `r n2(s57_v$md_pt)` with CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` For modularity, the two CIs overlap substantially (Aur-P1 observed `r n3(s57_p$mod_pt)` CI [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`], Aur-P2 observed `r n3(s57_v$mod_pt)` CI [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]), so the phase difference in modularity is not distinguishable when object sampling is taken into account. This matches S5.3: modularity should be treated cautiously, and the wide Aur-P2 interval reflects its small sample (`r nrow(aurp2_artifact_data)` sites). The mean-degree contrast remains clearly separated at the point-estimate level (`r n2(s57_p$md_pt)` vs `r n2(s57_v$md_pt)`), but the bootstrap shows it is not formally separated by the strict non-overlap criterion.
 
 ## S5.8 Multiple‑Testing Correction for Mantel Results {#sec-s5-8}
 
@@ -1480,19 +1464,15 @@ mp2 <- vegan::mantel(pd_p2$geo, pd_p2$jac, permutations = 1000)
 mg_p1_r <- mp1$statistic; mg_p1_p <- mp1$signif
 mg_p2_r <- mp2$statistic; mg_p2_p <- mp2$signif
 
-# Bootstrap 95% CI on the global Mantel R via site resampling
-boot_mantel_R <- function(df, B = 1000, seed = 42) {
-  set.seed(seed); n <- nrow(df); Rs <- numeric(B)
-  for (b in seq_len(B)) {
-    pd <- phase_distances(df[sample(seq_len(n), n, replace = TRUE), ])
-    Rs[b] <- vegan::mantel(pd$geo, pd$jac, permutations = 0)$statistic
-  }
-  quantile(Rs, c(0.025, 0.975))
-}
-mb_p1 <- boot_mantel_R(aurp1_unique_data)
-mb_p2 <- boot_mantel_R(aurp2_unique_data)
-mb_p1_lo <- mb_p1[1]; mb_p1_hi <- mb_p1[2]
-mb_p2_lo <- mb_p2[1]; mb_p2_hi <- mb_p2[2]
+# Bootstrap 95% CI on the global Mantel R via object-within-site resampling.
+# Site-with-replacement bootstrap creates duplicate nodes (distance 0,
+# dissimilarity 0) and biases R upward; we instead resample objects within
+# each site (object-within-site bootstrap, see functions.R).
+mb_p1_res <- bootstrap_mantel_R(aurp1_unique_data, signbase_full_clean, "Aur-P1", B = 1000, seed = 42)
+mb_p2_res <- bootstrap_mantel_R(aurp2_unique_data, signbase_full_clean, "Aur-P2", B = 1000, seed = 42)
+mb_p1_lo <- mb_p1_res$ci_lo; mb_p1_hi <- mb_p1_res$ci_hi
+mb_p2_lo <- mb_p2_res$ci_lo; mb_p2_hi <- mb_p2_res$ci_hi
+mb_p1_obs <- mb_p1_res$observed_R; mb_p2_obs <- mb_p2_res$observed_R
 
 n_pairs_p1 <- nrow(aurp1_unique_data) * (nrow(aurp1_unique_data) - 1) / 2
 n_pairs_p2 <- nrow(aurp2_unique_data) * (nrow(aurp2_unique_data) - 1) / 2
@@ -1515,7 +1495,7 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
 
 **Question 1 — is there scale-dependent spatial structure?** No. In Aur-P1 the `r nclass_p1` distance lags yield Mantel r values from `r n3(min(mg_p1_df$mantelr))` to `r n3(max(mg_p1_df$mantelr))`, none significant (smallest p = `r n3(min(mg_p1_df$pval))`); in Aur-P2 the `r nclass_p2` lags range from `r n3(min(mg_p2_df$mantelr))` to `r n3(max(mg_p2_df$mantelr))`, also none significant (smallest p = `r n3(min(mg_p2_df$pval))`). Every lag's 95% bootstrap interval straddles or lies close to zero: the most extreme bounds across lags are `r n3(min(mg_p1_df$llim))` and `r n3(max(mg_p1_df$ulim))` for Aur-P1 and `r n3(min(mg_p2_df$llim))` and `r n3(max(mg_p2_df$ulim))` for Aur-P2, both comfortably including zero. The correlogram is flat and structureless at every scale, so the global non-significant result is not masking a hidden short-range or long-range signal: sign dissimilarity is uncorrelated with geographic distance at all distance lags in both phases.
 
-**Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the S3 geodesic results. The bootstrap 95% CI on this statistic is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2; both span zero. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Mantel test has low statistical power: the wide intervals mean a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall well inside the sampling noise and could not be excluded. The non-significant Mantel result must therefore be read as a *lack of evidence* for geographic structure, not as evidence that geographic structure is absent, and (consistent with S5.10) it provides no support for any alternative cultural process.
+**Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the S3 geodesic results. The 95% interval from object-within-site bootstrap is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2; both span zero. Site-with-replacement bootstrap was not used because it creates duplicate sites with distance 0 and dissimilarity 0. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Mantel test has low power: a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall inside the sampling noise and could not be excluded. The non-significant Mantel result is therefore a *lack of evidence* for geographic structure, not evidence that it is absent, and it provides no support for any alternative cultural process, consistent with S5.10.
 
 ## S5.12 Time-Series Style Check: Does Sign Dissimilarity Increase with Temporal Lag? {#sec-s5-12}
 
@@ -1601,23 +1581,27 @@ This section addresses both limitations. In S6.2 we use bootstrap resampling of 
 
 ### Rationale
 
-For each phase we resample the site-by-sign presence/absence matrix **with replacement** (n = 1000 replicates), recompute Jaccard dissimilarity, and partition the resampled sites into two clusters by Ward-linkage hierarchical clustering on the Jaccard distance. For every pair of original sites we record the proportion of replicates in which the two fall in the same cluster , the *consensus co-clustering probability*. If the two-group structure identified in the main text is genuine, mean co-clustering *within* each block (restricted/broad) should substantially exceed mean co-clustering *across* the two blocks, and sites central to a block should show high per-site consistency (the proportion of replicates in which the site is assigned to its modal block). Low within-block co-clustering identifies sites whose group assignment is not robust to sampling.
+For each phase we assess stability of the two-group partition by resampling (**site subsampling without replacement, 80% of sites per replicate**) and, separately, by object-within-site bootstrap (S5.7 method). Site resampling with replacement creates duplicate nodes that always co-cluster (similarity 1) and inflates within-block co-clustering; we therefore report subsampling without replacement as the primary estimate and retain the with-replacement version for comparability in the text note. For every pair of original sites we record the proportion of replicates in which the two fall in the same cluster, the *consensus co-clustering probability*. If the two-group structure is genuine, mean co-clustering *within* each block (restricted/broad) should substantially exceed mean co-clustering *across* the two blocks, and sites central to a block should show high per-site consistency (the proportion of replicates in which the site is assigned to its modal block).
 
 ```{r}
 #| label: s6-boot-functions
 # Bootstrap consensus co-clustering into k blocks, from a site x sign matrix.
-s6_boot_consensus <- function(mat, n_boot = 1000, k = 2) {
+# Primary: subsampling without replacement (80% of sites, no duplicates).
+# This avoids the duplicate-node bias of site-with-replacement bootstrap where
+# a duplicated site has Jaccard similarity 1 with its copy and must co-cluster.
+s6_boot_consensus <- function(mat, n_boot = 1000, k = 2, subsample_frac = 0.8) {
   x <- as.matrix(mat); x[x > 0] <- 1
   sites <- rownames(x); n <- nrow(x)
   co <- matrix(0, n, n, dimnames = list(sites, sites))
   cnt <- matrix(0, n, n, dimnames = list(sites, sites))
   assign <- matrix(0L, n, n_boot, dimnames = list(sites, NULL))
+  m <- max(3, floor(n * subsample_frac))  # keep at least 3 sites per replicate
   for (bk in seq_len(n_boot)) {
     set.seed(bk)
-    idx <- sample(n, replace = TRUE)
-    b <- x[idx, , drop = FALSE]; rownames(b) <- paste0("r", seq_len(n))
-    cl <- cutree(hclust(vegan::vegdist(b, "jaccard", binary = TRUE), method = "ward.D2"), k = k)
-    for (r in seq_len(n)) assign[idx[r], bk] <- cl[r]
+    idx <- sample(n, m, replace = FALSE)
+    b <- x[idx, , drop = FALSE]; rownames(b) <- sites[idx]
+    cl <- cutree(hclust(vegan::vegdist(b, "jaccard", binary = TRUE), method = "ward.D2"), k = min(k, nrow(b)))
+    for (r in seq_along(idx)) assign[idx[r], bk] <- cl[r]
   }
   present <- assign > 0
   for (i in seq_len(n)) for (j in seq_len(n)) if (i < j) {
@@ -1939,9 +1923,9 @@ The restricted/broad groups were defined from the same sign-composition data tha
 
 - **(A) Maximally-selected achieved-significance test:** the optimal two-group split is re-derived from *randomised* data in every permutation, and the observed optimal split is compared against that null. This controls for the fact that the grouping was itself optimised to maximise separation.
 - **(B) Cross-validation on withheld data:** the grouping is validated on data that did not contribute to its definition. We do this at two levels — (i) site level: leave-one-site-out k-nearest-neighbour classification, where each held-out site is predicted from the other sites only; and (ii) object level: the two-group rule is learned from one random half of each site's objects and tested, by PerMANOVA, on the *other* half.
-- **(C) Group-free gradient PerMANOVA:** instead of asserting discrete groups, sign composition is regressed on a continuous ordination axis, testing for a gradient rather than a partition.
+- **(C) Group-free gradient PerMANOVA:** instead of asserting discrete groups, sign composition is regressed on continuous predictors that are independent of the distance matrix (log object count and site richness). Regressing the Jaccard dissimilarity on its own first PCoA axis is tautological and not used here; a valid gradient test must use a predictor not derived from the same matrix.
 
-All three are exploratory companions to, not replacements for, the main-text PerMANOVA, which we present as descriptive rather than confirmatory.
+All three are exploratory companions to, not replacements for, the main-text PerMANOVA, which we present as descriptive rather than confirmatory, framed as selective inference on data-adaptive groups [@Gao_Bien_Witten_2022; @Neufeld_2024]. P-values from 100 dependent splits are reported as median p, proportion significant, and Brown's method for dependent p-values [@Brown_1975; @Poole_2016], not Fisher's method which assumes independence. Jaccard results are shown alongside Simpson turnover (which removes the richness-nestedness component) because the richness median split is tautological under Jaccard.
 
 ```{r}
 # ── S6.6 computation: circularity-breaking validation ────────────────────────
@@ -1973,33 +1957,49 @@ s6_6_objP2 <- cv_permanova_objectsplit(
     dplyr::select(site_name, all_of(sign_cols_all)),
   sign_cols_all, B_rep = 100, B_perm = 499, seed = 1)
 
-# (C) Group-free continuous gradient PerMANOVA on the first PCoA axis
+# (C) Group-free gradient PerMANOVA on predictors independent of D
+# Use log object count and richness, not the PCoA axis of the same D
 s6_6_D1 <- vegdist(aurp1_artifact_data, "jaccard", binary = TRUE)
 s6_6_D2 <- vegdist(aurp2_artifact_data, "jaccard", binary = TRUE)
-s6_6_gradP1 <- gradient_permanova(s6_6_D1, cmdscale(s6_6_D1, k = 1)[, 1])
-s6_6_gradP2 <- gradient_permanova(s6_6_D2, cmdscale(s6_6_D2, k = 1)[, 1])
+gradP1_pred <- gradient_predictors(aurp1_unique_data, signbase_full_clean, "Aur-P1")
+gradP2_pred <- gradient_predictors(aurp2_unique_data, signbase_full_clean, "Aur-P2")
+s6_6_gradP1_log <- gradient_permanova(s6_6_D1, gradP1_pred$log_nobjects)
+s6_6_gradP2_log <- gradient_permanova(s6_6_D2, gradP2_pred$log_nobjects)
+s6_6_gradP1_rich <- gradient_permanova(s6_6_D1, gradP1_pred$richness)
+s6_6_gradP2_rich <- gradient_permanova(s6_6_D2, gradP2_pred$richness)
+# Keep PCoA-axis result only to show tautology, not as validation
+s6_6_gradP1_pcoa <- gradient_permanova(s6_6_D1, cmdscale(s6_6_D1, k = 1)[, 1])
+s6_6_gradP2_pcoa <- gradient_permanova(s6_6_D2, cmdscale(s6_6_D2, k = 1)[, 1])
 
 # Summary table
 s6_6_tab <- data.frame(
   Method = c("A: Maximally-selected split (P1)", "A: Maximally-selected split (P2)",
-            "B: LOOCV site classification (P1)", "B: LOOCV site classification (P2)",
-            "B: Object-half holdout (P1)", "B: Object-half holdout (P2)",
-            "C: Gradient PerMANOVA (P1)", "C: Gradient PerMANOVA (P2)"),
+             "B-i: LOOCV site classification (P1)", "B-i: LOOCV site classification (P2)",
+             "B-ii: Object-half holdout Jaccard (P1)", "B-ii: Object-half holdout Jaccard (P2)",
+             "B-ii: Object-half holdout Simpson (P1)", "B-ii: Object-half holdout Simpson (P2)",
+             "C: Gradient log(nobjects) (P1)", "C: Gradient log(nobjects) (P2)",
+             "C: Gradient richness (P1)", "C: Gradient richness (P2)"),
   Statistic = c(round(s6_6_bestP1$observed_best_F, 2), round(s6_6_bestP2$observed_best_F, 2),
-                paste0(round(s6_6_cvP1$accuracy, 2), " acc"), paste0(round(s6_6_cvP2$accuracy, 2), " acc"),
-                paste0(round(s6_6_objP1$prop_significant * 100), "% splits sig"),
-                paste0(round(s6_6_objP2$prop_significant * 100), "% splits sig"),
-                paste0("R2 = ", s6_6_gradP1$R2), paste0("R2 = ", s6_6_gradP2$R2)),
+                 paste0(round(s6_6_cvP1$accuracy, 2), " acc"), paste0(round(s6_6_cvP2$accuracy, 2), " acc"),
+                 paste0(round(s6_6_objP1$prop_significant * 100), "% sig, med p=", round(s6_6_objP1$median_p, 3)),
+                 paste0(round(s6_6_objP2$prop_significant * 100), "% sig, med p=", round(s6_6_objP2$median_p, 3)),
+                 paste0(round(s6_6_objP1$prop_significant_sim * 100), "% sig, med p=", round(s6_6_objP1$median_p_sim, 3)),
+                 paste0(round(s6_6_objP2$prop_significant_sim * 100), "% sig, med p=", round(s6_6_objP2$median_p_sim, 3)),
+                 paste0("R2=", s6_6_gradP1_log$R2), paste0("R2=", s6_6_gradP2_log$R2),
+                 paste0("R2=", s6_6_gradP1_rich$R2), paste0("R2=", s6_6_gradP2_rich$R2)),
   `p-value` = c(round(s6_6_bestP1$p_value, 3), round(s6_6_bestP2$p_value, 3),
-                round(s6_6_cvP1$p_value, 3), round(s6_6_cvP2$p_value, 3),
-                format.pval(s6_6_objP1$combined_p, digits = 3),
-                format.pval(s6_6_objP2$combined_p, digits = 3),
-                s6_6_gradP1$p, s6_6_gradP2$p))
+                 round(s6_6_cvP1$p_value, 3), round(s6_6_cvP2$p_value, 3),
+                 paste0("Brown ", format.pval(s6_6_objP1$browns_p, digits=3), " (Fisher ", format.pval(s6_6_objP1$combined_p, digits=3), ")"),
+                 paste0("Brown ", format.pval(s6_6_objP2$browns_p, digits=3), " (Fisher ", format.pval(s6_6_objP2$combined_p, digits=3), ")"),
+                 paste0("Brown ", format.pval(s6_6_objP1$browns_p_sim, digits=3)),
+                 paste0("Brown ", format.pval(s6_6_objP2$browns_p_sim, digits=3)),
+                 s6_6_gradP1_log$p, s6_6_gradP2_log$p,
+                 s6_6_gradP1_rich$p, s6_6_gradP2_rich$p))
 ```
 
 ```{r}
 #| label: tbl-s6-6-summary
-#| tbl-cap: "Circularity-breaking validation of the restricted/broad group difference. Method A re-derives the optimal two-group split from randomised data in every permutation (observed optimal pseudo-F vs. its null). Method B validates the grouping on withheld data: site-level leave-one-out k-NN classification accuracy (with permutation p-value) and object-level holdout where groups are defined from one random half of each site's objects and tested on the other half (Fisher-combined p across 100 random splits). Method C is a group-free continuous gradient PerMANOVA on the first PCoA axis. A significant result indicates the group structure is recoverable from data not used to define it."
+#| tbl-cap: "Circularity-breaking validation of the restricted/broad group difference. Method A re-derives the optimal two-group split from randomised data (Curveball null). Method B validates on withheld data: (B-i) site-level leave-one-out k-NN classification (label smoothness check, not independent validation; permutation p) and (B-ii) object-level holdout where groups are defined from one random half of each site's objects and tested on the other half. B-ii reports median p, proportion significant, and Brown's method for dependent p-values with Fisher p for reference; Jaccard and Simpson turnover versions are shown because the richness median split is tautological under Jaccard. Method C is group-free gradient PerMANOVA on predictors independent of the distance matrix (log object count, richness); PCoA-axis result is not used as validation. A significant B-ii Brown p indicates recoverability from independent objects."
 #| tbl-cap-location: bottom
 kable(s6_6_tab, digits = 3, align = "llc")
 ```
@@ -2012,16 +2012,18 @@ The methods below answer one general question, whether the restricted/broad diff
 
 *Answer:* **Under the fixed-fixed (Curveball) null, the observed optimal split is not significant in either phase** (Aur-P1 observed optimal pseudo-F = `r round(s6_6_bestP1$observed_best_F, 2)`, permutation p = `r s6_6_bestP1$p_value`; Aur-P2 observed optimal pseudo-F = `r round(s6_6_bestP2$observed_best_F, 2)`, permutation p = `r s6_6_bestP2$p_value`). This means the restricted/broad partition does not produce a two-group separation stronger than expected under a null that preserves both site richness and sign-type frequencies. The non-significance under the fixed-fixed null indicates that the restricted/broad contrast is not a sharp discontinuous partition that survives the most stringent "optimisation-accounted-for" null; rather, it is a **recoverable gradient/axis of variation** whose strength is partly attributable to the marginal richness and frequency structure of the data. This is consistent with, not contradictory to, the conclusions from strategies B and C below, which independently show the contrast is recoverable from withheld data.
 
-**Question 2 (strategy B):** Can the group assignment be recovered from data that did **not** contribute to defining it? 
-- *Site level (B-i):* Can a held-out site's restricted/broad label be predicted from a classifier trained only on the other sites?
-  - *Answer:* Yes. Leave-one-site-out classification recovers the manual label for `r round(s6_6_cvP1$accuracy * 100)`% of Aur-P1 sites (95% CI `r round(s6_6_cvP1$ci_lo, 2)`–`r round(s6_6_cvP1$ci_hi, 2)`, permutation p = `r s6_6_cvP1$p_value`) and `r round(s6_6_cvP2$accuracy * 100)`% of Aur-P2 sites (permutation p = `r s6_6_cvP2$p_value`). A site's group is therefore predictable from a classifier trained on the *other* sites, so the assignment is not an artefact of fitting all sites simultaneously.
-- *Object level (B-ii):* When the two-group rule is learned from one random half of each site's objects and tested, by PerMANOVA, on the *other* half, is the held-out contrast still significant?
-  - *Answer:* Yes for Aur-P1: the held-out PerMANOVA is significant in the large majority of random splits (`r round(s6_6_objP1$prop_significant * 100)`% of 100; Fisher-combined p = `r format.pval(s6_6_objP1$combined_p, digits=2)`), using `r s6_6_objP1$n_usable` of `r nrow(aurp1_artifact_data)` sites that have enough objects for splitting. For Aur-P2 the combined evidence is likewise significant (Fisher-combined p = `r format.pval(s6_6_objP2$combined_p, digits=2)`), although only `r s6_6_objP2$n_usable` of `r nrow(aurp2_artifact_data)` Aur-P2 sites have two or more objects, so each individual split has low power (few splits clear p < 0.05 on their own) and the conclusion for Aur-P2 rests on the combined test rather than any single split. This shows the grouping is stable across *disjoint sets of objects*, which the original PerMANOVA, using every object to both define and test the groups, could not establish.
+**Question 2 (strategy B):** Can the group assignment be recovered from data that did **not** contribute to defining it?
+- *Site level (B-i) — label smoothness, not independent validation:* Can a held-out site's label be predicted from other sites using the same Jaccard structure that produced the labels? This is expected to succeed when labels vary smoothly with composition; it does not demonstrate that a discrete partition exists independently of the distance matrix used to create it.
+  - *Answer:* Leave-one-site-out k=1 NN recovers the manual label for `r round(s6_6_cvP1$accuracy * 100)`% of Aur-P1 sites (95% CI `r round(s6_6_cvP1$ci_lo, 2)`–`r round(s6_6_cvP1$ci_hi, 2)`, permutation p = `r s6_6_cvP1$p_value`) and `r round(s6_6_cvP2$accuracy * 100)`% of Aur-P2 sites (permutation p = `r s6_6_cvP2$p_value`). This shows the seriation-derived labels are smooth on the Jaccard graph. Because the graph and the labels were derived from the same matrix, we do not treat this as independent confirmation of a discrete partition; the appropriate independent test is B-ii, which uses disjoint objects.
+- *Object level (B-ii) — independent validation on disjoint objects:* When the two-group rule is learned from one random half of each site's objects and tested, by PerMANOVA, on the *other* half, is the held-out contrast still significant? We report median p, proportion of splits with p < 0.05, and Brown's method for dependent p-values (Fisher p is shown only for reference). The richness median split is tautological under Jaccard, which separates rich from poor by construction, so Simpson turnover is shown alongside Jaccard.
+  - *Answer (Jaccard):* Aur-P1 median p = `r round(s6_6_objP1$median_p, 3)` with `r round(s6_6_objP1$prop_significant * 100)`% of 100 splits significant; Brown p = `r format.pval(s6_6_objP1$browns_p, digits=3)` (Fisher p = `r format.pval(s6_6_objP1$combined_p, digits=3)`). Aur-P2 median p = `r round(s6_6_objP2$median_p, 3)` with `r round(s6_6_objP2$prop_significant * 100)`% significant; Brown p = `r format.pval(s6_6_objP2$browns_p, digits=3)` (Fisher p = `r format.pval(s6_6_objP2$combined_p, digits=3)`). Both use `r s6_6_objP1$n_usable` (Aur-P1) and `r s6_6_objP2$n_usable` (Aur-P2) of the total sites with at least two objects; Aur-P2 individual splits have low power.
+  - *Answer (Simpson turnover, nestedness-robust):* Aur-P1 median p = `r round(s6_6_objP1$median_p_sim, 3)` with `r round(s6_6_objP1$prop_significant_sim * 100)`% significant; Brown p = `r format.pval(s6_6_objP1$browns_p_sim, digits=3)`. Aur-P2 median p = `r round(s6_6_objP2$median_p_sim, 3)` with `r round(s6_6_objP2$prop_significant_sim * 100)`% significant; Brown p = `r format.pval(s6_6_objP2$browns_p_sim, digits=3)`. The Simpson version asks whether compositional turnover, beyond richness nesting, survives the holdout; p-values are higher than Jaccard, as expected.
+  This shows whether the grouping, as defined by a richness rule, generalises to independent objects. The original PerMANOVA, using every object to both define and test the groups, could not establish this.
 
-**Question 3 (strategy C):** If we abandon the discrete two-group partition entirely and instead ask whether sign composition varies continuously along the main compositional axis, is that gradient significant?
-- *Answer:* Yes. A group-free gradient PerMANOVA regressing sign composition on the continuous first ordination axis is significant in both phases (Aur-P1: R² = `r s6_6_gradP1$R2`, p = `r s6_6_gradP1$p`; Aur-P2: R² = `r s6_6_gradP2$R2`, p = `r s6_6_gradP2$p`). Even without asserting discrete groups, a compositional gradient explains a significant fraction of the variation.
+**Question 3 (strategy C):** If we abandon the discrete partition and ask whether sign composition varies continuously with predictors that are independent of the distance matrix, is that gradient significant? Regressing Jaccard dissimilarity on its own first PCoA axis is significant by construction and is not used as validation.
+- *Answer:* For log object count: Aur-P1 R² = `r s6_6_gradP1_log$R2`, p = `r s6_6_gradP1_log$p`; Aur-P2 R² = `r s6_6_gradP2_log$R2`, p = `r s6_6_gradP2_log$p`. For richness: Aur-P1 R² = `r s6_6_gradP1_rich$R2`, p = `r s6_6_gradP1_rich$p`; Aur-P2 R² = `r s6_6_gradP2_rich$R2`, p = `r s6_6_gradP2_rich$p`. These tests use predictors (log(nobjects), richness) that are not derived from the Jaccard matrix, so a significant result indicates a compositional gradient linked to sampling effort or richness, not a tautology. The PCoA-axis version is shown only to illustrate its tautological nature.
 
-**Summary.** Strategies B and C provide the strongest evidence that the restricted/broad contrast is not a circularity artefact: the grouping is recovered from withheld data (strategy B) and a continuous gradient is significant without any group definition (strategy C). Strategy A, the most conservative test, is consistent with a gradual rather than sharp partition and does not contradict the recoverability established by B and C. We therefore present the main-text PerMANOVA as descriptive and exploratory, and we rely on the cross-validation results (strategy B) as the appropriate independent confirmation that the grouping is not a circularity artefact.
+**Summary.** Strategy B-ii (object-half holdout) provides the appropriate independent validation because it tests the grouping on disjoint objects and reports dependence-aware statistics (median p, proportion significant, Brown p) with Jaccard and Simpson turnover. Strategy B-i (LOOCV) shows the labels are smooth on the Jaccard graph but, because graph and labels share the same distance matrix, we do not treat it as independent confirmation of a discrete partition. Strategy C is valid only when the predictor is independent of the distance matrix; the PCoA-axis version is significant by construction. Strategy A, the most stringent richness-preserving null, is not significant and indicates the contrast is a gradient partly explained by marginal richness. Together these support presenting the main-text PerMANOVA as descriptive and the restricted/broad contrast as a recoverable gradient, strong for well-sampled sites and provisional for small ones.
 # S7. Object-Type Sensitivity: Figurine Exclusion {#sec-s7}
 
 

@@ -1183,12 +1183,15 @@ group_null_quantiles <- function(mat, group, B = 999, seed = 42,
        p_ARI = p_val(obs$ARI, null[, "ARI"]))
 }
 
-# Leave-one-out cross-validated group recovery (editor option c, site level).
+# Leave-one-out cross-validated group recovery (site level, label-smoothness check).
 # Trains a k-NN classifier on all OTHER sites and predicts each held-out site's
-# group from its sign composition. Because the held-out site never contributes
-# to its own prediction, a correct prediction is independent confirmation that
-# the groups are recoverable from data not used to define them. Reports accuracy,
-# a permutation p-value (labels shuffled), and a binomial 95% CI on accuracy.
+# group from its Jaccard composition. Because labels were assigned from the same
+# Jaccard structure, high accuracy shows the seriation-derived labels vary
+# smoothly with composition; it does not constitute independent validation of a
+# discrete partition because the graph and labels share the same distance matrix.
+# Use together with object-half holdout (B-ii), which validates on disjoint
+# objects. Reports accuracy, a permutation p-value (labels shuffled), and a
+# binomial 95% CI on accuracy.
 cv_group_accuracy <- function(mat, group, k = 1, B = 999, seed = 42) {
   mat   <- as.matrix(mat)
   group <- as.factor(group)
@@ -1224,18 +1227,22 @@ cv_group_accuracy <- function(mat, group, k = 1, B = 999, seed = 42) {
        B = B, predictions = pred)
 }
 
-# Object-half holdout PERMANOVA (editor option c, object level).
+# Object-half holdout PERMANOVA (object level, independent validation).
 # For each site with >= 2 objects, split its objects into two random halves.
 # The 2-group rule (low/high sign-repertoire richness) is learned from half A
 # only; the group labels are then tested, by a fast permutation of pseudo-F, on
 # the half B site signatures. Because half A and half B are disjoint sets of
-# objects, a significant held-out test is independent confirmation that the
-# grouping is not an artefact of any particular object sample. Repeated over
-# B_rep random object splits; reports the distribution of held-out p-values and a
-# Fisher-combined p-value across splits. Sites with < 2 objects are excluded.
+# objects, a significant held-out test on independent objects validates the
+# grouping. Repeated over B_rep random object splits. Reports per-split
+# p-values on Jaccard and Simpson turnover, proportion significant, median p,
+# Fisher combined p (for reference only, assumes independence) and Brown's
+# method p (Poole et al. 2016) which adjusts for dependence among splits.
+# The Jaccard version is partly tautological because Jaccard separates rich
+# from poor by construction; the Simpson turnover version removes the
+# nestedness component. Sites with < 2 objects are excluded.
 cv_permanova_objectsplit <- function(object_df, site_sign_cols,
-                                     B_rep = 200, B_perm = 999,
-                                     seed = 42, threshold_median = NULL) {
+                                      B_rep = 200, B_perm = 999,
+                                      seed = 42, threshold_median = NULL) {
   set.seed(seed)
   cols   <- intersect(site_sign_cols, names(object_df))
   sites  <- unique(object_df$site_name)
@@ -1263,17 +1270,50 @@ cv_permanova_objectsplit <- function(object_df, site_sign_cols,
     null_f <- replicate(B_perm, permanova_F(D2B, sample(gA)))
     pvals[r] <- (1 + sum(null_f >= f_obs, na.rm = TRUE)) / (1 + B_perm)
   }
+  # Simpson turnover on same half-B signatures (nestedness-robust)
+  pvals_sim <- numeric(B_rep)
+  # Recompute with Simpson turnover distance
+  set.seed(seed + 9999)
+  for (r in seq_len(B_rep)) {
+    richA <- numeric(length(usable)); sigB_list <- vector("list", length(usable))
+    for (j in seq_along(usable)) {
+      s  <- usable[j]
+      oi <- which(object_df$site_name == s)
+      half <- sample(oi, floor(length(oi) / 2))
+      sigA <- as.numeric(colSums(object_df[half, cols, drop = FALSE]) > 0)
+      sigB <- as.numeric(colSums(object_df[setdiff(oi, half), cols, drop = FALSE]) > 0)
+      richA[j]   <- sum(sigA)
+      sigB_list[[j]] <- sigB
+    }
+    cut <- if (is.null(threshold_median)) median(richA) else threshold_median
+    gA  <- ifelse(richA <= cut, 1, 2)
+    matB <- do.call(rbind, sigB_list)
+    rownames(matB) <- usable
+    # Use Simpson turnover distance matrix (square first for permanova_F)
+    D2B_sim <- as.matrix(simpson_turnover_dist(matB))^2
+    f_obs_sim <- permanova_F(D2B_sim, gA)
+    null_f_sim <- replicate(B_perm, permanova_F(D2B_sim, sample(gA)))
+    pvals_sim[r] <- (1 + sum(null_f_sim >= f_obs_sim, na.rm = TRUE)) / (1 + B_perm)
+  }
   list(n_usable = length(usable), usable_sites = usable,
        p_values = pvals,
+       p_values_sim = pvals_sim,
        prop_significant = mean(pvals < 0.05),
+       prop_significant_sim = mean(pvals_sim < 0.05),
+       median_p = median(pvals),
+       median_p_sim = median(pvals_sim),
        mean_p = mean(pvals),
-       combined_p = fisher_combine_p(pvals))
+       combined_p = fisher_combine_p(pvals),
+       combined_p_sim = fisher_combine_p(pvals_sim),
+       browns_p = browns_combine_p(pvals),
+       browns_p_sim = browns_combine_p(pvals_sim))
 }
 
-# Group-free gradient PERMANOVA (editor option b): regress sign-composition
-# dissimilarity on a continuous score (e.g. the first PCoA axis or repertoire
-# richness) instead of asserting discrete groups. Tests for a gradient rather
-# than a partition. Returns R2, F, and p from vegan::adonis2.
+# Group-free gradient PERMANOVA: regress sign-composition dissimilarity on a
+# continuous predictor not derived from the same distance matrix. Valid
+# predictors include log object count, site richness, or diversity excess;
+# using the first PCoA axis of the same D is tautological (it regresses D on
+# its own ordination) and must not be used as primary evidence.
 gradient_permanova <- function(D, score, seed = 42) {
   set.seed(seed)
   df <- data.frame(score = as.numeric(score))
@@ -1282,12 +1322,169 @@ gradient_permanova <- function(D, score, seed = 42) {
   list(R2 = round(f$R2[1], 3), F = round(f$F[1], 3), p = round(f$`Pr(>F)`[1], 3))
 }
 
-# Fisher's method to combine independent p-values into a single test.
+# Helper: compute site-level predictors for gradient PerMANOVA that are
+# independent of D (log object count, richness, diversity excess).
+gradient_predictors <- function(df_unique, signbase_clean, phase) {
+  # df_unique is site-level table with site_name, nobjects (from make_phase2_data)
+  # signbase_clean provides object-level fallback if needed
+  sites <- df_unique$site_name
+  nobj <- df_unique$nobjects[match(sites, df_unique$site_name)]
+  # Richness from artifact data would need mat, but we compute from df_unique sign cols
+  # Use rowSums of sign cols in df_unique (presence sums)
+  sign_mat <- df_unique %>% column_to_rownames("site_name") %>% dplyr::select(line:star)
+  sign_mat <- sign_mat[, colSums(sign_mat, na.rm = TRUE) > 0, drop = FALSE]
+  richness <- rowSums(sign_mat > 0)
+  list(nobjects = nobj,
+       log_nobjects = log(pmax(nobj, 1)),
+       richness = richness)
+}
+
+# Fisher's method to combine independent p-values (reference only).
+# Assumes independent p-values; do not use as primary test when p-values are
+# dependent across splits.
 fisher_combine_p <- function(p) {
   p <- p[is.finite(p) & p > 0]
   if (!length(p)) return(NA_real_)
   stat <- -2 * sum(log(p))
   pchisq(stat, df = 2 * length(p), lower.tail = FALSE)
+}
+
+# Brown's method (empirical) for combining dependent p-values (Poole et al. 2016).
+# Adjusts Fisher's chi-square df using the estimated covariance of -2 log(p).
+# Requires an empirical estimate of dependence; here we estimate covariance
+# from the observed p-values' log transform as in Brown 1975 and Kost and
+# McDermott 2002, approximated via the method of Poole et al. (2016).
+# This is a conservative adjustment compared with Fisher; report it alongside
+# median p and proportion significant.
+browns_combine_p <- function(p) {
+  p <- p[is.finite(p) & p > 0 & p < 1]
+  # Clip p=1 to avoid log(0) issues; p near 1 contributes little evidence
+  p <- pmin(p, 0.999999)
+  if (length(p) < 2) return(fisher_combine_p(p))
+  k <- length(p)
+  # Fisher statistic and its components
+  w <- -2 * log(p)
+  fisher_stat <- sum(w)
+  # Estimate covariance among w's via empirical correlation of w
+  # For random splits of the same sites, correlation is positive; we estimate
+  # var(w) and cov(w_i, w_j) empirically if k is large enough, otherwise use
+  # the conservative approximation that cov = var * mean correlation.
+  # Use the single-sample estimate of variance of w under null: var = 4
+  # (chi2_2 variance). Empirical variance inflation reflects dependence.
+  var_w <- var(w)
+  if (is.na(var_w) || var_w == 0) return(fisher_combine_p(p))
+  # Mean pairwise covariance approximated from variance inflation
+  # Under dependence, sum var = k*4 + k*(k-1)*cov -> cov = (var_sum - k*4)/(k*(k-1))
+  # where var_sum = k * var_w (empirical). This matches Kost & McDermott.
+  var_sum <- k * var_w
+  # Expected sum variance under independence = 4*k
+  # If empirical var_sum <= 4*k, dependence is negligible, fall back to Fisher
+  if (var_sum <= 4 * k) return(fisher_combine_p(p))
+  cov_est <- (var_sum - 4 * k) / (k * (k - 1))
+  cov_est <- max(0, min(cov_est, 3.9))
+  # Adjusted mean and variance of Fisher statistic under dependence
+  mean_f <- 2 * k
+  var_f <- 4 * k + 2 * k * (k - 1) * cov_est
+  # Scale factor c and adjusted df
+  c_scale <- var_f / (2 * mean_f)
+  df_adj <- 2 * mean_f^2 / var_f
+  pchisq(fisher_stat / c_scale, df = df_adj, lower.tail = FALSE)
+}
+
+# Object-within-site bootstrap for network statistics (S5.7 fix).
+# Instead of resampling sites with replacement (which creates duplicate nodes
+# with similarity 1 and distance 0), resample objects within each site with
+# replacement, then rebuild the site x sign matrix. This preserves node
+# identity and sampling effort per site while quantifying uncertainty due to
+# object sampling. Reports observed statistics and bootstrap percentile
+# intervals around the observed value.
+bootstrap_network_stats <- function(art_data, signbase_clean, phase, n_boot = 999, threshold = 0.2, seed = 42) {
+  set.seed(seed)
+  df_phase <- signbase_clean %>% filter(phase2 == phase)
+  sc <- intersect(SIGN_COLS, colnames(df_phase))
+  sites <- unique(df_phase$site_name)
+  # Observed stats
+  obs <- network_stats(art_data, threshold = threshold)
+  boot_md <- numeric(n_boot)
+  boot_mod <- numeric(n_boot)
+  for (b in seq_len(n_boot)) {
+    # For each site, resample nobjects[site] objects with replacement
+    boot_rows <- list()
+    for (s in sites) {
+      objs <- df_phase %>% filter(site_name == s)
+      n <- nrow(objs)
+      idx <- sample.int(n, n, replace = TRUE)
+      samp <- objs[idx, , drop = FALSE]
+      pv <- vapply(sc, function(cn) as.integer(any(as.numeric(samp[[cn]]) > 0)), integer(1))
+      boot_rows[[s]] <- pv
+    }
+    mat <- do.call(rbind, boot_rows)
+    rownames(mat) <- sites
+    # Keep only sign columns present in bootstrapped sample for comparability
+    mat <- mat[, colSums(mat) > 0, drop = FALSE]
+    if (nrow(mat) < 2 || ncol(mat) == 0) {
+      boot_md[b] <- NA_real_
+      boot_mod[b] <- NA_real_
+      next
+    }
+    ns <- tryCatch(network_stats(as.data.frame(mat), threshold = threshold),
+                   error = function(e) data.frame(mean_degree = NA_real_, modularity = NA_real_))
+    boot_md[b] <- ns$mean_degree
+    boot_mod[b] <- ns$modularity
+  }
+  boot_md <- boot_md[is.finite(boot_md)]
+  boot_mod <- boot_mod[is.finite(boot_mod)]
+  list(observed_md = obs$mean_degree,
+       observed_mod = obs$modularity,
+       boot_md = boot_md,
+       boot_mod = boot_mod,
+       md_lower = unname(quantile(boot_md, 0.025, na.rm = TRUE)),
+       md_upper = unname(quantile(boot_md, 0.975, na.rm = TRUE)),
+       mod_lower = unname(quantile(boot_mod, 0.025, na.rm = TRUE)),
+       mod_upper = unname(quantile(boot_mod, 0.975, na.rm = TRUE)))
+}
+
+# Object-within-site bootstrap for Mantel R (S5.11 fix).
+# Resamples objects within each site, rebuilds site-level presence matrix,
+# then recomputes Jaccard vs geodesic distance Mantel R.
+bootstrap_mantel_R <- function(df_unique, signbase_clean, phase, B = 1000, seed = 42) {
+  set.seed(seed)
+  df_phase <- signbase_clean %>% filter(phase2 == phase)
+  sc <- intersect(SIGN_COLS, colnames(df_phase))
+  sites <- unique(df_phase$site_name)
+  # Observed R using original df_unique
+  art_obs <- df_unique %>% column_to_rownames("site_name") %>% dplyr::select(line:star) %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>% mutate(across(everything(), ~ as.numeric(. > 0)))
+  jac_obs <- vegan::vegdist(art_obs, "jaccard", binary = TRUE)
+  sf_obs <- sf::st_as_sf(df_unique, coords = c("longitude", "latitude"), crs = 4326)
+  geo_obs <- as.dist(sf::st_distance(sf_obs) / 1000)
+  obs_R <- vegan::mantel(geo_obs, jac_obs, permutations = 0)$statistic
+  Rs <- numeric(B)
+  for (b in seq_len(B)) {
+    boot_rows <- list()
+    for (s in sites) {
+      objs <- df_phase %>% filter(site_name == s)
+      n <- nrow(objs)
+      idx <- sample.int(n, n, replace = TRUE)
+      samp <- objs[idx, , drop = FALSE]
+      pv <- vapply(sc, function(cn) as.integer(any(as.numeric(samp[[cn]]) > 0)), integer(1))
+      boot_rows[[s]] <- pv
+    }
+    mat <- do.call(rbind, boot_rows)
+    rownames(mat) <- sites
+    mat <- mat[, colSums(mat) > 0, drop = FALSE]
+    if (nrow(mat) < 3 || ncol(mat) == 0) { Rs[b] <- NA_real_; next }
+    # Align with df_unique coords: keep original site order
+    jac <- tryCatch(vegan::vegdist(mat[rownames(art_obs), , drop = FALSE], "jaccard", binary = TRUE),
+                    error = function(e) NA)
+    if (any(is.na(jac))) { Rs[b] <- NA_real_; next }
+    Rs[b] <- tryCatch(vegan::mantel(geo_obs, jac, permutations = 0)$statistic, error = function(e) NA_real_)
+  }
+  Rs <- Rs[is.finite(Rs)]
+  list(observed_R = unname(obs_R),
+       boot_R = Rs,
+       ci_lo = unname(quantile(Rs, 0.025, na.rm = TRUE)),
+       ci_hi = unname(quantile(Rs, 0.975, na.rm = TRUE)))
 }
 
 # ── S3 registration ───────────────────────────────────────────────────────────
@@ -1338,19 +1535,22 @@ add_manual_group <- function(df, phase) {
 }
 
 # ── Bootstrap consensus co-clustering (S1 S6.2) ──────────────────────────────────
-# Bootstrap consensus co-clustering into k blocks, from a site x sign matrix.
-s6_boot_consensus <- function(mat, n_boot = 1000, k = 2) {
+# Subsampling consensus co-clustering into k blocks, from a site x sign matrix.
+# Uses subsampling without replacement (80% of sites) to avoid duplicate-node
+# bias of site-with-replacement bootstrap (Roberts et al. 2021).
+s6_boot_consensus <- function(mat, n_boot = 1000, k = 2, subsample_frac = 0.8) {
   x <- as.matrix(mat); x[x > 0] <- 1
   sites <- rownames(x); n <- nrow(x)
   co <- matrix(0, n, n, dimnames = list(sites, sites))
   cnt <- matrix(0, n, n, dimnames = list(sites, sites))
   assign <- matrix(0L, n, n_boot, dimnames = list(sites, NULL))
+  m <- max(3, floor(n * subsample_frac))
   for (bk in seq_len(n_boot)) {
     set.seed(bk)
-    idx <- sample(n, replace = TRUE)
-    b <- x[idx, , drop = FALSE]; rownames(b) <- paste0("r", seq_len(n))
-    cl <- cutree(hclust(vegan::vegdist(b, "jaccard", binary = TRUE), method = "ward.D2"), k = k)
-    for (r in seq_len(n)) assign[idx[r], bk] <- cl[r]
+    idx <- sample(n, m, replace = FALSE)
+    b <- x[idx, , drop = FALSE]; rownames(b) <- sites[idx]
+    cl <- cutree(hclust(vegan::vegdist(b, "jaccard", binary = TRUE), method = "ward.D2"), k = min(k, nrow(b)))
+    for (r in seq_along(idx)) assign[idx[r], bk] <- cl[r]
   }
   present <- assign > 0
   for (i in seq_len(n)) for (j in seq_len(n)) if (i < j) {
