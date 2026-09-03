@@ -66,18 +66,21 @@ signbase_full <- read.csv(here("data/signBase_Version1.0.csv"), header = TRUE)
 # Source shared functions (includes clean_signbase with corrected date parsing)
 source(here("paper/functions.R"))
 
-signbase_full_clean <- clean_signbase(signbase_full)
+signbase_full_clean <- clean_signbase(signbase_full, date_variant = "older")
 ```
 
 ```{r}
 #| label: assign-phases
-# Date-based phase thresholds (conventional round numbers)
-# Proto-Aurignacian:  > 39,799 BP
-# Early Aurignacian:  37,799–39,799 BP
-# Evolved Aurignacian: 31,999–37,799 BP
-# These three-phase labels are then collapsed to the two-phase (Aur-P1/Aur-P2)
-# scheme used in the main analysis: Aur-P1 = Proto + Early, Aur-P2 = Evolved/Late.
+# NOTE: Phase assignment mirrors paper/functions.R clean_signbase case_when
+# (single source of truth). Duplicated here only to document the S2 table
+# derivation step-by-step; any change must be mirrored in functions.R.
+# Main baseline uses date_variant="older" so the report-based Aur-P1 20 /
+# Aur-P2 9 partition matches frozen manual_groups. Midpoint/younger are
+# explored as sensitivity in S1.
 
+# Re-apply the same technology overrides + date thresholds as in functions.R
+# (S2 re-derives for documentation, but the object table already carries
+# phase2 from clean_signbase).
 signbase_full_clean <- signbase_full_clean %>%
   mutate(time_period = case_when(
     # --- Exclusions (mixed assemblages) ---
@@ -100,7 +103,7 @@ signbase_full_clean <- signbase_full_clean %>%
     site_name == "Mladeč"            ~ "evolved_aurignacian",
     # --- Override: Gatzarria Cjn2 is Proto-Aurignacian ---
     site_name == "Gatzarria"         ~ "proto_aurignacian",
-    # --- Default: date-based assignment ---
+    # --- Default: date-based assignment (older variant for main) ---
     MedianBP > 39799 ~ "proto_aurignacian",
     MedianBP > 37799 ~ "early_aurignacian",
     MedianBP > 31999 ~ "evolved_aurignacian"

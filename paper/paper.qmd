@@ -72,7 +72,7 @@ ncountries <- signbase_full %>%
   length()
 nsigntypes <- ncol(signbase_full)
 
-signbase_full_clean <- clean_signbase(signbase_full)
+signbase_full_clean <- clean_signbase(signbase_full, date_variant = "older")
 lat_long_df <- site_latlong(signbase_full_clean)
 
 nsites_clean <- signbase_full_clean %>% 
@@ -824,6 +824,13 @@ aurp2_bd <- run_betadisper(aurp2_unique_data, as.numeric(aurp2_unique_data$group
 # Extract p-values for inline reporting
 aurp1_bd_p <- aurp1_bd$p_value
 aurp2_bd_p <- aurp2_bd$p_value
+
+# S6.6 maximally-selected split under fixed-fixed Curveball null (for inline p-values)
+# Mirrors S1 S6.6(A); computed here so `r s6_6_bestP1$p_value` resolves in paper.qmd
+aurp1_grp <- aurp1_unique_data$group[match(rownames(aurp1_artifact_data), aurp1_unique_data$site_name)]
+aurp2_grp <- aurp2_unique_data$group[match(rownames(aurp2_artifact_data), aurp2_unique_data$site_name)]
+s6_6_bestP1 <- best_split_permtest(aurp1_artifact_data, group = aurp1_grp, B = 999, seed = 1, null_type = "curveball")
+s6_6_bestP2 <- best_split_permtest(aurp2_artifact_data, group = aurp2_grp, B = 999, seed = 1, null_type = "curveball")
 ```
 
 Because the restricted/broad groups were defined from the same sign data used for the perMANOVA, it is exploratory only. PerMANOVA attributes approximately `r aurp1_perm_r` of the variance in sign composition to the restricted/broad grouping in the Aur-P1 phase and `r aurp2_perm_r` in the Aur-P2 phase (@tbl-strength-table). The pseudo-F statistic is larger for Aur-P1 (F = `r aurp1_perm_f`) than for Aur-P2 (F = `r aurp2_perm_f`), indicating a stronger nominal separation in the early phase. The betadisper test for homogeneity of multivariate dispersions shows that group dispersion does not differ significantly between restricted and broad groups in either phase (Aur-P1: p = `r aurp1_bd_p`, Aur-P2: p = `r aurp2_bd_p`), so for Aur-P1 the perMANOVA signal reflects a difference in group centroids rather than in dispersion. 

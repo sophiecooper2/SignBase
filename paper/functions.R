@@ -74,13 +74,15 @@ clean_signbase <- function(signbase_full, date_variant = c("midpoint", "older", 
       parts = str_split(date_str, " - "),
       date_max = map_chr(parts, 1),
       date_min = map_chr(parts, ~ ifelse(length(.x) > 1, .x[2], .x[1])),
-      # Extract age and error from each end
+      # Extract age and error from each end (allow space after ±, e.g. "33000± 400")
       max_age = str_extract(date_max, "^[0-9.]+"),
-      max_err = str_extract(date_max, "±([0-9.]+)"),
+      max_err = str_extract(date_max, "±\\s*([0-9.]+)"),
       max_err = str_remove(max_err, "±"),
+      max_err = str_trim(max_err),
       min_age = str_extract(date_min, "^[0-9.]+"),
-      min_err = str_extract(date_min, "±([0-9.]+)"),
-      min_err = str_remove(min_err, "±")
+      min_err = str_extract(date_min, "±\\s*([0-9.]+)"),
+      min_err = str_remove(min_err, "±"),
+      min_err = str_trim(min_err)
     ) %>%
     mutate(
       max_age = parse_number(max_age),
@@ -1246,17 +1248,23 @@ s6_boot_consensus <- function(mat, n_boot = 1000, k = 2) {
 
 # Compute bootstrap consensus co-clustering summary for both phases.
 # Returns a data frame with Within_restricted, Within_broad, Overall_within, Across per phase.
+# manual_groups is frozen source of truth (S2 reports); date_variant sensitivity may
+# leave sites without a group (NA). Filter to valid groups so variant runs don't error.
 s6_bootstrap_summary <- function(art_list, groups_list, n_boot = 1000) {
   boot <- lapply(art_list, s6_boot_consensus, n_boot = n_boot)
   tri  <- function(m) m[upper.tri(m)]
   map_dfr(names(boot), function(ph) {
     cs  <- boot[[ph]]$consensus
     sit <- rownames(cs); g <- groups_list[[ph]][sit]
-    wr  <- mean(tri(cs[sit[g == 1], sit[g == 1]]), na.rm = TRUE)
-    wb  <- mean(tri(cs[sit[g == 2], sit[g == 2]]), na.rm = TRUE)
-    xr  <- mean(cs[sit[g == 1], sit[g == 2]], na.rm = TRUE)
-    nr  <- sum(g == 1); nb <- sum(g == 2)
-    ov  <- (choose(nr, 2) * wr + choose(nb, 2) * wb) / (choose(nr, 2) + choose(nb, 2))
+    valid <- !is.na(g) & g %in% c(1, 2)
+    sit <- sit[valid]; g <- g[valid]
+    # Guard: need >=2 sites per group to compute within-block means
+    wr <- if (sum(g == 1) >= 2) mean(tri(cs[sit[g == 1], sit[g == 1], drop = FALSE]), na.rm = TRUE) else NA_real_
+    wb <- if (sum(g == 2) >= 2) mean(tri(cs[sit[g == 2], sit[g == 2], drop = FALSE]), na.rm = TRUE) else NA_real_
+    xr <- if (sum(g == 1) >= 1 && sum(g == 2) >= 1) mean(cs[sit[g == 1], sit[g == 2], drop = FALSE], na.rm = TRUE) else NA_real_
+    nr  <- sum(g == 1, na.rm = TRUE); nb <- sum(g == 2, na.rm = TRUE)
+    ov  <- if (!is.na(wr) && !is.na(wb) && (choose(nr, 2) + choose(nb, 2)) > 0)
+             (choose(nr, 2) * wr + choose(nb, 2) * wb) / (choose(nr, 2) + choose(nb, 2)) else NA_real_
     data.frame(Phase = ph, Restricted_n = nr, Broad_n = nb,
                Within_restricted = round(wr, 2), Within_broad = round(wb, 2),
                Overall_within = round(ov, 2), Across = round(xr, 2),

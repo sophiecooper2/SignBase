@@ -49,8 +49,8 @@ In the main analysis, edges in the site-to-site networks are drawn only when two
 To confirm that the primary findings reported in the main text are not an artefact of this specific cutoff, we repeated all network analyses at two alternative thresholds , 0.1 (permissive) and 0.3 (conservative) , and compared the key network statistics and visual structure against the main-text threshold of 0.2.
 
 ```{r setup}
-library(MASS)
 library(tidyverse)
+library(MASS)
 library(readxl)
 library(vegan)
 library(sf)
@@ -67,8 +67,11 @@ library(ecodist)
 source(here::here("paper/functions.R"))  # shared function library
 
 # ── Reproduce the data-cleaning pipeline from paper.qmd (single source: functions.R) ──
+# Main baseline uses date_variant="older" to reproduce the report-based
+# Aur-P1 20 / Aur-P2 9 partition that matches frozen manual_groups (S2).
+# The date_variant loop below explores midpoint/younger as sensitivity.
 signbase_full <- read_csv(here::here("data/signBase_Version1.0.csv"))
-signbase_full_clean <- clean_signbase(signbase_full)
+signbase_full_clean <- clean_signbase(signbase_full, date_variant = "older")
 lat_long_df <- site_latlong(signbase_full_clean)
 
 # ── Date-variant sensitivity: re-run with older, midpoint, younger variants ──────
@@ -86,8 +89,8 @@ variant_results <- map(date_variants, function(v) {
     group_by(site_name) %>%
     summarise(MedianBP = median(MedianBP, na.rm = TRUE), .groups = "drop") %>%
     left_join(
-      bind_rows(p1 %>% select(site_name, Phase = time_period),
-                p2 %>% select(site_name, Phase = time_period)),
+      bind_rows(p1 %>% dplyr::select(site_name, Phase = time_period),
+                p2 %>% dplyr::select(site_name, Phase = time_period)),
       by = "site_name"
     ) %>%
     mutate(Phase = ifelse(Phase %in% c("proto_aurignacian", "early_aurignacian"),
@@ -138,7 +141,7 @@ kable(changing_sites,
       align = "lrclrclc")
 ```
 
-**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the original analysis) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2. The midpoint variant (used in the main analysis) gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase. Sensitivity analyses S5.5, S5.10, S5.12, and S8 should be re-evaluated under each variant; the main text uses the midpoint variant as a compromise.
+**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms the review's finding that the original single-end calibration systematically biases sites toward the older phase. Sensitivity analyses S5.5, S5.10, S5.12, and S8 should be re-evaluated under each variant; the main text uses the older variant to match the report-based partition (midpoint/younger explored as sensitivity).
 
 
 ```{r}
