@@ -2238,9 +2238,10 @@ The main-text and supplementary analyses establish the restricted/broad (R/B) di
 
 1. **(S9.2)** When objects are resampled to a common count and the network and Louvain partition are re-derived, how often does each site keep its original R/B assignment, and how stable is the community structure?
 2. **(S9.3)** At equal *sample coverage* (rather than equal object count), do restricted and broad sites still differ in sign-type richness?
-3. **(S9.4)** Does the group effect on sign-type richness survive after statistically accounting for object count (sampling effort)?
-4. **(S9.5)** At equal effort with `iNEXT` (incidence_raw), does the Aur-P1 vs Aur-P2 sign-type pool (26 vs 15) remain larger, or is it not distinguishable from sampling variation at 63 objects, including when restricted to object types present in both phases?
+3. **(S9.4)** Does the group effect on sign-type richness survive after statistically accounting for object count (sampling effort), with the richness-effort exponent estimated rather than fixed?
+4. **(S9.5)** At equal effort with `iNEXT` (incidence_freq), does the Aur-P1 vs Aur-P2 sign-type pool (26 vs 15) remain larger, or is it not distinguishable from sampling variation at 63 objects, including when restricted to object types present in both phases?
 5. **(S9.6)** Taken together, is the R/B division independent of sampling intensity, and if not, what limitation must be stated?
+6. **(S9.7)** Does the restricted/broad pattern survive richness-preserving nulls, and does the manual-group PerMANOVA hold on Simpson turnover dissimilarity, which removes the nestedness component of Jaccard?
 
 ```{r}
 #| label: s9-setup
@@ -2385,13 +2386,13 @@ The same pattern holds in Aur-P2, where even fewer sites qualify at higher k and
 
 ### Rationale
 
-Equal object counts do not equalise *sampling effort* when sites differ in how concentrated their signs are. The reviewer's preferred method is **coverage-based rarefaction**: compare richness at equal *sample coverage* rather than equal object count. For each site we accumulate its objects in random order and, at each sample size m, record the number of distinct sign types observed (richness) and the sample coverage $C(m) = 1 - f_1(m)/m$, where $f_1(m)$ is the number of sign types seen on exactly one of the first m objects. We average these curves over `r cov_perm` random orderings and interpolate each site's richness at a target coverage of `r cov_target` (a standard "high coverage" benchmark). We then compare restricted and broad sites at that equal coverage.
+Equal object counts do not equalise *sampling effort* when sites differ in how concentrated their signs are. The reviewer's preferred method is **coverage-based rarefaction**: compare richness at equal *sample coverage* rather than equal object count [@Chao_Jost_2012; @Gotelli_Colwell_2001]. For each site we estimate its sign-type richness at a target coverage of `r cov_target` (a standard "high coverage" benchmark) with `iNEXT::estimateD` on the site's object-by-sign incidence matrix (`datatype = "incidence_raw"`), which returns 95% confidence intervals from `r cov_perm` bootstrap replicates [@Hsieh_Ma_Chao_2016]. Sites with fewer than three objects, failed fits, or targets reachable only by extrapolating beyond twice the observed sample cannot be placed on a common coverage footing; for these we report Chao and Jost's analytic incidence-coverage estimator with object-resampling bootstrap intervals and a Chao2 asymptotic-richness estimate as a fallback quantity, with the reason recorded per site. We then compare restricted and broad sites at that equal coverage.
 
 **Question this analysis answers:** at equal sample coverage, do restricted and broad sites still differ in sign-type richness?
 
 ```{r}
 #| label: tbl-s9-rarefaction
-#| tbl-cap: "Coverage-based rarefaction per site. richness_full is the observed number of sign types; coverage_full is the sample coverage at the full object sample; richness_at_target is the sign-type richness interpolated at target coverage = 0.9. Sites that never reach the target coverage are reported as NA, meaning rarefaction cannot assess them."
+#| tbl-cap: "Coverage-based rarefaction per site. richness_full is the observed number of sign types; coverage_chao is Chao and Jost's analytic sample-coverage estimate at the full sample with 95% bootstrap interval; richness_at_target is the iNEXT incidence_raw richness estimate at target coverage = 0.9 with 95% interval. Sites that never reach the target coverage are reported as NA with the reason in at_target_method, and carry a Chao2 asymptotic-richness estimate with interval as a fallback quantity."
 #| tbl-cap-location: bottom
 
 cov_target <- 0.9
@@ -2417,19 +2418,22 @@ s9_cov_wilcox_p2 <- ifelse(is.na(cov_p2$wilcox_p),
 
 cov_tab %>%
   dplyr::select(phase, site_name, group, nobjects, richness_full,
-                coverage_full, richness_at_target) %>%
+                coverage_chao, coverage_LCL, coverage_UCL,
+                richness_at_target, rt_LCL, rt_UCL, chao2, at_target_method) %>%
   kable(col.names = c("Phase", "Site", "Group", "Objects",
-                      "Richness (full)", "Coverage (full)", "Richness @0.9 cov."),
+                      "Richness (full)", "Coverage (Chao)", "Cov LCL", "Cov UCL",
+                      "Richness @0.9 cov.", "Rt LCL", "Rt UCL", "Chao2", "Target method"),
         digits = 2)
 ```
 
 ```{r fig.height=4, fig.width=7}
 #| label: fig-s9-rarefaction
-#| fig-cap: "Sign-type richness interpolated at target coverage = 0.9, by manual group, for sites that reach that coverage. Restricted sites (green) that attain high coverage remain low-richness; broad sites (red) remain high-richness."
+#| fig-cap: "Sign-type richness estimated at target coverage = 0.9 with 95% confidence intervals, by manual group, for sites that reach that coverage. Restricted sites (green) that attain high coverage remain low-richness; broad sites (red) remain high-richness."
 #| fig-height: 4
 
 cov_plot <- cov_tab %>% filter(!is.na(richness_at_target))
 ggplot(cov_plot, aes(x = group, y = richness_at_target, colour = group)) +
+  geom_errorbar(aes(ymin = rt_LCL, ymax = rt_UCL), width = 0.1) +
   geom_jitter(width = 0.15, height = 0, size = 2.5, alpha = 0.8) +
   scale_colour_manual(values = c("restricted" = "#00BA38", "broad" = "#F8766D")) +
   theme_minimal() +
@@ -2439,23 +2443,23 @@ ggplot(cov_plot, aes(x = group, y = richness_at_target, colour = group)) +
 
 ### Interpretation
 
-**Question: at equal sample coverage, do restricted and broad sites still differ in sign-type richness?** Only a subset of sites can be assessed. In Aur-P1, `r s9_cov_n_p1` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` sites reach coverage 0.9; in Aur-P2 only `r s9_cov_n_p2` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` do. Among the Aur-P1 sites that do reach the target, restricted sites remain low-richness (mean `r s9_cov_mean_r_p1` sign types) while broad sites remain high-richness (mean `r s9_cov_mean_b_p1`), a difference that is borderline significant (Wilcoxon p = `r s9_cov_wilcox_p1`). For Aur-P2 the number of sites reaching the target is too small to support a group comparison (p = `r s9_cov_wilcox_p2`).
+**Question: at equal sample coverage, do restricted and broad sites still differ in sign-type richness?** Only a subset of sites can be assessed. In Aur-P1, `r s9_cov_n_p1` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` sites reach coverage 0.9; in Aur-P2 only `r s9_cov_n_p2` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` do. Among the Aur-P1 sites that do reach the target, restricted sites remain low-richness (mean `r s9_cov_mean_r_p1` sign types) while broad sites remain high-richness (mean `r s9_cov_mean_b_p1`), a difference that persists at equal coverage (Wilcoxon p = `r s9_cov_wilcox_p1`). For Aur-P2 only `r s9_cov_n_p2` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` sites reach the target (`r s9_cov_nbroad_p2` broad, `r s9_cov_nrest_p2` restricted), too few for a reliable group comparison (Wilcoxon p = `r s9_cov_wilcox_p2`).
 
-**Answer:** at equal coverage the broad/restricted richness contrast is preserved *among the sites that can be evaluated*, but the majority of sites — the small-object sites — never attain the target coverage and therefore cannot be placed on a common coverage footing at all. In Aur-P1, `r s9_cov_n_p1` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` sites reach coverage 0.9, and among them restricted sites remain low-richness (mean `r s9_cov_mean_r_p1`) while broad sites remain high-richness (mean `r s9_cov_mean_b_p1`; Wilcoxon p = `r s9_cov_wilcox_p1`). In Aur-P2 only `r s9_cov_n_p2` sites reach the target, of which `r s9_cov_nbroad_p2` are broad and `r s9_cov_nrest_p2` restricted, so a group comparison is `r s9_cov_wilcox_p2`. Coverage-based rarefaction is consequently unreliable for the smallest assemblages: it can compare well-sampled sites, but it cannot rescue the assignment of sites with only one or two objects. This is the same limitation encountered in S9.2, approached from the richness axis.
+**Answer:** at equal coverage the broad/restricted richness contrast is preserved *among the sites that can be evaluated* — it is not removed by standardising on completeness — but the majority of the smallest sites never attain the target coverage and therefore cannot be placed on a common coverage footing at all. Coverage-based rarefaction is consequently unreliable for the smallest assemblages: it can compare well-sampled sites, but it cannot rescue the assignment of sites with only one or two objects, for which the table reports Chao coverage and Chao2 fallback quantities instead. This is the same limitation encountered in S9.2, approached from the richness axis.
 
-## S9.4 Mixed model with object-count offset {#sec-s9-4}
+## S9.4 Negative-binomial regression with object-count covariate {#sec-s9-4}
 
 ### Rationale
 
-The two resampling approaches above ask whether the *partition* and the *richness* survive downsampling. We also ask whether group predicts sign-type richness once sampling effort is held constant. We fit a negative-binomial model [@Venables_Ripley_2002] of per-site sign-type richness with the manual group and phase as predictors and `log(object count)` as an **offset** (the exposure term), so that the group coefficient estimates the richness difference between restricted and broad sites at equal object count:
+The two resampling approaches above ask whether the *partition* and the *richness* survive downsampling. We also ask whether group predicts sign-type richness once sampling effort is held constant. Entering `log(object count)` as an **offset** (the exposure term) fixes the richness-effort exponent at 1, which assumes sign-type richness grows in proportion to the number of objects; richness instead saturates with effort [@Gotelli_Colwell_2001], so under an offset a site with 1 object and 1 sign type has a "rate" of 1.0 while Vogelherd (173 objects, 17 types) has a rate of 0.1, biasing the contrast against the large broad-group sites. We therefore fit two negative-binomial regressions [@Venables_Ripley_2002] of per-site sign-type richness with the manual group and phase as predictors: (i) the offset specification, and (ii) a free-slope specification with `log(object count)` as a covariate, which estimates the exponent with its interval:
 
-$$\text{richness}_i \sim \text{NegativeBinomial}\big(\exp(\beta_0 + \beta_1 \text{group}_i + \beta_2 \text{phase}_i + \log(\text{objects}_i))\big).$$
+$$\text{richness}_i \sim \text{NegativeBinomial}\big(\exp(\beta_0 + \beta_1 \text{group}_i + \beta_2 \text{phase}_i + \beta_3 \log(\text{objects}_i))\big).$$
 
 **Question this analysis answers:** does the group effect on sign-type richness survive after accounting for sampling effort (object count)?
 
 ```{r}
 #| label: tbl-s9-mixed
-#| tbl-cap: "Negative-binomial model of per-site sign-type richness with object count as an offset (exposure). The group coefficient is the log rate ratio of broad versus restricted sites at equal object count; a non-significant coefficient means the raw richness gap between groups is explained by object count."
+#| tbl-cap: "Negative-binomial regressions of per-site sign-type richness: offset specification (richness-effort exponent fixed at 1) versus free-slope specification (exponent estimated). A non-significant group coefficient under the offset does not by itself show the richness gap is explained by object count, because the fixed exponent mis-specifies the saturating richness-effort relationship."
 #| tbl-cap-location: bottom
 
 s9_mix <- s9_offset_mixed_model(
@@ -2469,19 +2473,37 @@ s9_mix_coef <- round(s9_mix$group_coef, 3)
 s9_mix_rr   <- round(s9_mix$group_rate_ratio, 3)
 s9_mix_p    <- round(s9_mix$group_p, 3)
 
-mix_tbl <- data.frame(
-  Term = c("Intercept", "Group (broad vs restricted)", "Phase (Aur-P2 vs Aur-P1)"),
-  `log-rate` = round(coef(mix_mod), 3),
-  `rate ratio` = round(exp(coef(mix_mod)), 3),
-  `p-value` = round(summary(mix_mod)$coefficients[, 4], 3)
+s9_fs <- s9_free_slope_nb(
+  art_list  = list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data),
+  uniq_list = list("Aur-P1" = aurp1_unique_data,    "Aur-P2" = aurp2_unique_data),
+  groups_list = manual_groups
 )
-kable(mix_tbl, col.names = c("Term", "log-rate", "rate ratio", "p-value"),
-      digits = 3, row.names = FALSE)
+fs_mod <- s9_fs$fit
+
+s9_fs_exp     <- round(s9_fs$exp_coef, 3)
+s9_fs_exp_lcl <- round(s9_fs$exp_lcl, 3)
+s9_fs_exp_ucl <- round(s9_fs$exp_ucl, 3)
+s9_fs_rr      <- round(s9_fs$group_rate_ratio, 3)
+s9_fs_p       <- round(s9_fs$group_p, 3)
+s9_fs_conv    <- s9_fs$converged
+s9_fs_ci      <- s9_fs$ci_method
+s9_fs_theta   <- s9_fs$theta_warn
+
+mix_tbl <- data.frame(
+  Term = c("Intercept", "Group (broad vs restricted)", "Phase (Aur-P2 vs Aur-P1)",
+           "log(objects) exponent (free-slope only)"),
+  `log-rate (offset)` = round(c(coef(mix_mod), NA_real_), 3),
+  `rate ratio (offset)` = round(c(exp(coef(mix_mod)), NA_real_), 3),
+  `log-rate (free slope)` = round(coef(fs_mod)[c("(Intercept)", "groupbroad", "phaseAur-P2", "log(nobjects)")], 3),
+  `rate ratio (free slope)` = round(exp(coef(fs_mod)[c("(Intercept)", "groupbroad", "phaseAur-P2", "log(nobjects)")]), 3),
+  check.names = FALSE
+)
+kable(mix_tbl, digits = 3, row.names = FALSE)
 ```
 
 ### Interpretation
 
-**Question: does the group effect on sign-type richness survive after accounting for sampling effort?** No. With object count entered as an offset, the group coefficient is `r s9_mix_coef` (rate ratio `r s9_mix_rr`, p = `r s9_mix_p`), i.e. non-significant and even slightly *negative*: at equal object count, broad-range sites are not richer than restricted-range sites, and if anything marginally poorer. The strong raw correlation between object count and sign-type richness that motivated the reviewer's concern is therefore explained by object count itself. **Answer:** the richness difference between the groups is largely a sampling-effort artefact; group membership does not independently predict sign-type richness once object count is accounted for.
+**Question: does the group effect on sign-type richness survive after accounting for sampling effort?** The answer depends on the specification, which is itself the finding. Under the offset specification the group coefficient is `r s9_mix_coef` (rate ratio `r s9_mix_rr`, p = `r s9_mix_p`), i.e. non-significant and even slightly *negative*. Under the free-slope specification the estimated richness-effort exponent is `r s9_fs_exp` (95% CI `r s9_fs_exp_lcl`–`r s9_fs_exp_ucl`), which excludes 1: richness saturates with object count, so the offset's proportionality assumption is rejected on these data and its rate ratio is biased against the large broad-group sites. With the exponent freed, broad-range sites are richer than restricted-range sites at equal object count (rate ratio `r s9_fs_rr`, p = `r s9_fs_p`). This reversal shows the offset-based "sampling-effort artefact" reading was a property of the mis-specified model, not of the data, and it agrees with S9.3, where the contrast persists among the sites assessable at equal coverage. **Caveat:** the free-slope fit has three predictors on 29 site-phase units with group strongly collinear with object count`r if (s9_fs_theta) ", and the dispersion fit reached its iteration limit, so its intervals are approximate" else ""`; it is reported as a corrected specification, not a precise effect estimate. **Answer:** the raw richness gap is not distinguishable from a genuine group difference once saturating sampling effort is accounted for; a non-significant offset coefficient cannot be read as positive evidence that effort explains the gap.
 
 ## S9.5 Equal-effort pool comparison (iNEXT) {#sec-s9-5}
 
@@ -2564,7 +2586,80 @@ When the comparison is restricted to object types present in both phases, the ov
 
 ## S9.6 Synthesis and limitation {#sec-s9-6}
 
-The four object-level analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S9.2). (2) Coverage-based rarefaction can compare richness only among the well-sampled sites, and even there the broad/restricted contrast persists — but the majority of sites never reach a comparable coverage, so the method cannot vindicate them (S9.3). (3) Once object count is held constant statistically, group no longer predicts sign-type richness (S9.4). (4) At equal effort with `iNEXT`, the Aur-P1 vs Aur-P2 sign-type pool difference lies inside sampling variation, even when restricted to shared object types (S9.5). Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered, and the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction does not survive equal-effort standardisation.
+The four object-level analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S9.2). (2) Coverage-based rarefaction shows the broad/restricted contrast persists among the sites assessable at equal coverage, but the majority of the smallest sites never reach a comparable coverage, so the method cannot vindicate them (S9.3). (3) The offset model's null group effect was a property of fixing the richness-effort exponent at 1; with the exponent estimated, the group contrast persists, so the gap is not distinguishable from a genuine group difference at saturating effort (S9.4). (4) At equal effort with `iNEXT`, the Aur-P1 vs Aur-P2 sign-type pool difference lies inside sampling variation, even when restricted to shared object types (S9.5). (5) Under fixed margins the Jaccard group separation is not distinguished from richness structure alone (Aur-P1 exceeds object-sampling expectation; Aur-P2 does not), while Simpson turnover dissimilarity shows no group separation in either phase (S9.7). Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered, and the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction does not survive equal-effort standardisation.
+
+## S9.7 Simpson-dissimilarity group test and richness-preserving nulls {#sec-s9-7}
+
+### Rationale
+
+Jaccard dissimilarity confounds turnover with nestedness: a poor assemblage nested inside a rich one scores as dissimilar by construction, so a PerMANOVA of rich versus poor sites on Jaccard distances partly tests richness itself. Simpson turnover dissimilarity, $\beta_{sim} = \min(b,c)/(a + \min(b,c))$, keeps only the turnover component — nested pairs score 0 — and therefore tests whether the groups differ in *composition* rather than in *size*. We report the manual-group PerMANOVA on both distances, and we place the observed Jaccard R², Simpson R², and Louvain-to-manual ARI on richness-preserving null distributions: a fixed-fixed Curveball null (preserves site richness and sign-type frequencies) and an object-count null (each site redrawn with its observed object count from the phase pool). R² values use the same Gower algebra as `adonis2(sqrt.dist = TRUE)`.
+
+**Question this analysis answers:** is the restricted/broad pattern stronger than richness structure alone, and does any group separation survive once the nestedness component is removed?
+
+```{r}
+#| label: tbl-s9-simpson-null
+#| tbl-cap: "Manual-group separation under richness-preserving nulls. R2_jac and R2_sim are the observed PerMANOVA R-squared of the manual groups on Jaccard and Simpson turnover dissimilarities; ARI is the Adjusted Rand Index between the Louvain partition (realigned to manual labels) and the manual groups. Each is compared to fixed-fixed Curveball and object-count null distributions (999 replicates); p is the quantile of the observed value in its null (upper-tail). Negative R2_sim values indicate zero separation, with within-group variation exceeding between-group variation."
+#| tbl-cap-location: bottom
+
+names(aurp1_grp) <- rownames(aurp1_artifact_data)
+names(aurp2_grp) <- rownames(aurp2_artifact_data)
+
+s97_cb_p1 <- group_null_quantiles(as.data.frame(aurp1_artifact_data), aurp1_grp,
+                                  B = 999, seed = 11, null_type = "curveball")
+s97_cb_p2 <- group_null_quantiles(as.data.frame(aurp2_artifact_data), aurp2_grp,
+                                  B = 999, seed = 11, null_type = "curveball")
+s97_oc_p1 <- group_null_quantiles(as.data.frame(aurp1_artifact_data), aurp1_grp,
+                                  B = 999, seed = 12, null_type = "object_count",
+                                  object_df = signbase_full_clean %>% filter(phase2 == "Aur-P1"),
+                                  site_sign_cols = SIGN_COLS,
+                                  site_nobjects = aurp1_unique_data$nobjects[match(rownames(aurp1_artifact_data), aurp1_unique_data$site_name)])
+s97_oc_p2 <- group_null_quantiles(as.data.frame(aurp2_artifact_data), aurp2_grp,
+                                  B = 999, seed = 12, null_type = "object_count",
+                                  object_df = signbase_full_clean %>% filter(phase2 == "Aur-P2"),
+                                  site_sign_cols = SIGN_COLS,
+                                  site_nobjects = aurp2_unique_data$nobjects[match(rownames(aurp2_artifact_data), aurp2_unique_data$site_name)])
+
+# Reference adonis2 p-values for the observed manual-group separations
+set.seed(500)
+adon_j_p1 <- vegan::adonis2(vegan::vegdist(aurp1_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE) ~ as.factor(aurp1_grp), sqrt.dist = TRUE)
+adon_s_p1 <- vegan::adonis2(simpson_turnover_dist(aurp1_artifact_data) ~ as.factor(aurp1_grp), sqrt.dist = TRUE)
+adon_j_p2 <- vegan::adonis2(vegan::vegdist(aurp2_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE) ~ as.factor(aurp2_grp), sqrt.dist = TRUE)
+adon_s_p2 <- vegan::adonis2(simpson_turnover_dist(aurp2_artifact_data) ~ as.factor(aurp2_grp), sqrt.dist = TRUE)
+
+s97_row <- function(ph, null, gq, adon_j, adon_s) {
+  data.frame(
+    Phase = ph, Null = null,
+    R2_jac = round(gq$observed$R2_jac, 3),
+    R2_jac_p = round(gq$p_R2_jac, 3),
+    R2_sim = round(gq$observed$R2_sim, 3),
+    R2_sim_p = round(gq$p_R2_sim, 3),
+    ARI = round(gq$observed$ARI, 3),
+    ARI_p = round(gq$p_ARI, 3),
+    adonis_jac_p = round(adon_j$`Pr(>F)`[1], 3),
+    adonis_sim_p = round(adon_s$`Pr(>F)`[1], 3),
+    check.names = FALSE
+  )
+}
+
+s97_tab <- bind_rows(
+  s97_row("Aur-P1", "Curveball", s97_cb_p1, adon_j_p1, adon_s_p1),
+  s97_row("Aur-P1", "Object-count", s97_oc_p1, adon_j_p1, adon_s_p1),
+  s97_row("Aur-P2", "Curveball", s97_cb_p2, adon_j_p2, adon_s_p2),
+  s97_row("Aur-P2", "Object-count", s97_oc_p2, adon_j_p2, adon_s_p2)
+)
+kable(s97_tab, digits = 3)
+
+s97_r2s_p1 <- round(s97_cb_p1$observed$R2_sim, 3)
+s97_r2s_p2 <- round(s97_cb_p2$observed$R2_sim, 3)
+s97_adon_sp1 <- round(adon_s_p1$`Pr(>F)`[1], 3)
+s97_adon_sp2 <- round(adon_s_p2$`Pr(>F)`[1], 3)
+```
+
+### Interpretation
+
+**Question: is the pattern stronger than richness structure alone, and does any separation survive on turnover alone?** On Jaccard distances the manual groups separate (Aur-P1 R² = `r round(s97_cb_p1$observed$R2_jac, 3)`, Aur-P2 R² = `r round(s97_cb_p2$observed$R2_jac, 3)`). Under the fixed-fixed Curveball null this separation is not distinguished from richness structure alone (quantile p = `r round(s97_cb_p1$p_R2_jac, 3)` and `r round(s97_cb_p2$p_R2_jac, 3)`): randomised matrices with identical site richness and sign-type frequencies separate at least as well. Under the object-count null the Aur-P1 separation exceeds sampling expectation (p = `r round(s97_oc_p1$p_R2_jac, 3)`) while Aur-P2 does not (p = `r round(s97_oc_p2$p_R2_jac, 3)`). Louvain-to-manual agreement is perfect in the observed data (ARI = `r round(s97_cb_p1$observed$ARI, 3)` both phases) but is likewise reproduced by the fixed-fixed null (p = `r round(s97_cb_p1$p_ARI, 3)` and `r round(s97_cb_p2$p_ARI, 3)`), exceeding only the object-count null. On Simpson turnover dissimilarity there is no separation to explain (Aur-P1 R² = `r s97_r2s_p1`, Aur-P2 R² = `r s97_r2s_p2`; adonis p = `r s97_adon_sp1` and `r s97_adon_sp2`). The small quantile p for Aur-P1 Simpson under the object-count null is a low-tail extreme — the observed R² lies below, not above, its null — meaning even less turnover separation than random object draws produce, not evidence for group structure.
+
+**Answer:** the restricted/broad pattern is carried by the nestedness component — rich versus poor repertoires — rather than by compositional turnover between the groups. This is consistent with S9.3 and the free-slope S9.4: the groups differ in how much they contain at comparable effort, not in turnover-independent composition. The division should accordingly be read as a richness axis whose separation from sampling effort is not demonstrated for small-object sites.
 
 
 ## References cited

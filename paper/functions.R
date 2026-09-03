@@ -1051,6 +1051,138 @@ best_split_permtest <- function(mat, group = NULL, B = 999, seed = 42,
        null_F = null, p_value = p, B = B)
 }
 
+# Simpson turnover dissimilarity for binary site x sign matrices (S1 S9.7,
+# PEER_REVIEW 3.3(c)). beta_sim = min(b,c) / (a + min(b,c)) keeps only the
+# turnover component, so unlike Jaccard it does not separate rich from poor
+# assemblages by construction. Nested pairs score 0, disjoint pairs 1.
+# (This is the dissimilarity form; the "simpson" network weights elsewhere in
+# this file use a different nestedness-tolerant expression.)
+simpson_turnover_dist <- function(mat) {
+  mat <- as.matrix(mat)
+  mat <- (mat > 0) + 0L
+  n <- nrow(mat)
+  D <- matrix(0, n, n)
+  for (i in seq_len(n)) for (j in seq_len(n)) {
+    if (j <= i) next
+    a  <- sum(mat[i, ] & mat[j, ])
+    bc <- min(sum(mat[i, ] & !mat[j, ]), sum(!mat[i, ] & mat[j, ]))
+    d <- if ((a + bc) == 0) 0 else bc / (a + bc)
+    D[i, j] <- D[j, i] <- d
+  }
+  rownames(D) <- colnames(D) <- rownames(mat)
+  stats::as.dist(D)
+}
+
+# Analytic PerMANOVA R^2 from a dissimilarity matrix. Uses the same
+# Gower-centring algebra as permanova_F above, but returns SSB/SST. The input
+# D is a matrix of dissimilarities (not squared): Gower-centring D directly is
+# exactly what vegan::adonis2(sqrt.dist = TRUE) does, so these R^2 values match
+# the manuscript's adonis2 convention. Used for fast null replicates where
+# adonis2's internal permutations would be redundant.
+permanova_R2 <- function(D2, group) {
+  group <- as.factor(group)
+  n <- nrow(D2)
+  k <- nlevels(group)
+  if (k < 2 || k >= n) return(NA_real_)
+  rm <- rowMeans(D2); cm <- colMeans(D2); gm <- mean(D2)
+  G  <- -0.5 * (D2 - outer(rm, rep(1, n)) - outer(rep(1, n), cm) + gm)
+  SST <- sum(diag(G))
+  SSB <- 0
+  for (g in levels(group)) {
+    idx <- which(group == g); ng <- length(idx)
+    if (ng > 1) SSB <- SSB + sum(G[idx, idx]) / ng
+  }
+  if (SST == 0) return(NA_real_)
+  SSB / SST
+}
+
+# Richness-preserving null quantiles for the whole restricted/broad pattern
+# (S1 S9.7, PEER_REVIEW 3.3(c)). Reports the observed manual-group PerMANOVA
+# R^2 (Jaccard and Simpson turnover) and the Louvain-to-manual ARI as
+# quantiles of structure-destroying nulls: "curveball" (fixed-fixed, preserves
+# site richness and sign-type frequencies) and, when object-level inputs are
+# supplied, "object_count" (each site redrawn with its observed object count
+# from the phase pool). R^2 uses the same Gower algebra as
+# adonis2(sqrt.dist = TRUE), matching the manuscript convention.
+group_null_quantiles <- function(mat, group, B = 999, seed = 42,
+                                 null_type = c("curveball", "object_count"),
+                                 object_df = NULL, site_sign_cols = NULL,
+                                 site_nobjects = NULL) {
+  null_type <- match.arg(null_type)
+  mat <- as.matrix(mat)
+  mat <- (mat > 0) + 0L
+  n <- nrow(mat)
+  group <- as.factor(group)
+  Dj <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+  Ds <- as.matrix(simpson_turnover_dist(mat))
+  obs <- list(R2_jac = permanova_R2(Dj, group),
+              R2_sim = permanova_R2(Ds, group),
+              ARI = {
+                lv <- tryCatch(get_louvain_groups(as.data.frame(mat)),
+                               error = function(e) NULL)
+                if (is.null(lv) || length(unique(lv)) < 2) NA_real_
+                else mclust::adjustedRandIndex(
+                  as.integer(map_to_manual(lv, group[names(lv)])),
+                  as.integer(group[names(lv)]))
+              })
+  rep_stats <- function(mp) {
+    mp <- (mp > 0) + 0L
+    Djp <- as.matrix(vegan::vegdist(mp, "jaccard", binary = TRUE))
+    Dsp <- as.matrix(simpson_turnover_dist(mp))
+    ari <- tryCatch({
+      lv <- get_louvain_groups(as.data.frame(mp))
+      if (length(unique(lv)) < 2) NA_real_
+      else mclust::adjustedRandIndex(
+        as.integer(map_to_manual(lv, group[names(lv)])),
+        as.integer(group[names(lv)]))
+    }, error = function(e) NA_real_)
+    c(R2_jac = permanova_R2(Djp, group),
+      R2_sim = permanova_R2(Dsp, group),
+      ARI = ari)
+  }
+  set.seed(seed)
+  null <- matrix(NA_real_, nrow = B, ncol = 3,
+                 dimnames = list(NULL, c("R2_jac", "R2_sim", "ARI")))
+  if (null_type == "curveball") {
+    null_mod <- vegan::nullmodel(mat, "curveball")
+    for (b in seq_len(B)) {
+      sim <- simulate(null_mod, nsim = 1)
+      null[b, ] <- rep_stats(sim[, , 1])
+    }
+  } else {
+    if (is.null(object_df) || is.null(site_sign_cols) || is.null(site_nobjects))
+      stop("null_type = 'object_count' requires object_df, site_sign_cols and site_nobjects")
+    cols <- intersect(site_sign_cols, names(object_df))
+    pooled_objects <- object_df[, cols, drop = FALSE]
+    pooled_objects <- pooled_objects[rowSums(pooled_objects) > 0, , drop = FALSE]
+    # NOTE: pooled_objects spans all sign columns while mat drops all-zero
+    # columns, so presence vectors are aligned to mat's columns by name.
+    mcols <- colnames(mat)
+    avail <- intersect(mcols, colnames(pooled_objects))
+    for (b in seq_len(B)) {
+      mp <- mat
+      for (i in seq_len(n)) {
+        idx <- sample(nrow(pooled_objects), site_nobjects[i], replace = TRUE)
+        vec <- rep(0, length(mcols))
+        if (length(avail))
+          vec[match(avail, mcols)] <-
+            as.numeric(colSums(pooled_objects[idx, avail, drop = FALSE]) > 0)
+        mp[i, ] <- vec
+      }
+      null[b, ] <- rep_stats(mp)
+    }
+  }
+  p_val <- function(o, v) {
+    v <- v[is.finite(v)]
+    if (!is.finite(o) || !length(v)) return(NA_real_)
+    (1 + sum(v >= o)) / (1 + length(v))
+  }
+  list(observed = obs, null = null, B = B, null_type = null_type,
+       p_R2_jac = p_val(obs$R2_jac, null[, "R2_jac"]),
+       p_R2_sim = p_val(obs$R2_sim, null[, "R2_sim"]),
+       p_ARI = p_val(obs$ARI, null[, "ARI"]))
+}
+
 # Leave-one-out cross-validated group recovery (editor option c, site level).
 # Trains a k-NN classifier on all OTHER sites and predicts each held-out site's
 # group from its sign composition. Because the held-out site never contributes
@@ -1540,10 +1672,31 @@ run_downsample_sensitivity <- function(signbase, phase, k, R = 1000,
        mean_n_communities = mean(ncomm_vec, na.rm = TRUE))
 }
 
-# 4) Coverage-based rarefaction: for each site, accumulate objects in random
-#    order; record sign-type richness and sample coverage (1 - f1/m) at each
-#    sample size m; interpolate richness at a target coverage. Returns per-site
-#    table, group means, and a Wilcoxon test of richness-at-target by group.
+# 3) Coverage-based rarefaction with iNEXT + Chao analytic fallback (S1 S9.3).
+#    PEER_REVIEW 3.3(b): the hand-rolled C(m) = 1 - f1/m estimator is replaced.
+#    Primary path: iNEXT::estimateD on the per-site object x sign incidence
+#    matrix (datatype = "incidence_raw": species in rows, sampling units in
+#    columns), standardised to target_coverage with bootstrap confidence
+#    intervals (Chao & Jost 2012; Hsieh et al. 2016). Fallback path for tiny
+#    sites (nobjects < 3), failed fits, or extrapolations beyond twice the
+#    observed sample: Chao & Jost's analytic incidence-coverage estimator with
+#    object-resampling bootstrap CIs, plus a Chao2 asymptotic-richness estimate
+#    (iNEXT::ChaoRichness) with CIs, so small sites keep a quantified placement
+#    instead of a silent NA. Sites that cannot reach the target coverage report
+#    NA for richness_at_target with the reason in at_target_method.
+#    Returns per-site table, group means, and a Wilcoxon test of
+#    richness-at-target by group.
+chao_coverage_incidence <- function(inc, n) {
+  # Analytic sample-coverage estimator for incidence data (Chao & Jost 2012):
+  # C = 1 - (f1/n) * ((n-1)*f1 / ((n-1)*f1 + 2*f2)). Needs at least 2 units;
+  # with no singletons the sample is complete (C = 1).
+  if (length(inc) == 0 || n < 2) return(NA_real_)
+  f1 <- sum(inc == 1L)
+  if (f1 == 0) return(1)
+  f2 <- sum(inc == 2L)
+  1 - (f1 / n) * ((n - 1) * f1 / ((n - 1) * f1 + 2 * f2))
+}
+
 coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
                                  n_perm = 200, seed = 456) {
   set.seed(seed)
@@ -1554,38 +1707,73 @@ coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
   for (s in unique(df$site_name)) {
     objs <- df %>% filter(site_name == s)
     n <- nrow(objs)
-    if (n < 1) next
-    occ <- lapply(seq_len(n), function(i)
-      which(vapply(sc, function(cn) as.numeric(objs[[cn]][i]) > 0, logical(1))))
-    rich_curve <- numeric(n); cov_curve <- numeric(n)
-    for (p in seq_len(n_perm)) {
-      ord <- sample.int(n); cnt <- integer(length(SIGN_COLS))
-      f1 <- 0; rich <- 0; rseq <- numeric(n); cseq <- numeric(n)
-      for (m in seq_len(n)) {
-        for (sg in occ[[ord[m]]]) {
-          if (cnt[sg] == 0) { cnt[sg] <- 1; f1 <- f1 + 1; rich <- rich + 1 }
-          else if (cnt[sg] == 1) { cnt[sg] <- 2; f1 <- f1 - 1 }
-          else { cnt[sg] <- cnt[sg] + 1 }
-        }
-        rseq[m] <- rich
-        cseq[m] <- if (m > 0) 1 - f1 / m else 0
-      }
-      rich_curve <- rich_curve + rseq
-      cov_curve  <- cov_curve + cseq
+    binmat <- matrix(0L, nrow = n, ncol = length(sc))
+    for (i in seq_len(n))
+      binmat[i, ] <- as.integer(as.numeric(objs[i, sc]) > 0)
+    inc <- colSums(binmat)
+    inc <- inc[inc > 0]
+    richness_full <- length(inc)
+    # Analytic Chao coverage at the full sample + object-bootstrap CI.
+    cov_full <- chao_coverage_incidence(inc, n)
+    if (n >= 2 && is.finite(cov_full)) {
+      boot_c <- replicate(n_perm, {
+        idx <- sample.int(n, n, replace = TRUE)
+        binc <- colSums(binmat[idx, , drop = FALSE])
+        chao_coverage_incidence(binc[binc > 0], n)
+      })
+      boot_c <- boot_c[is.finite(boot_c)]
+      cov_lcl <- if (length(boot_c)) unname(quantile(boot_c, 0.025)) else NA_real_
+      cov_ucl <- if (length(boot_c)) unname(quantile(boot_c, 0.975)) else NA_real_
+    } else {
+      cov_lcl <- cov_ucl <- NA_real_
     }
-    rich_curve <- rich_curve / n_perm
-    cov_curve  <- cov_curve / n_perm
-    if (cov_curve[n] < target_coverage) rat <- NA_real_
-    else {
-      idx <- which(cov_curve >= target_coverage)[1]
-      rat <- if (idx == 1) rich_curve[1] else
-        rich_curve[idx-1] + (target_coverage - cov_curve[idx-1]) /
-        (cov_curve[idx] - cov_curve[idx-1]) * (rich_curve[idx] - rich_curve[idx-1])
+    # Chao2 asymptotic richness + CI (fallback quantity for tiny sites).
+    chao2 <- tryCatch(
+      as.data.frame(iNEXT::ChaoRichness(c(n, unname(inc)),
+                                        datatype = "incidence_freq")),
+      error = function(e) NULL)
+    if (!is.null(chao2) && nrow(chao2) > 0) {
+      chao2_est <- chao2$Estimator[1]
+      chao2_lcl <- chao2$`95% Lower`[1]
+      chao2_ucl <- chao2$`95% Upper`[1]
+    } else {
+      chao2_est <- chao2_lcl <- chao2_ucl <- NA_real_
+    }
+    # iNEXT coverage-standardised richness at the target coverage.
+    rt <- rt_lcl <- rt_ucl <- NA_real_
+    rt_method <- NA_character_
+    if (n >= 3 && richness_full > 0) {
+      raw_df <- as.data.frame(t(binmat[, colSums(binmat) > 0, drop = FALSE]))
+      raw_df[] <- lapply(raw_df, as.integer)
+      est <- tryCatch(suppressWarnings(
+        iNEXT::estimateD(x = stats::setNames(list(raw_df), s),
+                         q = 0, datatype = "incidence_raw",
+                         base = "coverage", level = target_coverage,
+                         nboot = n_perm, conf = 0.95)),
+        error = function(e) NULL)
+      if (!is.null(est) && nrow(est) > 0) {
+        er <- as.data.frame(est)[1, ]
+        if (identical(er$Method, "Extrapolation") && er$t > 2 * n) {
+          rt_method <- "target unreachable (extrapolation beyond 2x sample)"
+        } else {
+          rt <- er$qD; rt_lcl <- er$qD.LCL; rt_ucl <- er$qD.UCL
+          rt_method <- paste0("iNEXT incidence_raw (", er$Method, ")")
+        }
+      } else {
+        rt_method <- "iNEXT fit failed"
+      }
+    } else {
+      rt_method <- "n < 3: Chao fallback only"
     }
     out[[s]] <- data.frame(site_name = s, nobjects = n,
-                           richness_full = rich_curve[n],
-                            coverage_full = max(0, min(1, cov_curve[n])),
-                           richness_at_target = rat,
+                           richness_full = richness_full,
+                           coverage_chao = cov_full,
+                           coverage_LCL = cov_lcl, coverage_UCL = cov_ucl,
+                           richness_at_target = rt,
+                           rt_LCL = rt_lcl, rt_UCL = rt_ucl,
+                           at_target_method = rt_method,
+                           chao2 = chao2_est,
+                           chao2_LCL = chao2_lcl, chao2_UCL = chao2_ucl,
                            manual_group = as.integer(manual[s]),
                            stringsAsFactors = FALSE)
   }
@@ -1616,7 +1804,9 @@ coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
 # Returns: list with $data (per-site richness/offset/group/phase), $fit
 #          (glm.nb object), and scalar summaries $group_coef,
 #          $group_rate_ratio, $group_p.
-s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
+# Shared per-site richness frame for the S9 negative-binomial models (S1 S9.4).
+# Extracted so the offset and free-slope fits use byte-identical inputs.
+s9_richness_df <- function(art_list, uniq_list, groups_list) {
   richness_df <- bind_rows(lapply(names(art_list), function(ph) {
     art  <- art_list[[ph]]
     uniq <- uniq_list[[ph]]
@@ -1632,6 +1822,12 @@ s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
   richness_df$group <- factor(
     ifelse(grp_val == 1, "restricted", "broad"),
     levels = c("restricted", "broad"))
+  richness_df$phase <- factor(richness_df$phase)
+  richness_df
+}
+
+s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
+  richness_df <- s9_richness_df(art_list, uniq_list, groups_list)
   fit <- MASS::glm.nb(richness ~ group + phase + offset(log(nobjects)),
                       data = richness_df)
   co         <- coef(fit)
@@ -1640,6 +1836,50 @@ s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
        group_coef = group_coef,
        group_rate_ratio = exp(group_coef),
        group_p = summary(fit)$coefficients["groupbroad", "Pr(>|z|)"])
+}
+
+# 5b) Negative-binomial model of sign-type richness with a FREE object-count
+#    slope (S1 S9.4, PEER_REVIEW 3.3(a)). The offset model above fixes the
+#    richness-effort exponent at 1, which assumes richness grows in proportion
+#    to object count; richness saturates with effort (Gotelli & Colwell 2001),
+#    so the offset biases the group contrast against the large broad-group
+#    sites. This fit enters log(nobjects) as a covariate, reports the estimated
+#    exponent with its interval, and is reported with a convergence caveat: it
+#    has three predictors on 29 site-phase units with group strongly collinear
+#    with object count.
+s9_free_slope_nb <- function(art_list, uniq_list, groups_list) {
+  richness_df <- s9_richness_df(art_list, uniq_list, groups_list)
+  theta_warn <- FALSE
+  fit <- withCallingHandlers(
+    MASS::glm.nb(richness ~ group + phase + log(nobjects),
+                 data = richness_df),
+    warning = function(w) {
+      if (grepl("iteration limit reached", conditionMessage(w))) {
+        theta_warn <<- TRUE
+        invokeRestart("muffleWarning")
+      }
+    })
+  converged <- isTRUE(fit$converged)
+  sm <- summary(fit)$coefficients
+  ci_method <- "profile likelihood"
+  ci <- tryCatch(suppressWarnings(stats::confint(fit)),
+                 error = function(e) NULL)
+  if (is.null(ci)) {
+    ci_method <- "Wald (profile likelihood unavailable)"
+    se <- sm[, "Std. Error"]
+    ci <- cbind(coef(fit) - 1.96 * se, coef(fit) + 1.96 * se)
+  }
+  exp_coef <- unname(coef(fit)["log(nobjects)"])
+  list(data = richness_df, fit = fit,
+       converged = converged, theta_warn = theta_warn, ci_method = ci_method,
+       exp_coef = exp_coef,
+       exp_lcl = unname(ci["log(nobjects)", 1]),
+       exp_ucl = unname(ci["log(nobjects)", 2]),
+       group_coef = unname(coef(fit)["groupbroad"]),
+       group_rate_ratio = unname(exp(coef(fit)["groupbroad"])),
+       group_p = unname(sm["groupbroad", "Pr(>|z|)"]),
+       phase_rate_ratio = unname(exp(coef(fit)["phaseAur-P2"])),
+       phase_p = unname(sm["phaseAur-P2", "Pr(>|z|)"]))
 }
 
 # ── Equal-effort pool comparison with iNEXT (S1 S9.5 / PEER_REVIEW 3.4) ──────────
