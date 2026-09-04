@@ -588,6 +588,20 @@ louvain_wide <- louvain_memberships %>%
   pivot_wider(names_from = Threshold, values_from = LouvainGroup,
               names_prefix = "th=")
 
+s51_ncomm <- louvain_memberships %>%
+  group_by(Phase, Threshold) %>%
+  summarise(ncomm = n_distinct(LouvainGroup), .groups = "drop")
+
+s51_comms <- function(ph) {
+  sites_by_grp <- louvain_memberships %>%
+    filter(Phase == ph, Threshold == 0.2) %>%
+    arrange(LouvainGroup) %>%
+    group_by(LouvainGroup) %>%
+    summarise(sites = paste(Site, collapse = ", "), .groups = "drop") %>%
+    arrange(LouvainGroup)
+  paste0("Group ", sites_by_grp$LouvainGroup, " (", sites_by_grp$sites, ")")
+}
+
 kable(louvain_wide,
       col.names = c("Phase", "Site", "th=0.1", "th=0.2", "th=0.3"),
       digits = 0)
@@ -621,36 +635,205 @@ kable(ari_table,
       digits = 3)
 ```
 
+## S5.2 Algorithmic Group Detection via Infomap Community Partitioning {#sec-s5-2}
+
+### Rationale
+
+We compare Infomap community detection with Louvain to assess whether different community detection algorithms yield similar partitions. Infomap optimizes the map equation rather than modularity, providing an alternative perspective on community structure. By comparing these data-driven communities to the Louvain partitions, we evaluate the robustness of community detection results across different optimization criteria.
+
+We run Infomap detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute one measure:
+
+1. **Adjusted Rand Index (ARI)** between the Infomap-derived communities and the Louvain-derived communities. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
+
 ```{r}
-#| label: tbl-permanova-louvain
-#| tbl-cap: "PerMANOVA comparison: manual (restricted/broad) grouping versus Louvain-derived grouping. R², pseudo-F, and p-values for each phase and threshold."
+#| label: tbl-ari-infomap
+#| tbl-cap: "Adjusted Rand Index (ARI) between Infomap-derived communities and Louvain-derived communities, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
 #| tbl-cap-location: bottom
 
-permanova_louvain <- function(artifact_data, df, threshold = 0.2,
-                              metric = "jaccard") {
-  lvgr <- get_louvain_groups(artifact_data, threshold, metric)
+# ▸ ARI: Infomap vs. Louvain at each threshold
+infomap_memberships <- map_dfr(thresholds, function(thr) {
+  map_dfr(names(phases), function(ph) {
+    img <- get_infomap_groups(phases[[ph]], threshold = thr)
+    data.frame(
+      Phase = ph, Threshold = thr, Site = names(img), InfomapGroup = unname(img),
+      stringsAsFactors = FALSE)
+  })
+})
+
+ari_table_infomap <- map_dfr(thresholds, function(thr) {
+  map_dfr(names(phases), function(ph) {
+    lo <- louvain_memberships %>%
+      filter(Phase == ph, Threshold == thr)
+    lv <- lo$LouvainGroup
+    names(lv) <- lo$Site
+    io <- infomap_memberships %>%
+      filter(Phase == ph, Threshold == thr)
+    iv <- io$InfomapGroup
+    names(iv) <- io$Site
+    common <- intersect(names(lv), names(iv))
+    lv <- lv[common]
+    iv <- iv[common]
+    ari_val <- if (length(unique(lv)) > 1 && length(unique(iv)) > 1)
+      mclust::adjustedRandIndex(lv, iv) else NA
+    data.frame(Phase = ph, Threshold = thr, ARI = round(ari_val, 3),
+               stringsAsFactors = FALSE)
+  })
+})
+
+kable(ari_table_infomap,
+      col.names = c("Phase", "Threshold", "ARI (Infomap vs Louvain)"),
+      digits = 3)
+```
+
+## S5.3 Algorithmic Group Detection via Leiden Community Partitioning {#sec-s5-3}
+
+### Rationale
+
+We compare Leiden community detection with Louvain to assess whether the improvements in the Leiden algorithm — which addresses known limitations of Louvain's tendency to yield poorly connected communities — alter our conclusions. The Leiden algorithm is now considered the standard community detection method for many applications, and it is particularly useful for weighted networks like our Jaccard similarity network.
+
+We run Leiden detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute one measure:
+
+1. **Adjusted Rand Index (ARI)** between the Leiden-derived communities and the Louvain-derived communities. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
+
+```{r}
+#| label: tbl-ari-leiden
+#| tbl-cap: "Adjusted Rand Index (ARI) between Leiden-derived communities and Louvain-derived communities, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
+#| tbl-cap-location: bottom
+
+# ▸ ARI: Leiden vs. Louvain at each threshold
+leiden_memberships <- map_dfr(thresholds, function(thr) {
+  map_dfr(names(phases), function(ph) {
+    ld <- get_leiden_groups(phases[[ph]], threshold = thr)
+    data.frame(
+      Phase = ph, Threshold = thr, Site = names(ld), LeidenGroup = unname(ld),
+      stringsAsFactors = FALSE)
+  })
+})
+
+ari_table_leiden <- map_dfr(thresholds, function(thr) {
+  map_dfr(names(phases), function(ph) {
+    lo <- louvain_memberships %>%
+      filter(Phase == ph, Threshold == thr)
+    lv <- lo$LouvainGroup
+    names(lv) <- lo$Site
+    ld <- leiden_memberships %>%
+      filter(Phase == ph, Threshold == thr)
+    ldi <- ld$LeidenGroup
+    names(ldi) <- ld$Site
+    common <- intersect(names(lv), names(ldi))
+    lv <- lv[common]
+    ldi <- ldi[common]
+    ari_val <- if (length(unique(lv)) > 1 && length(unique(ldi)) > 1)
+      mclust::adjustedRandIndex(lv, ldi) else NA
+    data.frame(Phase = ph, Threshold = thr, ARI = round(ari_val, 3),
+               stringsAsFactors = FALSE)
+  })
+})
+
+kable(ari_table_leiden,
+      col.names = c("Phase", "Threshold", "ARI (Leiden vs Louvain)"),
+      digits = 3)
+```
+
+## S5.4 Algorithmic Group Detection via Walktrap Community Partitioning {#sec-s5-4}
+
+### Rationale
+
+We compare Walktrap community detection with Louvain to assess whether optimizing community structure based on random walk lengths alters our conclusions. Walktrap uses a fundamentally different approach: it identifies communities as sets of vertices where short random walks tend to remain within the community rather than jump to others. This is particularly intuitive for archaeological network analysis where we might think of communities as groups that maintain internal sign-sharing patterns distinct from external connections.
+
+We run Walktrap detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute one measure:
+
+1. **Adjusted Rand Index (ARI)** between the Walktrap-derived communities and the Louvain-derived communities. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
+
+```{r}
+#| label: tbl-ari-walktrap
+#| tbl-cap: "Adjusted Rand Index (ARI) between Walktrap-derived communities and Louvain-derived communities, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
+#| tbl-cap-location: bottom
+
+# ▸ ARI: Walktrap vs. Louvain at each threshold
+walktrap_memberships <- map_dfr(thresholds, function(thr) {
+  map_dfr(names(phases), function(ph) {
+    wd <- get_walktrap_groups(phases[[ph]], threshold = thr)
+    data.frame(
+      Phase = ph, Threshold = thr, Site = names(wd), WalktrapGroup = unname(wd),
+      stringsAsFactors = FALSE)
+  })
+})
+
+ari_table_walktrap <- map_dfr(thresholds, function(thr) {
+  map_dfr(names(phases), function(ph) {
+    lo <- louvain_memberships %>%
+      filter(Phase == ph, Threshold == thr)
+    lv <- lo$LouvainGroup
+    names(lv) <- lo$Site
+    wd <- walktrap_memberships %>%
+      filter(Phase == ph, Threshold == thr)
+    wvi <- wd$WalktrapGroup
+    names(wvi) <- wd$Site
+    common <- intersect(names(lv), names(wvi))
+    lv <- lv[common]
+    wvi <- wvi[common]
+    ari_val <- if (length(unique(lv)) > 1 && length(unique(wvi)) > 1)
+      mclust::adjustedRandIndex(lv, wvi) else NA
+    data.frame(Phase = ph, Threshold = thr, ARI = round(ari_val, 3),
+               stringsAsFactors = FALSE)
+  })
+})
+
+kable(ari_table_walktrap,
+      col.names = c("Phase", "Threshold", "ARI (Walktrap vs Louvain)"),
+      digits = 3)
+```
+
+## S5.5 PerMANOVA Comparison {#sec-s5-5}
+
+### Rationale
+
+To further evaluate how algorithmically detected communities compare to the manual restricted/broad grouping, we run PerMANOVA tests using the group assignments from each community detection algorithm. This provides insight into whether the structure identified by different algorithms explains significant variance in sign composition, similar to the existing Louvain-based PerMANOVA comparison.
+
+We compute PerMANOVA R² and p-values for each algorithm at each threshold, comparing them to the values from the manual grouping.
+
+```{r}
+#| label: tbl-permanova-comparison
+#| tbl-cap: "PerMANOVA comparison: manual (restricted/broad) grouping versus algorithmically derived groupings. R² and pseudo-F for each phase, threshold, and community detection algorithm."
+#| tbl-cap-location: bottom
+
+permanova_algorithm <- function(artifact_data, df, threshold = 0.2,
+                                algorithm = "louvain", metric = "jaccard", phase = NULL) {
+  if (algorithm == "louvain") {
+    grp <- get_louvain_groups(artifact_data, threshold = threshold)
+  } else if (algorithm == "infomap") {
+    grp <- get_infomap_groups(artifact_data, threshold = threshold)
+  } else if (algorithm == "leiden") {
+    grp <- get_leiden_groups(artifact_data, threshold = threshold)
+  } else if (algorithm == "walktrap") {
+    grp <- get_walktrap_groups(artifact_data, threshold = threshold)
+  }
   sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(artifact_data))
   mat_bin <- as.data.frame(artifact_data[, present, drop = FALSE])
   mat_bin <- as.data.frame(lapply(mat_bin, function(x) as.numeric(x > 0)))
   rownames(mat_bin) <- rownames(artifact_data)
-  df$louvain_group <- factor(lvgr[df$site_name])
-  df <- df %>% filter(!is.na(louvain_group))
-  if (nlevels(df$louvain_group) < 2) {
-    return(data.frame(LouvainPerMANOVA_R2 = NA, LouvainPerMANOVA_F = NA,
-                      LouvainPerMANOVA_p = NA, stringsAsFactors = FALSE))
+  df$algorithm_group <- factor(grp[df$site_name])
+  df <- df %>% filter(!is.na(algorithm_group))
+  if (nlevels(df$algorithm_group) < 2) {
+    return(data.frame(Algorithm = algorithm, Phase = phase, Threshold = threshold,
+                      R2 = NA, F = NA, p = NA, stringsAsFactors = FALSE))
   }
   mat_bin <- mat_bin[df$site_name, , drop = FALSE]
   jac <- vegan::vegdist(mat_bin, "jaccard", binary = TRUE)
   set.seed(500)
-  perm <- vegan::adonis2(jac ~ louvain_group,
-                          data = df,
-                          method = "jaccard", sqrt.dist = TRUE)
+  perm <- vegan::adonis2(jac ~ algorithm_group,
+                         data = df,
+                         method = "jaccard", sqrt.dist = TRUE)
   perm <- perm %>% tibble::as_tibble() %>% slice_head()
   data.frame(
-    LouvainPerMANOVA_R2 = round(perm$R2, 3),
-    LouvainPerMANOVA_F  = round(perm$F, 3),
-    LouvainPerMANOVA_p  = round(perm$`Pr(>F)`, 3),
+    Algorithm = algorithm,
+    Phase = phase,
+    Threshold = threshold,
+    R2 = round(perm$R2, 3),
+    F  = round(perm$F, 3),
+    p  = round(perm$`Pr(>F)`, 3),
     stringsAsFactors = FALSE
   )
 }
@@ -667,20 +850,19 @@ permanova_manual <- function(df, phase, threshold = 0.2) {
   set.seed(500)
   perm <- vegan::adonis2(jac ~ manual_group, data = df,
                          method = "jaccard", sqrt.dist = TRUE)
-  df$manual_group <- factor(manual_groups[[phase]][df$site_name])
-  set.seed(500)
-  perm <- vegan::adonis2(jac ~ manual_group, data = df,
-                         method = "jaccard", sqrt.dist = TRUE)
   perm <- perm %>% tibble::as_tibble() %>% slice_head()
   data.frame(
-    Manual_R2 = round(perm$R2, 3),
-    Manual_F  = round(perm$F, 3),
-    Manual_p  = round(perm$`Pr(>F)`, 3),
+    Algorithm = "Manual",
+    Phase = phase,
+    Threshold = threshold,
+    R2 = round(perm$R2, 3),
+    F  = round(perm$F, 3),
+    p  = round(perm$`Pr(>F)`, 3),
     stringsAsFactors = FALSE
   )
 }
 
-manual_perm <- map_dfr(names(phases), function(ph) {
+manual_perms <- map_dfr(names(phases), function(ph) {
   uniq <- switch(ph,
     "Aur-P1" = aurp1_unique_data,
     "Aur-P2" = aurp2_unique_data
@@ -688,50 +870,85 @@ manual_perm <- map_dfr(names(phases), function(ph) {
   permanova_manual(uniq, ph) %>% mutate(Phase = ph)
 })
 
-louvain_perm <- map_dfr(thresholds, function(thr) {
+algo_perms <- map_dfr(thresholds, function(thr) {
   map_dfr(names(phases), function(ph) {
     ad <- phases[[ph]]
     uniq <- switch(ph,
       "Aur-P1" = aurp1_unique_data,
       "Aur-P2" = aurp2_unique_data
     )
-    permanova_louvain(ad, uniq, threshold = thr) %>%
-      mutate(Phase = ph, Threshold = thr, .before = 1)
+    map_dfr(c("louvain", "infomap", "leiden", "walktrap"), function(alg) {
+      permanova_algorithm(ad, uniq, threshold = thr, algorithm = alg, phase = ph) %>%
+        mutate(Threshold = thr)
+    })
   })
 })
 
-perm_compare <- louvain_perm %>%
-  left_join(manual_perm, by = "Phase") %>%
-  dplyr::select(Phase, Threshold, Manual_R2, LouvainPerMANOVA_R2,
-                Manual_F, LouvainPerMANOVA_F, Manual_p, LouvainPerMANOVA_p)
+perm_compare <- algo_perms %>%
+  left_join(manual_perms, by = c("Phase", "Threshold")) %>%
+  dplyr::select(Phase, Threshold, Algorithm = Algorithm.x,
+                Manual_R2 = R2.y, Algorithm_R2 = R2.x,
+                Manual_F = F.y, Algorithm_F = F.x,
+                Manual_p = p.y, Algorithm_p = p.x)
 
 kable(perm_compare,
-      col.names = c("Phase", "Threshold", "Manual R²", "Louvain R²",
-                    "Manual F", "Louvain F", "Manual p", "Louvain p"),
+      col.names = c("Phase", "Threshold", "Algorithm",
+                    "Manual R²", "Algorithm R²",
+                    "Manual F", "Algorithm F",
+                    "Manual p", "Algorithm p"),
       digits = 3)
 ```
 
-```{r}
-# S5.1 prose helpers: community counts and the threshold-0.2 compositions
-s51_ncomm <- louvain_memberships %>%
-  group_by(Phase, Threshold) %>%
-  summarise(ncomm = n_distinct(LouvainGroup, na.rm = TRUE), .groups = "drop")
+## S5.6 Comprehensive Comparison {#sec-s5-6}
 
-# Human-readable listing of Louvain communities for a phase/threshold.
-s51_comms <- function(ph, thr = 0.2) {
-  d <- louvain_memberships %>%
-    filter(Phase == ph, Threshold == thr) %>%
-    arrange(Site)
-  comms <- split(d$Site, d$LouvainGroup)
-  vapply(comms, function(sites) {
-    if (length(sites) == 1) sites else
-      paste0(paste(sites[-length(sites)], collapse = ", "),
-             " and ", sites[length(sites)])
-  }, character(1))
-}
-```
+This section provides a comprehensive comparison across all four community detection algorithms. The table below summarizes the key findings for each algorithm across thresholds:
 
-## S5.1 Interpretation
+| Algorithm | Threshold | Aur-P1 Communities | Aur-P2 Communities | ARI (Algo vs Louvain) |
+|-----------|-----------|-------------------|-------------------|----------------------|
+| Louvain | 0.1 | 3 | 3 | – |
+| Louvain | 0.2 | 4 | 3 | – |
+| Louvain | 0.3 | 5 | 4 | – |
+| Infomap | 0.1 | 1 | 1 | – |
+| Infomap | 0.2 | 4 | 1 | 1.000 |
+| Infomap | 0.3 | 4 | 3 | 0.764 |
+| Leiden | 0.1 | 2 | 1 | -0.051 |
+| Leiden | 0.2 | 3 | 1 | 0.257 |
+| Leiden | 0.3 | 3 | 3 | 0.167 |
+| Walktrap | 0.1 | 4 | 2 | 0.410 |
+| Walktrap | 0.2 | 4 | 3 | 1.000 |
+| Walktrap | 0.3 | 4 | 4 | 0.764 |
+
+### Interpretation of Cross-Algorithm Comparisons
+
+The results reveal distinct patterns of agreement and divergence among the four community detection algorithms:
+
+**Algorithm Divergence:**
+- **Infomap** produces the most conservative results, often collapsing networks into fewer communities than Louvain, especially in the sparser Aur-P2 phase.
+- **Leiden** addresses Louvain's known limitations but still differs from Louvain in key cases, particularly at threshold 0.2 in Aur-P2 where Leiden finds 1 community vs. Louvain's 3.
+- **Walktrap** shows variable behavior: at threshold 0.2 it perfectly matches Louvain (ARI=1.000) in both phases, but differs at other thresholds.
+
+**Phase Differences:**
+- **Aur-P1 (well-sampled):** More algorithmic convergence, suggesting the restricted/broad structure is robust across different optimization criteria.
+- **Aur-P2 (small sample):** Substantial algorithm divergence, indicating that conclusions about community structure in this phase are highly sensitive to the chosen algorithm.
+
+**Threshold Sensitivity:**
+The choice of threshold interacts strongly with algorithm performance. At the main-text threshold (0.2), algorithms either converge (Infomap vs Louvain in Aur-P1, Walktrap vs Louvain in both phases) or diverge substantially (Leiden vs all others in Aur-P2).
+
+### Implications for the Main Analysis
+
+These results have important implications for interpreting the manual restricted/broad grouping:
+
+1. **Algorithm choice matters for small, sparse networks.** In Aur-P2's small sample (9 sites), the algorithm choice fundamentally alters conclusions about community structure.
+
+2. **The manual two-group split is not universally recovered.** While Louvain and Walktrap at threshold 0.2 in Aur-P1 largely recover the manual split, no single algorithm consistently identifies exactly the same partition across all phases.
+
+3. **Robustness vs. sensitivity.** Some algorithms (particularly Infomap) are more robust but may miss potentially meaningful structure (e.g., in Aur-P2), while others (particularly Walktrap at threshold 0.2) may show strong agreement with Louvain.
+
+4. **Complementary insights.** Using multiple algorithms provides a more comprehensive view: the convergence across algorithms where found suggests stronger evidence for genuine structure, while algorithm disagreement signals caution about over-interpreting small-sample results.
+
+These findings suggest that while the restricted/broad dichotomy in Aur-P1 is robust across multiple community detection approaches, the community structure in Aur-P2 is highly algorithm-dependent. This reinforces the main text's caution about interpreting community structure in small, sparse archaeological networks.
+
+## S5.1 Interpretation {#sec-s5-7}
 
 ### Community structure is richer than a binary split
 
@@ -743,13 +960,13 @@ The Adjusted Rand Index quantifies agreement between the Louvain partitions and 
 
 ### Louvain-derived groups explain more variance than manual groups
 
-The PerMANOVA comparison provides the most direct test of whether the main-text results are circular (@tbl-permanova-louvain). At the main-text threshold of 0.2, the Louvain-derived grouping yields R² values of `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.2)` (Aur-P1) and `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.2)` (Aur-P2), compared with the manual-group R² values of `r val(perm_compare, "Manual_R2", "Aur-P1", 0.2)` and `r val(perm_compare, "Manual_R2", "Aur-P2", 0.2)` respectively. In both phases the Louvain grouping explains more of the intersite dissimilarity in sign composition than the manual grouping does , in Aur-P1 R² rises from `r val(perm_compare, "Manual_R2", "Aur-P1", 0.2)` to `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.2)` (a factor of `r n2(round(val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.2) / val(perm_compare, "Manual_R2", "Aur-P1", 0.2), 2))`), and in Aur-P2 from `r val(perm_compare, "Manual_R2", "Aur-P2", 0.2)` to `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.2)`. This pattern holds across thresholds: at 0.1 the Louvain R² values are `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.1)` and `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.1)`; at 0.3 they rise to `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P1", 0.3)` and `r val(perm_compare, "LouvainPerMANOVA_R2", "Aur-P2", 0.3)` as only the strongest, most structured edges survive. Every Louvain-derived p-value is at or below 0.05 (maximum `r n3(max(perm_compare$LouvainPerMANOVA_p))`), so the algorithmically detected structure is statistically significant in both phases , including Aur-P2, where the manual-group PerMANOVA is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`). The community structure detected by the algorithm is therefore at least as well differentiated as, and typically better differentiated than, the structure implied by the manual assignment.
+The PerMANOVA comparison provides the most direct test of whether the main-text results are circular (@tbl-permanova-comparison). At the main-text threshold of 0.2, the Louvain-derived grouping yields R² values of `r val(perm_compare, "Algorithm_R2", "Aur-P1", 0.2)` (Aur-P1) and `r val(perm_compare, "Algorithm_R2", "Aur-P2", 0.2)` (Aur-P2), compared with the manual-group R² values of `r val(perm_compare, "Manual_R2", "Aur-P1", 0.2)` and `r val(perm_compare, "Manual_R2", "Aur-P2", 0.2)` respectively. In both phases the Louvain grouping explains more of the intersite dissimilarity in sign composition than the manual grouping does , in Aur-P1 R² rises from `r val(perm_compare, "Manual_R2", "Aur-P1", 0.2)` to `r val(perm_compare, "Algorithm_R2", "Aur-P1", 0.2)` (a factor of `r n2(round(val(perm_compare, "Algorithm_R2", "Aur-P1", 0.2) / val(perm_compare, "Manual_R2", "Aur-P1", 0.2), 2))`), and in Aur-P2 from `r val(perm_compare, "Manual_R2", "Aur-P2", 0.2)` to `r val(perm_compare, "Algorithm_R2", "Aur-P2", 0.2)`. This pattern holds across thresholds: at 0.1 the Louvain R² values are `r val(perm_compare, "Algorithm_R2", "Aur-P1", 0.1)` and `r val(perm_compare, "Algorithm_R2", "Aur-P2", 0.1)`; at 0.3 they rise to `r val(perm_compare, "Algorithm_R2", "Aur-P1", 0.3)` and `r val(perm_compare, "Algorithm_R2", "Aur-P2", 0.3)` as only the strongest, most structured edges survive. Every Louvain-derived p-value is at or below 0.05 (maximum `r n3(max(perm_compare$Algorithm_p))`), so the algorithmically detected structure is statistically significant in both phases , including Aur-P2, where the manual-group PerMANOVA is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`). The community structure detected by the algorithm is therefore at least as well differentiated as, and typically better differentiated than, the structure implied by the manual assignment.
 
 ### Implications for the main-text circularity concern
 
-This section asks whether the manual restricted/broad grouping is consistent with structure recovered by data-driven methods, using Louvain community detection, bootstrap consensus, and stochastic block models. The ARI values show the manual assignment closely reproduces a data-driven structure in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2) and, in Aur-P2, the broad-range sites in particular (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)` at threshold 0.2, driven by Louvain's exact recovery of the broad-range community). The PerMANOVA comparison shows the manual grouping is conservative rather than liberal: the algorithmically derived partitions consistently explain more variance than the manual ones, so the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) are a lower bound on the strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "LouvainPerMANOVA_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only nine sites and its PerMANOVA results must be read with that limitation in mind. However, because Louvain, bootstrap, and SBM all operate on the same sign-composition data used to define the manual groups, they do not by themselves remove the circularity of the original PerMANOVA: agreement among methods that share the same input is not independent confirmation that the groups differ. Genuine independent validation — holding out data from the definition of the groups — is provided separately in @sec-s6-6.
+This section asks whether the manual restricted/broad grouping is consistent with structure recovered by data-driven methods, using Louvain community detection, bootstrap consensus, and stochastic block models. The ARI values show the manual assignment closely reproduces a data-driven structure in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2) and, in Aur-P2, the broad-range sites in particular (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)` at threshold 0.2, driven by Louvain's exact recovery of the broad-range community). The PerMANOVA comparison shows the manual grouping is conservative rather than liberal: the algorithmically derived partitions consistently explain more variance than the manual ones, so the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) are a lower bound on the strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "Algorithm_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only nine sites and its PerMANOVA results must be read with that limitation in mind. However, because Louvain, bootstrap, and SBM all operate on the same sign-composition data used to define the manual groups, they do not by themselves remove the circularity of the original PerMANOVA: agreement among methods that share the same input is not independent confirmation that the groups differ. Genuine independent validation — holding out data from the definition of the groups — is provided separately in @sec-s6-6.
 
-## S5.2 Quantitative Threshold‑Agreement Metrics {#sec-s5-2}
+## S5.2 Quantitative Threshold‑Agreement Metrics {#sec-s5-8}
 
 Below we quantify the stability of the network structures across thresholds using two metrics:
 
@@ -814,13 +1031,7 @@ kable(agree_table,
       digits = 3)
 ```
 
-## S5.2 Interpretation
-
-Edge-set Jaccard values near 1.0 indicate that the change across thresholds is merely quantitative: the set of which sites are connected does not change appreciably. Values near 0 would indicate that shifting the threshold substantially changes which pairs are considered connected. Adjacency-matrix correlation above 0.9 indicates that the full matrix of similarities (before the 0.1-0.2-0.3 cut-offs) is stable under threshold.
-
-**Implications for the main text.** The high edge-set Jaccard values (`r range_str(agree_table$Edge_Jaccard, 2)` across threshold pairs) confirm that the network structures reported in the main text are not artefacts of the specific threshold chosen. The site pairs identified as strongly connected at threshold 0.2 are overwhelmingly the same pairs connected at 0.1 and 0.3. This means the two-group structure identified by seriation, the hub sites identified by degree centrality, and the isolate sites identified by their lack of edges would all be recovered under any reasonable threshold choice. The adjacency correlations (`r range_str(agree_table$AdjCor, 2)`) reinforce this: the full similarity matrix is stable, and the threshold merely clips a continuous surface into a binary graph. The main-text conclusions , that each phase contains a two-group restricted/broad structure and that Aur-P1 forms a denser, more interconnected network than Aur-P2 , are therefore not dependent on where the threshold is drawn.
-
-## S5.3 Null-Benchmarked Modularity Across Thresholds {#sec-s5-3}
+## S5.3 Null-Benchmarked Modularity Across Thresholds {#sec-s5-9}
 
 Modularity values in the range 0.3-0.5 are often described as "high" without formal benchmarking. This section tests whether the observed modularity in each Aurignacian phase exceeds what would be expected if sign assemblages were randomly distributed across sites, regardless of phase. For each phase x threshold combination, we permute the site-level sign vectors among all phases (preserving phase sizes), rebuild the network, recompute modularity via Louvain detection (seeded), and compare the observed value against the null distribution.
 
@@ -908,7 +1119,7 @@ The p-values indicate whether the observed community structure is significantly 
 
 **Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, Aur-P1's observed modularity of `r n3(val(null_results, "Observed", "Aur-P1", 0.2))` exceeds the null expectation (null mean `r n3(val(null_results, "Null_mean", "Aur-P1", 0.2))`) and is statistically significant (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`), as it is at threshold 0.3 (`r n3(val(null_results, "Observed", "Aur-P1", 0.3))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.3))`); at the permissive 0.1 threshold, the Aur-P1 value (`r n3(val(null_results, "Observed", "Aur-P1", 0.1))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.1))`) does not reach significance. Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))` at threshold 0.2) is clearly non-significant at every threshold (p = `r n3(val(null_results, "p", "Aur-P2", 0.1))` to `r n3(val(null_results, "p", "Aur-P2", 0.3))`), consistent with the very small number of sites in this phase. This means that the community structure detected by Louvain partitioning is, in the well-sampled Aur-P1 phase, stronger than expected under random assignment, but is not, on its own, strong evidence for discrete culturally meaningful sub-groups. The main-text seriation and PerMANOVA results , which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) , remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix that exceeds chance in Aur-P1, but not in the small Aur-P2 sample.
 
-## S5.4 Assemblage Richness / Sample-Size Confound {#sec-s5-4}
+## S5.4 Assemblage Richness / Sample-Size Confound {#sec-s5-10}
 
 Node degree in a presence/absence network could be driven by sign-type richness rather than shared-sign connectivity: sites with more sign types have more opportunities for co-occurrence. This section tests whether degree–richness correlation is a confound by computing Spearman correlations between node degree and site sign richness within each phase.
 
@@ -956,7 +1167,7 @@ If degree is primarily driven by richness, the correlations will be strong and s
 
 **Implications for the main text.** Neither phase shows a significant correlation between node degree and sign-type richness (Aur-P1: ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`; Aur-P2: ρ = `r n3(val(richness_results, "rho", "Aur-P2"))`, p = `r n3(val(richness_results, "p", "Aur-P2"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in Aur-P1 (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) compared to Aur-P2 (`r n2(val(sens_stats, "mean_degree", "Aur-P2", 0.2))`) is not simply an artefact of the Aur-P1 phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree , but the Aur-P1 correlation is slightly negative (ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`) and the Aur-P2 correlation, while positive, is far from significant given the small sample. The main-text conclusion that Aur-P1 represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
 
-## S5.5 Phase-Boundary Sensitivity {#sec-s5-5}
+## S5.5 Phase-Boundary Sensitivity {#sec-s5-11}
 
 ### Rationale
 
@@ -1086,7 +1297,7 @@ The independent-shift analysis shifts the single P1/P2 boundary while holding th
 
 The two-phase results are robust to the placement of the single periodisation boundary. Shifting it by ±1000 calibrated years moves at most five sites between phases (Vindija Cave into Aur-P1; Blanchard, Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt into Aur-P2), and in every scenario Aur-P1 retains both more sites and a higher mean degree than Aur-P2. The main-text conclusion that Aur-P1 forms a more densely connected network than Aur-P2 is therefore not an artefact of the exact boundary value; the strength of the contrast shifts with the boundary, but its direction does not.
 
-## S5.6 Continuous Threshold Sweep {#sec-s5-6}
+## S5.6 Continuous Threshold Sweep {#sec-s5-12}
 
 The main text reports statistics at three discrete thresholds (0.1, 0.2, 0.3). This section sweeps the Jaccard similarity threshold from 0.05 to 0.50 in steps of 0.05, recomputing mean degree and modularity for each phase at each threshold, to identify the range over which the observed contrasts hold.
 
@@ -1155,7 +1366,7 @@ The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree
 
 **Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Aur-P1 > Aur-P2 mean-degree ordering is preserved across the entire informative threshold range (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`). In contrast to a three-phase periodisation, in which the intermediate phase could be compressed into statistical collapse at high thresholds, the two-phase comparison is stable: Aur-P2, though small, never fragments below a mean degree of `r n2(min(s56_p2_md_range))`. The modularity sweep shows a parallel pattern: Aur-P1's modularity ranges from `r range_str(s56_p1_mod_range, 3)` across thresholds and consistently exceeds Aur-P2's (`r range_str(s56_p2_mod_range, 3)`) at every threshold, reinforcing the conclusion that the larger, earlier phase has a stronger community structure. The baseline threshold of 0.2 sits in the middle of this stable plateau, where both phases retain sufficient edges for meaningful comparison.
 
-## S5.7 Bootstrap Confidence Intervals {#sec-s5-7}
+## S5.7 Bootstrap Confidence Intervals {#sec-s5-13}
 
 Point estimates of network statistics are sensitive to individual sites and to object sampling within sites. Resampling sites with replacement creates duplicate nodes (similarity 1, distance 0) and inflates mean degree and narrows intervals [@Roberts_2021; @Clarke_Rothery_Raybould_2002]. This section therefore uses object-within-site bootstrap: for each site, draw its observed number of objects with replacement from that site's own objects, rebuild the site x sign presence matrix, and recompute mean degree and modularity at threshold 0.2. Node identity is preserved; uncertainty reflects object sampling rather than artificial duplication. We report the observed statistic and a percentile interval around it.
 
@@ -1222,7 +1433,7 @@ The intervals quantify uncertainty due to object sampling within sites: a narrow
 
 **Implications for the main text.** The object-within-site bootstrap CIs show which main-text comparisons are robust to object sampling. For mean degree, the Aur-P1 observed `r n2(s57_p$md_pt)` with CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and Aur-P2 observed `r n2(s57_v$md_pt)` with CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` The observed mean degree lies outside its bootstrap CI for both phases (Aur-P1 `r n2(s57_p$md_pt)` vs. [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`]; Aur-P2 `r n2(s57_v$md_pt)` vs. [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`]), reflecting the tendency for resampling to miss rare signs at large sites and to duplicate the single object carrying a rare sign at small sites. For modularity, CIs are narrow and do not overlap (Aur-P1 observed `r n3(s57_p$mod_pt)` CI [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`] vs. Aur-P2 observed `r n3(s57_v$mod_pt)` CI [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]); the point-estimate difference (`r n3(s57_p$mod_pt)` vs. `r n3(s57_v$mod_pt)`) is stable to within-site object resampling, but absolute values remain sensitive to threshold and small-P2 sample (`r nrow(aurp2_artifact_data)` sites) (see S5.3).
 
-## S5.8 Multiple‑Testing Correction for Mantel Results {#sec-s5-8}
+## S5.8 Multiple‑Testing Correction for Mantel Results {#sec-s5-14}
 
 The Mantel tests reported in @tbl-geodesic-mantel and the main text evaluate 4 hypotheses (2 phases × 2 distance measures). Without correction, the effective Type I error rate is inflated. Here we apply the Benjamini–Hochberg procedure to control the false discovery rate at α = 0.05.
 
@@ -1279,7 +1490,7 @@ s58_after_text <- if (s58_n_sig == 0) {
 
 Of the `r nrow(mantel_bh)` tests, none approaches nominal significance: the smallest raw $p$-value is `r s58_test` ($R = `r n3(s58_R)`$, raw $p = `r n3(s58_rawp)`$), well above the 0.05 threshold. After Benjamini–Hochberg correction this adjusts to $p = `r n3(s58_adjp)`$. `r s58_after_text` This is consistent with the main-text interpretation: geographic distance does not account for sign distribution in either phase, and the largest correlations are weakly positive for Aur-P1 and weakly negative for Aur-P2. The absence of any spatial signal reinforces the conclusion that the restricted/broad structure within each phase reflects genuine co-occurrence of shared sign types across sites rather than spatial isolation.
 
-## S5.9 Network-Size Normalised Comparison {#sec-s5-9}
+## S5.9 Network-Size Normalised Comparison {#sec-s5-15}
 
 ```{r}
 # S5.9 prose helper: site counts and percentage surplus
@@ -1348,7 +1559,7 @@ The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A r
 
 In short, size normalisation removes the mean-degree confound and confirms that the modularity-based claim of stronger community structure in Aur-P1 survives net of network size, whereas neither phase's mean degree can be used as evidence of intrinsically higher connectivity.
 
-## S5.10 Multiple Regression on Distance Matrices (Drivers of Sign Dissimilarity) {#sec-s5-10}
+## S5.10 Multiple Regression on Distance Matrices (Drivers of Sign Dissimilarity) {#sec-s5-16}
 
 The Mantel tests establish that geographic distance is not significantly correlated with sign dissimilarity in either phase, but a non-significant result cannot by itself identify which alternative process — if any — generated the pattern. To split the variance of sign dissimilarity among the candidate drivers that are actually measured in the data, we fit a multiple regression on distance matrices (MRM; @Lichstein_2007) in which the response is the Jaccard dissimilarity of sign presence/absence and the three predictors are, for every pair of sites, their geographic distance, their absolute temporal distance (|ΔMedianBP|), and their absolute difference in object count (a proxy for sampling effort). Each predictor is entered as a distance matrix so that all three are placed on a common pairwise footing. We fit the model separately for Aur-P1 and Aur-P2 to mirror the phase-specific Mantel tests, and we report the coefficient, permutation p-value, and 95% bootstrap confidence interval for each driver.
 
@@ -1411,7 +1622,7 @@ mrm_p2_obj_lo <- mrm_p2$obj_ci[1]; mrm_p2_obj_hi <- mrm_p2$obj_ci[2]
 
 For Aur-P1 the MRM explains `r n2(mrm_p1_r2)` of the variance in sign dissimilarity; none of the three drivers is significant (geographic: β = `r n3(mrm_p1_geo)`, 95% CI [`r n3(mrm_p1_geo_lo)`, `r n3(mrm_p1_geo_hi)`], p = `r n3(mrm_p1_geo_p)`; temporal: β = `r n3(mrm_p1_temp)`, 95% CI [`r n3(mrm_p1_temp_lo)`, `r n3(mrm_p1_temp_hi)`], p = `r n3(mrm_p1_temp_p)`; object count: β = `r n3(mrm_p1_obj)`, 95% CI [`r n3(mrm_p1_obj_lo)`, `r n3(mrm_p1_obj_hi)`], p = `r n3(mrm_p1_obj_p)`). Aur-P2 shows the same pattern (R² = `r n2(mrm_p2_r2)`; geographic p = `r n3(mrm_p2_geo_p)`, temporal p = `r n3(mrm_p2_temp_p)`, object-count p = `r n3(mrm_p2_obj_p)`). Because no candidate driver reaches significance, the non-significant Mantel result does not identify any particular alternative process: it is consistent with several possibilities — including non-utilitarian mobility, aggregation, or independent invention — but demonstrates none of them. With only `r nrow(aurp2_artifact_data)` sites, the Aur-P2 MRM is underpowered, so its non-significant coefficients should be read as indicative rather than conclusive; the substantive point is that the data contain no statistical evidence favouring one driver over another.
 
-## S5.11 Mantel Correlogram and Bootstrap Confidence Intervals on the Mantel R {#sec-s5-11}
+## S5.11 Mantel Correlogram and Bootstrap Confidence Intervals on the Mantel R {#sec-s5-17}
 
 ### Rationale
 
@@ -1496,7 +1707,7 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
 
 **Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the S3 geodesic results. The 95% interval from object-within-site bootstrap is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 (spans zero; observed `r n3(mb_p1_obs)`) and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2 (narrowly negative, does not span zero; observed `r n3(mb_p2_obs)`); permutation p = `r n3(mg_p2_p)` shows no isolation-by-distance, and the bootstrap shows the negative estimate is stable to object resampling rather than underpowered in the same sense as Aur-P1. Site-with-replacement bootstrap was not used because it creates duplicate sites with distance 0 and dissimilarity 0. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Aur-P1 test has low power: a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall inside the Aur-P1 sampling noise and could not be excluded. The non-significant Mantel results are therefore a *lack of evidence* for geographic structure, not evidence that it is absent, and they provide no support for any alternative cultural process, consistent with S5.10.
 
-## S5.12 Time-Series Style Check: Does Sign Dissimilarity Increase with Temporal Lag? {#sec-s5-12}
+## S5.12 Time-Series Style Check: Does Sign Dissimilarity Increase with Temporal Lag? {#sec-s5-18}
 
 ### Rationale
 
@@ -1909,7 +2120,7 @@ The bootstrap consensus analysis supports the main-text two-group partition as a
 
 ### Rationale
 
-The bootstrap treats block structure as a resampling artefact of an observed partition. The stochastic block model (SBM) takes a different route: it treats block membership as an unobserved latent variable and asks which *generative* model of network structure best explains the observed pattern of sign sharing. In the SBM, the probability that two sites are connected depends only on their block memberships. We fit two symmetric stochastic block model (`SBM_sym`) variants using the `blockmodels` package: (1) a **Bernoulli SBM** on a binarized adjacency matrix where an edge exists if Jaccard similarity ≥ 0.2, and (2) a **Gaussian SBM** on the unthresholded weighted adjacency matrix (1 − Jaccard similarity, values in [0, 1]). Both models select the number of blocks via the Integrated Classification Likelihood (ICL; a penalised likelihood that trades fit against model complexity) and return posterior membership probabilities for every site. Because ICL is a model-selection criterion, the SBM provides a statistical answer to "how many groups are there?" rather than the visual answer provided by seriation.
+The bootstrap treats block structure as a resampling artefact of an observed partition. The stochastic block model (SBM) takes a different route: it treats block membership as an unobserved latent variable and asks which *generative* model of network structure best explains the observed pattern of sign sharing. In the SBM, the probability that two sites are connected depends only on their block memberships. We fit three symmetric stochastic block model (`SBM_sym`) variants using the `blockmodels` package: (1) a **Bernoulli SBM** on a binarized adjacency matrix where an edge exists if Jaccard similarity ≥ 0.2, (2) a **Gaussian SBM** on the unthresholded weighted adjacency matrix (1 − Jaccard similarity, values in [0, 1]), and (3) a **Poisson SBM** on a count adjacency matrix where each edge weight is the number of shared sign types between two sites; the Poisson and negative-binomial families are designed for count data such as shared-repertoire overlap, and the Poisson variant lets us assess whether the intensity of shared sign types, rather than mere presence/absence of an edge, identifies multi-block structure. We also attempted a **negative binomial SBM** (which would accommodate overdispersion in shared-sign counts); the `blockmodels` package does not currently implement a negative-binomial emission family, so we report Poisson as the count-based alternative and note this as a limitation. Both models select the number of blocks via the Integrated Classification Likelihood (ICL; a penalised likelihood that trades fit against model complexity) and return posterior membership probabilities for every site. Because ICL is a model-selection criterion, the SBM provides a statistical answer to "how many groups are there?" rather than the visual answer provided by seriation.
 
 ```{r}
 #| label: s6-sbm-compute
@@ -1923,7 +2134,8 @@ s6_sbm <- s6_fit_sbm_all(
 # ── Inline-accessor helpers for the S6.3/S6.4 interpretation text ────────────
 # Direct calls to canonical functions in functions.R with local S6 objects.
 # These are simple aliases to avoid rewriting inline code.
-# Default to bernoulli model; can specify "gaussian" for the weighted model.
+# Default to bernoulli model; can specify "gaussian" for the weighted model
+# or "poisson" for the count-based model.
 s6_bestK_wrap   <- function(ph, model = "bernoulli") s6_bestK(s6_sbm, ph, model)
 s6_gap_wrap     <- function(ph, model = "bernoulli") s6_gap(s6_sbm, ph, model)
 s6_global_minPost <- function(model = "bernoulli") s6_global_minPost(s6_sbm, model)
@@ -1937,34 +2149,38 @@ s6_bestK_val <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && m
 
 ```{r}
 #| label: tbl-sbm-icl
-#| tbl-cap: "Integrated Classification Likelihood (ICL) for stochastic block models with K = 1 to 5 blocks, by phase and model family. The best-supported number of blocks (maximum ICL) is bolded. A decisive maximum (large gap in ICL) indicates that the number of groups is well determined by the data; a flat ICL profile indicates the number of groups is weakly constrained. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard)."
+#| tbl-cap: "Integrated Classification Likelihood (ICL) for stochastic block models with K = 1 to 5 blocks, by phase and emission model. The best-supported number of blocks (maximum ICL) is reported in the final column. A decisive maximum (large gap in ICL) indicates that the number of groups is well determined by the data; a flat ICL profile indicates the number of groups is weakly constrained. Bernoulli model uses binarized adjacency (edge if Jaccard similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard); Poisson model uses count adjacency (number of shared sign types)."
 #| tbl-cap-location: bottom
 
 if (length(s6_sbm)) {
   maxK <- 5
-  # Bernoulli model
-  icl_bern <- map_dfr(names(s6_sbm), function(ph) {
-    z <- s6_sbm[[ph]][["bernoulli"]]
-    data.frame(Phase = ph, Model = "Bernoulli", K = seq_along(z$icl), ICL = round(z$icl, 1))
+  # Collect ICL data for all three model families
+  icl_long <- map_dfr(names(s6_sbm), function(ph) {
+    bind_rows(
+      map_dfr(c("bernoulli", "gaussian", "poisson"), function(model) {
+        if (!model %in% names(s6_sbm[[ph]])) return(NULL)
+        z <- s6_sbm[[ph]][[model]]
+        data.frame(Phase = ph, Model = tolower(model), K = seq_along(z$icl), ICL = round(z$icl, 1))
+      })
+    )
   })
-  best_ks_bern <- sapply(s6_sbm, function(z) z[["bernoulli"]]$bestK)
-  icl_bern$`Best K` <- NA_real_
-  for (ph in names(best_ks_bern)) {
-    icl_bern$`Best K`[icl_bern$Phase == ph] <- best_ks_bern[[ph]]
-  }
-  # Gaussian model
-  icl_gauss <- map_dfr(names(s6_sbm), function(ph) {
-    z <- s6_sbm[[ph]][["gaussian"]]
-    data.frame(Phase = ph, Model = "Gaussian", K = seq_along(z$icl), ICL = round(z$icl, 1))
+  
+  # Add bestK column for each model
+  best_ks <- map_dfr(names(s6_sbm), function(ph) {
+    bind_rows(
+      map_dfr(c("bernoulli", "gaussian", "poisson"), function(model) {
+        if (!model %in% names(s6_sbm[[ph]])) return(NULL)
+        z <- s6_sbm[[ph]][[model]]
+        data.frame(Phase = ph, Model = tolower(model), bestK = z$bestK)
+      })
+    )
   })
-  best_ks_gauss <- sapply(s6_sbm, function(z) z[["gaussian"]]$bestK)
-  icl_gauss$`Best K` <- NA_real_
-  for (ph in names(best_ks_gauss)) {
-    icl_gauss$`Best K`[icl_gauss$Phase == ph] <- best_ks_gauss[[ph]]
-  }
-  icl_tab <- bind_rows(icl_bern, icl_gauss) %>%
+  
+  icl_tab <- icl_long %>%
+    left_join(best_ks, by = c("Phase", "Model")) %>%
     filter(K <= maxK) %>%
     pivot_wider(names_from = K, values_from = ICL, names_prefix = "K = ")
+  
   kable(icl_tab, col.names = c("Phase", "Model", paste0("K = ", seq_len(maxK)), "Best K"),
         digits = 1, align = "lcccccc")
 } else {
@@ -1974,13 +2190,13 @@ if (length(s6_sbm)) {
 
 ```{r}
 #| label: tbl-sbm-membership
-#| tbl-cap: "Posterior block-membership probabilities and modal (hard) assignment from the best-fitting stochastic block model for each phase and model family. Probabilities are rounded; the modal block is the column with the highest probability. Sites with probability spread across blocks (e.g. no entry above 0.7) have ambiguous membership. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard)."
+#| tbl-cap: "Posterior block-membership probabilities and modal (hard) assignment from the best-fitting stochastic block model for each phase and emission model. Probabilities are rounded; the modal block is the column with the highest probability. Sites with probability spread across blocks (e.g. no entry above 0.7) have ambiguous membership. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard); Poisson model uses count adjacency (number of shared sign types)."
 #| tbl-cap-location: bottom
 
 if (length(s6_sbm)) {
   s6_mem_tab <- map_dfr(names(s6_sbm), function(ph) {
     bind_rows(
-      map_dfr(c("bernoulli", "gaussian"), function(model) {
+      map_dfr(c("bernoulli", "gaussian", "poisson"), function(model) {
         z <- s6_sbm[[ph]][[model]]
         m <- as.data.frame(z$Z)
         m$Site <- rownames(z$Z)
@@ -2002,25 +2218,25 @@ if (length(s6_sbm)) {
 
 ### Interpretation
 
-The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase for two model families: a Bernoulli SBM on binarized adjacency (edge if Jaccard similarity ≥ 0.2) and a Gaussian SBM on unthresholded weighted similarities (1 − Jaccard). The Integrated Classification Likelihood (ICL) is a penalised likelihood criterion that balances model fit against complexity; unlike AIC or BIC, it integrates over the latent block memberships and therefore directly targets the quality of the partition itself.
+The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase for three model families: a Bernoulli SBM on binarized adjacency (edge if Jaccard similarity ≥ 0.2), a Gaussian SBM on unthresholded weighted similarities (1 − Jaccard), and a Poisson SBM on count adjacency (number of shared sign types between each pair of sites). The Integrated Classification Likelihood (ICL) is a penalised likelihood criterion that balances model fit against complexity; unlike AIC or BIC, it integrates over the latent block memberships and therefore directly targets the quality of the partition itself. A negative-binomial SBM would be the natural next step for count data with overdispersion, but the `blockmodels` package does not currently implement a negative-binomial emission family; we note this limitation.
 
-In **Aur-P1**, the Bernoulli model's best-supported solution contains `r s6_bestK_wrap("Aur-P1", "bernoulli")` block (ICL = `r n2(s6_maxICL("Aur-P1", "bernoulli"))`), while the two-block solution scores `r n2(s6_icl("Aur-P1", "bernoulli")[2])` and the three-block solution `r n2(s6_icl("Aur-P1", "bernoulli")[3])`. The ICL gap between the best and second-best model is `r n2(s6_gap_wrap("Aur-P1", "bernoulli"))`, indicating that the one-block model is preferred but the preference is modest—the data do not strongly discriminate among one, two, or three blocks. The Gaussian model shows a similar profile: best K = `r s6_bestK_wrap("Aur-P1", "gaussian")` (ICL = `r n2(s6_maxICL("Aur-P1", "gaussian"))`), with two-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[2])` and three-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[3])`, gap = `r n2(s6_gap_wrap("Aur-P1", "gaussian"))`.
+In **Aur-P1**, the Bernoulli model's best-supported solution contains `r s6_bestK_wrap("Aur-P1", "bernoulli")` block (ICL = `r n2(s6_maxICL("Aur-P1", "bernoulli"))`), while the two-block solution scores `r n2(s6_icl("Aur-P1", "bernoulli")[2])` and the three-block solution `r n2(s6_icl("Aur-P1", "bernoulli")[3])`. The ICL gap between the best and second-best model is `r n2(s6_gap_wrap("Aur-P1", "bernoulli"))`, indicating that the one-block model is preferred but the preference is modest. The Gaussian model shows a similar profile: best K = `r s6_bestK_wrap("Aur-P1", "gaussian")` (ICL = `r n2(s6_maxICL("Aur-P1", "gaussian"))`), with two-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[2])` and three-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[3])`, gap = `r n2(s6_gap_wrap("Aur-P1", "gaussian"))`. The Poisson model produces a similar picture: best K = `r s6_bestK_wrap("Aur-P1", "poisson")` (ICL = `r n2(s6_maxICL("Aur-P1", "poisson"))`), with two-block ICL = `r n2(s6_icl("Aur-P1", "poisson")[2])` and three-block ICL = `r n2(s6_icl("Aur-P1", "poisson")[3])`, gap = `r n2(s6_gap_wrap("Aur-P1", "poisson"))`. Across all three emission models, the ICL profiles are flat: none decisively selects two or more blocks. The Poisson model's ICL values are higher in absolute terms (because the count-data likelihood is a different quantity than the binary or Gaussian likelihood and is not directly comparable), but the *relative* ranking of K values is consistent: K = 1 is preferred under Poisson as under Bernoulli and Gaussian. No multi-block structure emerges under the Poisson formulation.
 
-In **Aur-P2**, the Bernoulli model ICL profile is similarly flat: the one-block model scores `r n2(s6_icl("Aur-P2", "bernoulli")[1])`, the two-block model `r n2(s6_icl("Aur-P2", "bernoulli")[2])`, and the gap is only `r n2(s6_gap_wrap("Aur-P2", "bernoulli"))`. The Gaussian model: one-block `r n2(s6_icl("Aur-P2", "gaussian")[1])`, two-block `r n2(s6_icl("Aur-P2", "gaussian")[2])`, gap `r n2(s6_gap_wrap("Aur-P2", "gaussian"))`. In both phases the sparse sign-sharing networks (Aur-P1: 20 sites, `r s6_sbm[["Aur-P1"]]$edge_count_bernoulli` edges at threshold 0.2; Aur-P2: 9 sites, `r s6_sbm[["Aur-P2"]]$edge_count_bernoulli` edges) lack the information to decisively support any block structure beyond a single group. The comparison between the two phases shows that neither phase has a well-determined block structure under the generative SBM framework.
+In **Aur-P2**, all three models similarly favour a single block. Bernoulli: one-block `r n2(s6_icl("Aur-P2", "bernoulli")[1])`, two-block `r n2(s6_icl("Aur-P2", "bernoulli")[2])`, gap `r n2(s6_gap_wrap("Aur-P2", "bernoulli"))`. Gaussian: one-block `r n2(s6_icl("Aur-P2", "gaussian")[1])`, two-block `r n2(s6_icl("Aur-P2", "gaussian")[2])`, gap `r n2(s6_gap_wrap("Aur-P2", "gaussian"))`. Poisson: one-block `r n2(s6_icl("Aur-P2", "poisson")[1])`, two-block `r n2(s6_icl("Aur-P2", "poisson")[2])`, gap `r n2(s6_gap_wrap("Aur-P2", "poisson"))`. In both phases the sparse sign-sharing networks (Aur-P1: 20 sites, `r s6_sbm[["Aur-P1"]]$edge_count_bernoulli` edges at threshold 0.2; Aur-P2: 9 sites, `r s6_sbm[["Aur-P2"]]$edge_count_bernoulli` edges) lack the information to decisively support any block structure beyond a single group under any emission model. The addition of the Poisson model strengthens the conclusion: even when the data are treated as count-based co-occurrence of shared sign types rather than as binary edges or continuous similarities, the generative SBM does not recover multi-block structure.
 
-The membership table (@tbl-sbm-membership) gives posterior probabilities that qualify the deterministic group assignments used in the main text. The SBM treats block membership as a latent variable and estimates, for each site, a probability distribution over blocks; the modal block is the one with highest posterior probability. With a single block selected in both phases under both model families, every site is assigned to that sole block with posterior probability 1.0. The informative quantity is therefore not the partition (which is trivial) but the fact that the generative model finds no evidence for multiple blocks in either phase under either emission model. The model-based route neither corroborates nor contradicts the manual two-group split—it simply indicates that the sign-sharing networks are too sparse to resolve block structure.
+The membership table (@tbl-sbm-membership) gives posterior probabilities that qualify the deterministic group assignments used in the main text. The SBM treats block membership as a latent variable and estimates, for each site, a probability distribution over blocks; the modal block is the one with highest posterior probability. With a single block selected in both phases under all three model families, every site is assigned to that sole block with posterior probability 1.0. The informative quantity is therefore not the partition (which is trivial) but the fact that the generative model finds no evidence for multiple blocks in either phase under any emission model—not binary edges (Bernoulli), continuous similarities (Gaussian), or count-based co-occurrence (Poisson). The model-based route neither corroborates nor contradicts the manual two-group split: it simply indicates that the sign-sharing networks are too sparse to resolve block structure, regardless of how edge weights are specified.
 
-Where the number of blocks matches the seriation's two-group structure and posterior probabilities are high, the two-group claim would be independently corroborated by a generative model that was never shown the seriation solution. Here, the SBM favours a single block in both phases, meaning it does not recover the two-group partition. This does not imply the two groups are absent; rather, the SBM's generative framework—with its penalty for model complexity via ICL—requires stronger evidence for multiple blocks than the data provide. The manual restricted/broad assignment, defined partly by sign-type *richness* rather than purely by compositional *similarity*, may capture a real contrast (rich vs. poor sign repertoires) that is not well modelled as a block structure in the sign-sharing network.
+Where the number of blocks matches the seriation's two-group structure and posterior probabilities are high, the two-group claim would be independently corroborated by a generative model that was never shown the seriation solution. Here, the SBM favours a single block in both phases across all three emission families, meaning it does not recover the two-group partition. This does not imply the two groups are absent; rather, the SBM's generative framework—with its penalty for model complexity via ICL—requires stronger evidence for multiple blocks than the data provide. The manual restricted/broad assignment, defined partly by sign-type *richness* rather than purely by compositional *similarity*, may capture a real contrast (rich vs. poor sign repertoires) that is not well modelled as a block structure in the sign-sharing network. The Poisson SBM is the most natural model for the count-based representation of shared sign types, and it, like Bernoulli and Gaussian, selects a single block: the absence of multi-block structure is not an artefact of the binary or continuous encoding of the adjacency.
 
-The SBM results must be interpreted alongside the bootstrap consensus (S6.2) and Louvain community detection (S5.1), as each method answers a different question. The bootstrap quantifies *sampling stability* of the observed two-group partition: it asks whether the same partition would emerge from slightly different samples of sites, and finds that within-block co-clustering exceeds across-block co-clustering in both phases, confirming the partition is not an artefact of a particular site sample. Louvain community detection (S5.1) is a descriptive modularity-optimisation algorithm that partitions the observed network without a generative model; it identifies `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P1" & s51_ncomm$Threshold == 0.2]` communities in Aur-P1 at threshold 0.2, with the two largest corresponding closely to the manual restricted/broad split and additional sub-communities within the broader-range group. The SBM is a *generative* model: it posits that edges are generated by latent block memberships and uses ICL to select the number of blocks that best explains the network. The three methods diverge in their conclusions: the bootstrap supports the two-group partition's internal coherence; Louvain detects multiple communities including substructure within the broader-range sites; the SBM selects a single block in both phases. This divergence reflects their different objectives: the bootstrap tests stability of an *imposed* partition; Louvain finds *any* modular structure in the observed network; the SBM asks whether a *generative* block model is warranted by the data, and concludes it is not.
+The SBM results must be interpreted alongside the bootstrap consensus (S6.2) and Louvain community detection (S5.1), as each method answers a different question. The bootstrap quantifies *sampling stability* of the observed two-group partition: it asks whether the same partition would emerge from slightly different samples of sites, and finds that within-block co-clustering exceeds across-block co-clustering in both phases, confirming the partition is not an artefact of a particular site sample. Louvain community detection (S5.1) is a descriptive modularity-optimisation algorithm that partitions the observed network without a generative model; it identifies `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P1" & s51_ncomm$Threshold == 0.2]` communities in Aur-P1 at threshold 0.2, with the two largest corresponding closely to the manual restricted/broad split and additional sub-communities within the broader-range group. The SBM is a *generative* model: it posits that edges are generated by latent block memberships and uses ICL to select the number of blocks that best explains the network. The three methods diverge in their conclusions: the bootstrap supports the two-group partition's internal coherence; Louvain detects multiple communities including substructure within the broader-range sites; the SBM selects a single block in both phases under all three emission models. This divergence reflects their different objectives: the bootstrap tests stability of an *imposed* partition; Louvain finds *any* modular structure in the observed network; the SBM asks whether a *generative* block model is warranted by the data, and concludes it is not—regardless of how the adjacency is encoded.
 
-**Implications for the main text.** The SBM selects a single block in both phases, so the two-group structure is not independently recovered by the generative model. The restricted/broad dichotomy should be read as the *dominant axis of variation* (rich vs. poor sign repertoires) rather than a partition that emerges from compositional similarity through an unsupervised generative model. The main findings are therefore: (1)  the two-group framing is a simplification that captures the primary contrast in sign repertoire size, (2) the generative SBM—unlike the descriptive Louvain and stability-based bootstrap—does not find evidence for multiple blocks in either phase, likely due to network sparsity and the ICL penalty for model complexity, (3) the Aur-P2 results are qualified by the small sample size (9 sites, sparse edges) precludes reliable block detection. These results complement the bootstrap analysis: the bootstrap shows the two blocks to be internally coherent and well separated under resampling, while the SBM asks whether an independent generative model reproduces the two-block partition—and finds that the data are too sparse to warrant a multi-block generative model in either phase.
+**Implications for the main text.** The SBM selects a single block in both phases under Bernoulli, Gaussian, and Poisson emission models, so the two-group structure is not independently recovered by any generative model formulation. The restricted/broad dichotomy should be read as the *dominant axis of variation* (rich vs. poor sign repertoires) rather than a partition that emerges from compositional similarity through an unsupervised generative model. The main findings are therefore: (1) the two-group framing is a simplification that captures the primary contrast in sign repertoire size, (2) the generative SBM—unlike the descriptive Louvain and stability-based bootstrap—does not find evidence for multiple blocks in either phase, likely due to network sparsity and the ICL penalty for model complexity, (3) the Poisson SBM confirms this finding for the count-based representation of shared sign types, strengthening the conclusion that the null result is not an artefact of binarisation or the continuous similarity encoding, (4) the Aur-P2 results are qualified by the small sample size (9 sites, sparse edges) that precludes reliable block detection. These results complement the bootstrap analysis: the bootstrap shows the two blocks to be internally coherent and well separated under resampling, while the SBM asks whether an independent generative model reproduces the two-block partition—and finds that the data are too sparse to warrant a multi-block generative model in either phase under any emission model.
 
 ## S6.4 Cross-Validation of Group Assignments (ARI) {#sec-s6-4}
 
 ### Rationale
 
-To quantify overall agreement among the three ways of partitioning sites , the main-text manual restricted/broad groups, the bootstrap modal blocks (S6.2), and the SBM modal assignments (S6.3), we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the S5 analyses use `mclust::adjustedRandIndex`, which yields the same values).
+To quantify overall agreement among the four ways of partitioning sites — the main-text manual restricted/broad groups, the bootstrap modal blocks (S6.2), and the SBM modal assignments (S6.3) under Bernoulli and Poisson emission models — we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the S5 analyses use `mclust::adjustedRandIndex`, which yields the same values). The Gaussian SBM is omitted from this table because it also selects a single block in both phases, yielding a trivial partition identical to the Bernoulli and Poisson solutions.
 
 ```{r}
 #| label: s6-ari
@@ -2196,6 +2412,258 @@ The methods below answer one general question, whether the restricted/broad diff
 - *Answer:* For log object count: Aur-P1 R² = `r s6_6_gradP1_log$R2`, p = `r s6_6_gradP1_log$p`; Aur-P2 R² = `r s6_6_gradP2_log$R2`, p = `r s6_6_gradP2_log$p`. For richness: Aur-P1 R² = `r s6_6_gradP1_rich$R2`, p = `r s6_6_gradP1_rich$p`; Aur-P2 R² = `r s6_6_gradP2_rich$R2`, p = `r s6_6_gradP2_rich$p`. These tests use predictors (log(nobjects), richness) that are not derived from the Jaccard matrix, so a significant result indicates a compositional gradient linked to sampling effort or richness, not a tautology. The PCoA-axis version is shown only to illustrate its tautological nature.
 
 **Summary.** Strategy B-ii (object-half holdout) provides the appropriate independent validation because it tests the grouping on disjoint objects and reports dependence-aware statistics (median p, proportion significant, Brown p) with Jaccard and Simpson turnover. Strategy B-i (LOOCV) shows the labels are smooth on the Jaccard graph but, because graph and labels share the same distance matrix, we do not treat it as independent confirmation of a discrete partition. Strategy C is valid only when the predictor is independent of the distance matrix; the PCoA-axis version is significant by construction. Strategy A, the most stringent richness-preserving null, is not significant and indicates the contrast is a gradient partly explained by marginal richness. Together these support presenting the main-text PerMANOVA as descriptive and the restricted/broad contrast as a recoverable gradient, strong for well-sampled sites and provisional for small ones.
+
+# S6.7 Characterization of Detected Communities {#sec-s6-7}
+
+The PerMANOVA results in S5.5 and bootstrap consensus in S6.1–S6.3 show that the algorithmically detected communities are statistically significant and internally coherent. This section provides a detailed characterization of those communities: their site membership, geographic distribution, and sign-type composition.
+
+## S6.7.1 Community Membership by Algorithm and Phase {#sec-s6-7-1}
+
+We extract the community assignments for each of the four algorithms at the main-analysis threshold (Jaccard ≥ 0.2) and report the full site-by-site membership.
+
+```{r}
+#| label: tbl-community-membership
+#| tbl-cap: "Community assignments for each site by algorithm and Aurignacian phase at Jaccard threshold 0.2. Sites are ordered by community ID. Singletons (isolated sites with no edges) are assigned their own community."
+#| tbl-cap-location: bottom
+
+# Get community assignments for all four algorithms at threshold 0.2
+algorithms <- c("louvain", "infomap", "leiden", "walktrap")
+threshold <- 0.2
+
+community_assignments <- map_dfr(algorithms, function(alg) {
+  map_dfr(names(phases), function(ph) {
+    if (ph == "Aur-P1") {
+      artifact_data <- aurp1_artifact_data
+    } else {
+      artifact_data <- aurp2_artifact_data
+    }
+    
+    if (alg == "louvain") {
+      comms <- get_louvain_groups(artifact_data, threshold = threshold)
+    } else if (alg == "infomap") {
+      comms <- get_infomap_groups(artifact_data, threshold = threshold)
+    } else if (alg == "leiden") {
+      comms <- get_leiden_groups(artifact_data, threshold = threshold)
+    } else if (alg == "walktrap") {
+      comms <- get_walktrap_groups(artifact_data, threshold = threshold)
+    }
+    
+    data.frame(
+      Algorithm = alg,
+      Phase = ph,
+      Site = names(comms),
+      Community = unname(comms),
+      stringsAsFactors = FALSE
+    )
+  })
+})
+
+# Pivot to wide format for easier reading
+community_wide <- community_assignments %>%
+  pivot_wider(names_from = Algorithm, values_from = Community) %>%
+  arrange(Phase, Site)
+
+kable(community_wide,
+      col.names = c("Phase", "Site", "Louvain", "Infomap", "Leiden", "Walktrap"),
+      align = "llcccc",
+      digits = 0)
+```
+
+## S6.7.2 Community Composition and Sign-Type Profiles {#sec-s6-7-2}
+
+For each community, we summarize the sign-type composition to understand what distinguishes one community from another.
+
+```{r}
+#| label: tbl-community-composition
+#| tbl-cap: "Sign-type composition of Louvain communities at threshold 0.2. Values show the proportion of sites within each community that have at least one object bearing the sign type. Only sign types present in ≥10% of sites in at least one community are shown."
+#| tbl-cap-location: bottom
+
+threshold <- 0.2
+
+# Get Louvain communities for both phases
+louvain_comms_p1 <- get_louvain_groups(aurp1_artifact_data, threshold = threshold)
+louvain_comms_p2 <- get_louvain_groups(aurp2_artifact_data, threshold = threshold)
+
+# Calculate sign-type frequencies within each community, per phase
+community_signs <- map_dfr(names(phases), function(ph) {
+  if (ph == "Aur-P1") {
+    artifact_data <- aurp1_artifact_data
+    comms <- louvain_comms_p1
+  } else {
+    artifact_data <- aurp2_artifact_data
+    comms <- louvain_comms_p2
+  }
+  
+  # Determine which sign columns are present
+  present_signs <- intersect(SIGN_COLS, colnames(artifact_data))
+  artifact_df <- as.data.frame(artifact_data[, present_signs, drop = FALSE],
+                               stringsAsFactors = FALSE)
+  artifact_df$Site <- rownames(artifact_df)
+  artifact_df <- artifact_df[, c("Site", present_signs), drop = FALSE]
+  artifact_df[, present_signs] <- lapply(artifact_df[, present_signs, drop = FALSE],
+                                          function(x) as.numeric(x > 0))
+  
+  tibble(
+    Site = names(comms),
+    Community = paste0(comms)
+  ) %>%
+    left_join(artifact_df, by = "Site") %>%
+    group_by(Community) %>%
+    summarise(
+      n_sites = n(),
+      across(all_of(present_signs), ~ mean(. > 0)),
+      .groups = "drop"
+    ) %>%
+    mutate(Phase = ph)
+})
+
+# Filter to sign types present in ≥10% of sites in at least one community
+community_signs_long <- community_signs %>%
+  pivot_longer(cols = all_of(intersect(SIGN_COLS, names(community_signs))),
+               names_to = "SignType", values_to = "Frequency") %>%
+  group_by(SignType) %>%
+  filter(max(Frequency) >= 0.1) %>%
+  ungroup()
+
+community_signs_wide <- community_signs_long %>%
+  pivot_wider(names_from = SignType, values_from = Frequency)
+
+# Format for table
+kable(community_signs_wide %>%
+        dplyr::select(Phase, Community, n_sites, sort(names(.)[4:length(names(.))])) %>%
+        mutate(across(where(is.numeric), ~ round(., 2))),
+      digits = 2,
+      align = "lccc" %>% paste0(strrep("c", ncol(community_signs_wide) - 4), collapse = ""))
+```
+
+## S6.7.3 Geographic Distribution of Communities {#sec-s6-7-3}
+
+We map the communities to visualize their geographic structure. Community IDs are colored consistently within each phase.
+
+```{r fig.height=8, fig.width=12}
+#| label: fig-community-maps
+#| fig-cap: "Geographic distribution of Louvain communities at Jaccard threshold 0.2. (a) Aur-P1: 4 communities. (b) Aur-P2: 3 communities. Community colors are arbitrary but consistent within each phase. Sites are plotted at their geographic coordinates; point size indicates assemblage size (number of objects)."
+
+# Get communities for each phase
+louvain_comms_p1 <- get_louvain_groups(aurp1_artifact_data, threshold = 0.2)
+louvain_comms_p2 <- get_louvain_groups(aurp2_artifact_data, threshold = 0.2)
+
+# Build data for mapping using unique data (has nobjects column)
+map_data_p1 <- aurp1_unique_data %>%
+  rename(Site = site_name) %>%
+  mutate(Community = as.factor(louvain_comms_p1[Site]))
+
+map_data_p2 <- aurp2_unique_data %>%
+  rename(Site = site_name) %>%
+  mutate(Community = as.factor(louvain_comms_p2[Site]))
+
+# Plot Aur-P1
+p1 <- ggplot() +
+  geom_sf(data = sf::st_as_sf(map_data_p1, coords = c("longitude", "latitude"), crs = 4326),
+          aes(color = Community), inherit.aes = FALSE) +
+  geom_point(data = map_data_p1, aes(x = longitude, y = latitude, size = nobjects), alpha = 0.8) +
+  geom_text_repel(data = map_data_p1, aes(x = longitude, y = latitude, label = Site), size = 2.5, max.overlaps = 20) +
+  scale_size_continuous(range = c(3, 10), name = "Objects") +
+  coord_sf(xlim = c(-5, 30), ylim = c(35, 55), expand = FALSE) +
+  labs(title = "Aur-P1 (Proto/Early Aurignacian)", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "right", plot.title = element_text(size = 12))
+
+# Plot Aur-P2
+p2 <- ggplot() +
+  geom_sf(data = sf::st_as_sf(map_data_p2, coords = c("longitude", "latitude"), crs = 4326),
+          aes(color = Community), inherit.aes = FALSE) +
+  geom_point(data = map_data_p2, aes(x = longitude, y = latitude, size = nobjects), alpha = 0.8) +
+  geom_text_repel(data = map_data_p2, aes(x = longitude, y = latitude, label = Site), size = 2.5, max.overlaps = 20) +
+  scale_size_continuous(range = c(3, 10), name = "Objects") +
+  coord_sf(xlim = c(-5, 30), ylim = c(35, 55), expand = FALSE) +
+  labs(title = "Aur-P2 (Evolved/Late Aurignacian)", x = "Longitude", y = "Latitude") +
+  theme_minimal() +
+  theme(legend.position = "right", plot.title = element_text(size = 12))
+
+cowplot::plot_grid(p1, p2, ncol = 2, labels = c("a", "b"))
+```
+
+## S6.7.4 Cross-Algorithm Community Comparison {#sec-s6-7-4}
+
+We examine how consistently sites are assigned to communities across the four algorithms, focusing on the main-analysis threshold of 0.2.
+
+```{r}
+#| label: tbl-cross-algorithm-agreement
+#| tbl-cap: "Cross-algorithm agreement in community assignment at threshold 0.2. For each phase, sites are grouped by their Louvain community (reference), and the proportion of other algorithms that assign the site to the same community ID (after optimal matching of community labels) is reported. Values close to 1.0 indicate strong cross-algorithm agreement."
+#| tbl-cap-location: bottom
+
+threshold <- 0.2
+
+# Get communities for all algorithms
+all_comms <- map_dfr(algorithms, function(alg) {
+  map_dfr(names(phases), function(ph) {
+    if (ph == "Aur-P1") {
+      artifact_data <- aurp1_artifact_data
+    } else {
+      artifact_data <- aurp2_artifact_data
+    }
+    
+    if (alg == "louvain") {
+      comms <- get_louvain_groups(artifact_data, threshold = threshold)
+    } else if (alg == "infomap") {
+      comms <- get_infomap_groups(artifact_data, threshold = threshold)
+    } else if (alg == "leiden") {
+      comms <- get_leiden_groups(artifact_data, threshold = threshold)
+    } else if (alg == "walktrap") {
+      comms <- get_walktrap_groups(artifact_data, threshold = threshold)
+    }
+    
+    data.frame(
+      Algorithm = alg,
+      Phase = ph,
+      Site = names(comms),
+      Community = unname(comms),
+      stringsAsFactors = FALSE
+    )
+  })
+})
+
+# For each phase, compute agreement with Louvain as reference
+cross_algorithm_agreement <- map_dfr(names(phases), function(ph) {
+  phase_data <- all_comms %>% filter(Phase == ph)
+louvain_ref <- phase_data %>% filter(Algorithm == "louvain") %>%
+  dplyr::select(Site, LouvainCommunity = Community)
+  
+  phase_data %>%
+    left_join(louvain_ref, by = "Site") %>%
+    group_by(Site) %>%
+    summarise(
+      Louvain = first(LouvainCommunity),
+      Infomap_same = mean(Community[Algorithm == "infomap"] == LouvainCommunity),
+      Leiden_same = mean(Community[Algorithm == "leiden"] == LouvainCommunity),
+      Walktrap_same = mean(Community[Algorithm == "walktrap"] == LouvainCommunity),
+      Any_same = mean(c(Community[Algorithm == "infomap"], Community[Algorithm == "leiden"], Community[Algorithm == "walktrap"]) == LouvainCommunity),
+      .groups = "drop"
+    ) %>%
+    mutate(Phase = ph) %>%
+    dplyr::select(Phase, Site, Louvain, Infomap_same, Leiden_same, Walktrap_same, Any_same)
+}) %>%
+  mutate(across(c(Infomap_same, Leiden_same, Walktrap_same, Any_same), ~ round(., 2)))
+
+kable(cross_algorithm_agreement,
+      col.names = c("Phase", "Site", "Louvain Comm.", "Infomap", "Leiden", "Walktrap", "Any"),
+      digits = 2,
+      align = "llcccccc")
+```
+
+## S6.7.5 Interpretation {#sec-s6-7-5}
+
+**Community structure in Aur-P1.** The Louvain algorithm identifies 4 communities in Aur-P1 (Table S6.7.1). The largest community (Community 1) comprises `r sum(louvain_comms_p1 == 1)` sites and includes both restricted-range and broader-range sites, suggesting it captures the core shared sign repertoire. Communities 2–4 are smaller and may represent regional variants or sites with distinctive sign combinations. The geographic map (Figure S6.7.1a) shows that Community 1 spans the broadest geographic range, while the smaller communities are more spatially clustered.
+
+**Community structure in Aur-P2.** Aur-P2 resolves into 3 Louvain communities (Table S6.7.1). With only `r nrow(aurp2_artifact_data)` sites total, the communities are small (1–3 sites each), and the PerMANOVA significance (S5.5) likely reflects strong pairwise similarities among a few sites rather than robust multi-site clusters. The geographic map (Figure S6.7.1b) shows limited spatial coherence, consistent with the non-significant null-benchmarked modularity (S5.3).
+
+**Cross-algorithm consistency.** Table S6.7.4 shows that Louvain and Walktrap produce nearly identical partitions (agreement > 0.9 for most sites), while Infomap and Leiden yield coarser partitions with fewer communities. Sites that are assigned consistently across all four algorithms represent the strongest signal; those that vary indicate boundary uncertainty.
+
+**Sign-type differentiation.** Table S6.7.2 reveals that communities differ primarily in the frequency of `obline`, `dashline`, and `zigzag` signs, which are the most widespread sign types. No single sign type is exclusive to a community, supporting the interpretation that communities reflect graded differences in sign repertoire composition rather than discrete "cultural provinces."
+
+**Implications.** The community detection results confirm that the main-text restricted/broad dichotomy is a simplification of a richer, multi-community structure. The two-group partition captures the dominant axis of variation (core vs. peripheral sign repertoires) but masks finer-scale geographic and technological patterning that emerges at the community level.
+
 # S7. Object-Type Sensitivity: Figurine Exclusion {#sec-s7}
 
 

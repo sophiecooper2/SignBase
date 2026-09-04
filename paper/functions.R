@@ -292,6 +292,105 @@ get_louvain_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard
   mem
 }
 
+# ── Infomap community detection ────────────────────────────────────────────────
+# Infomap community detection on a site × sign binary matrix.
+# Returns a named integer vector (community ID per site).
+get_infomap_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
+  sign_names <- SIGN_COLS
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
+  rownames(mat) <- rownames(artifact_data)
+  if (metric == "jaccard") {
+    jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+  } else if (metric == "sorensen") {
+    jac <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
+  } else if (metric == "simpson") {
+    jac <- as.matrix(vegan::designdist(mat, "pmin(A-J, B-J) / pmin(A, B)",
+                                       terms = "binary"))
+  } else {
+    jac <- as.matrix(vegan::vegdist(mat, method = metric, binary = TRUE))
+  }
+  adj <- 1 - jac
+  adj[adj < threshold] <- 0
+  diag(adj) <- 0
+  set.seed(42)
+  ig <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
+                                            weighted = TRUE, diag = FALSE)
+  comm <- igraph::cluster_infomap(ig)
+  mem <- as.integer(igraph::membership(comm))
+  names(mem) <- igraph::V(ig)$name
+  mem
+}
+
+# ── Leiden community detection ────────────────────────────────────────────────
+# Leiden community detection on a site × sign binary matrix.
+# Returns a named integer vector (community ID per site).
+# The resolution parameter (default 0.01) controls the number of communities
+# detected; lower values yield more (finer) community structure.
+get_leiden_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard",
+                              resolution = 0.01) {
+  sign_names <- SIGN_COLS
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
+  rownames(mat) <- rownames(artifact_data)
+  if (metric == "jaccard") {
+    jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+  } else if (metric == "sorensen") {
+    jac <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
+  } else if (metric == "simpson") {
+    jac <- as.matrix(vegan::designdist(mat, "pmin(A-J, B-J) / pmin(A, B)",
+                                       terms = "binary"))
+  } else {
+    jac <- as.matrix(vegan::vegdist(mat, method = metric, binary = TRUE))
+  }
+  adj <- 1 - jac
+  adj[adj < threshold] <- 0
+  diag(adj) <- 0
+  set.seed(42)
+  ig <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
+                                            weighted = TRUE, diag = FALSE)
+  comm <- igraph::cluster_leiden(ig, resolution = resolution)
+  mem <- as.integer(igraph::membership(comm))
+  names(mem) <- igraph::V(ig)$name
+  mem
+}
+
+# ── Walktrap community detection ──────────────────────────────────────────────
+# Walktrap community detection on a site × sign binary matrix.
+# Returns a named integer vector (community ID per site).
+get_walktrap_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
+  sign_names <- SIGN_COLS
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  mat <- as.data.frame(lapply(mat, function(x) as.numeric(x > 0)))
+  rownames(mat) <- rownames(artifact_data)
+  if (metric == "jaccard") {
+    jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+  } else if (metric == "sorensen") {
+    jac <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
+  } else if (metric == "simpson") {
+    jac <- as.matrix(vegan::designdist(mat, "pmin(A-J, B-J) / pmin(A, B)",
+                                       terms = "binary"))
+  } else {
+    jac <- as.matrix(vegan::vegdist(mat, method = metric, binary = TRUE))
+  }
+  adj <- 1 - jac
+  adj[adj < threshold] <- 0
+  diag(adj) <- 0
+  set.seed(42)
+  ig <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
+                                            weighted = TRUE, diag = FALSE)
+  comm <- igraph::cluster_walktrap(ig)
+  mem <- as.integer(igraph::membership(comm))
+  names(mem) <- igraph::V(ig)$name
+  mem
+}
+
 # Format large numbers with thousands separators for inline text.
 pretty_print_dates <- function(x) {
   formatC(x,
@@ -1753,11 +1852,12 @@ sci_md <- function(x, digits = 2) {
 
 # ── SBM fitting (S1 S6.3) ────────────────────────────────────────────────────────
 # Fit stochastic block models for K = 1:5 blocks on a binary site x sign matrix.
-# Fits two model families:
+# Fits three model families:
 #   1. Bernoulli SBM on binarized adjacency (edge if Jaccard similarity >= 0.2)
-#   2. Gaussian SBM on unthresholded weighted similarities (1 - Jaccard)
-# Both use "SBM_sym" for undirected networks.
-# Returns a list with $bernoulli and $gaussian elements, each containing:
+#   2. Gaussian SBM on unthresholded weighted similarities (1 - Jaccard, in [0,1])
+#   3. Poisson SBM on count adjacency (number of shared sign types per site pair)
+# All use "SBM_sym" for undirected networks.
+# Returns a list with $bernoulli, $gaussian, $poisson elements, each containing:
 #   $icl (numeric vector length 5), $bestK (int), $Z (n_sites x bestK matrix of posteriors)
 # Also returns $edge_count_bernoulli (number of edges in binarized graph).
 # Saves results to file if `save_path` is provided (default NULL: no caching).
@@ -1782,46 +1882,67 @@ fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   adj_bin[adj_bin >= 0.2] <- 1
   diag(adj_bin) <- 0
   edge_count_bernoulli <- sum(adj_bin > 0) / 2
-  
+
   # Unthresholded weighted adjacency for Gaussian SBM (similarities in [0, 1])
   adj_gauss <- 1 - jac
   diag(adj_gauss) <- 0
+  
+  # Count adjacency for Poisson SBM: number of shared sign types between sites.
+  # The matrix product mat %*% t(mat) yields, for each pair of sites, the number
+  # of sign types present in *both* sites — this is the Jaccard numerator J and
+  # is a non-negative integer count suitable for a Poisson SBM.
+  mat_bin <- matrix(as.numeric(mat > 0), nrow = nrow(mat), ncol = ncol(mat))
+  rownames(mat_bin) <- rownames(mat)
+  colnames(mat_bin) <- colnames(mat)
+  adj_pois <- as.matrix(mat_bin %*% t(mat_bin))
+  diag(adj_pois) <- 0
   
   # Suppress verbose output from blockmodels estimation
   sink(tempfile()); on.exit(sink())
   
   # Bernoulli SBM on binarized adjacency
   bm_bern <- blockmodels::BM_bernoulli("SBM_sym", adj_bin, verbosity = 0,
-                                        explore_min = 1, explore_max = max_K)
+                                       explore_min = 1, explore_max = max_K)
   bm_bern$estimate()
   
   # Gaussian SBM on weighted adjacency
   bm_gauss <- blockmodels::BM_gaussian("SBM_sym", adj_gauss, verbosity = 0,
-                                        explore_min = 1, explore_max = max_K)
+                                       explore_min = 1, explore_max = max_K)
   bm_gauss$estimate()
+  
+  # Poisson SBM on count adjacency (number of shared sign types between sites)
+  bm_pois <- blockmodels::BM_poisson("SBM_sym", adj_pois, verbosity = 0,
+                                     explore_min = 1, explore_max = max_K)
+  bm_pois$estimate()
   
   sink()
   
-  # Extract ICL for both models (length max_K)
+  # Extract ICL for all three models (length max_K)
   icl_bern <- bm_bern$ICL[1:max_K]
   icl_gauss <- bm_gauss$ICL[1:max_K]
+  icl_pois <- bm_pois$ICL[1:max_K]
   
   bestK_bern <- which.max(icl_bern)
   bestK_gauss <- which.max(icl_gauss)
+  bestK_pois <- which.max(icl_pois)
   
   # Get posterior membership matrices Z for best K
   Z_bern <- bm_bern$memberships[[bestK_bern]]$Z
   Z_gauss <- bm_gauss$memberships[[bestK_gauss]]$Z
+  Z_pois <- bm_pois$memberships[[bestK_pois]]$Z
   
   # Preserve site names (rownames)
   rownames(Z_bern) <- rownames(adj_bin)
   colnames(Z_bern) <- paste0("Block", seq_len(bestK_bern))
   rownames(Z_gauss) <- rownames(adj_gauss)
   colnames(Z_gauss) <- paste0("Block", seq_len(bestK_gauss))
+  rownames(Z_pois) <- rownames(adj_pois)
+  colnames(Z_pois) <- paste0("Block", seq_len(bestK_pois))
   
   res <- list(
     bernoulli = list(icl = icl_bern, bestK = bestK_bern, Z = Z_bern),
     gaussian  = list(icl = icl_gauss, bestK = bestK_gauss, Z = Z_gauss),
+    poisson   = list(icl = icl_pois, bestK = bestK_pois, Z = Z_pois),
     edge_count_bernoulli = edge_count_bernoulli
   )
   if (!is.null(save_path)) {
@@ -1846,13 +1967,13 @@ s6_fit_sbm_all <- function(art_list, max_K = 5, save_path = NULL) {
   out
 }
 
-# ── SBM vs manual group mismatch (S1 S6.3) ──────────────────────────────────────
+# SBM vs manual group mismatch (S1 S6.3)
 # Compute sites where SBM modal assignment diverges from manual restricted/broad
 # groups after optimal block-to-group mapping.
-# `sbm_list`: output of s6_fit_sbm_all (list per phase with $bernoulli and $gaussian)
+# `sbm_list`: output of s6_fit_sbm_all (list per phase with $bernoulli, $gaussian, $poisson)
 # `boot_list`: output of s6_boot (list per phase with $consistency)
 # `groups_list`: manual groups (manual_groups) per phase
-# `model`: which SBM model to use ("bernoulli" or "gaussian")
+# `model`: which SBM model to use ("bernoulli", "gaussian", or "poisson")
 # Returns character vector of site names that diverge.
 s6_mismatch <- function(sbm_list, boot_list, groups_list, ph, model = "bernoulli") {
   if (!length(sbm_list) || !ph %in% names(sbm_list)) return(character())
@@ -1870,14 +1991,14 @@ s6_mismatch <- function(sbm_list, boot_list, groups_list, ph, model = "bernoulli
 }
 
 # Compute SBM best K per phase for a given model
-# `model`: which SBM model to use ("bernoulli" or "gaussian")
+# `model`: which SBM model to use ("bernoulli", "gaussian", or "poisson")
 s6_bestK <- function(sbm_list, ph, model = "bernoulli") {
   if (ph %in% names(sbm_list) && model %in% names(sbm_list[[ph]]))
     sbm_list[[ph]][[model]]$bestK else NA_integer_
 }
 
 # ICL gap between best and second-best model for a given model
-# `model`: which SBM model to use ("bernoulli" or "gaussian")
+# `model`: which SBM model to use ("bernoulli", "gaussian", or "poisson")
 s6_gap <- function(sbm_list, ph, model = "bernoulli") {
   if (!length(sbm_list) || !ph %in% names(sbm_list) || !model %in% names(sbm_list[[ph]]))
     return(NA_real_)
@@ -1888,7 +2009,7 @@ s6_gap <- function(sbm_list, ph, model = "bernoulli") {
 }
 
 # Global minimum posterior probability across all phases/sites for a given model
-# `model`: which SBM model to use ("bernoulli" or "gaussian")
+# `model`: which SBM model to use ("bernoulli", "gaussian", or "poisson")
 s6_global_minPost <- function(sbm_list, model = "bernoulli") {
   if (!length(sbm_list)) return(NA_real_)
   min(unlist(lapply(sbm_list, function(x) {
