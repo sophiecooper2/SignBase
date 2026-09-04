@@ -330,6 +330,70 @@ knitr::kable(excluded_table, col.names = c("Site", "Objects", "Basis"),
              caption = "Sites excluded from the analysis because of mixed/contaminated assemblages.")
 ```
 
+### Sites excluded for date parsing (Category B + C)
+
+Twenty-seven sites are excluded because their SignBase records lack a parsable `date_bp_max_min` string or because the calibrated median (`MedianBP`) cannot be computed from the available radiocarbon data. These exclusions occur during the date-parsing/calibration step, prior to phase assignment.
+
+**Category B (no `date_bp_max_min` field in SignBase): 16 sites with 30 total objects (27 signed).** These sites appear in SignBase as type sites or old excavations that did not record standardized date strings. No radiocarbon dating information is available for any object from these sites.
+
+**Category C (date string present but calibration fails): 11 sites with 35 total objects (32 signed).** These sites have `date_bp_max_min` entries in the format "34000 - 30000" or "35000 - 32000" that lack the ± error notation required by the parser. We cannot be confident of the correct approach to calibrate these ages, so we exclude them.
+
+```{r}
+#| label: tbl-date-excluded
+#| echo: false
+date_excluded <- data.frame(
+  site_name = c(
+    "Abri de Laussel", "Abri Lartet/Gorge d'Enfer", "Abri du Poisson", "Aurignac", "d'Engihoul",
+    "El Rascaño", "Göpfelsteinhöhle", "Kvasice", "La Souquette",
+    "Le Terme Pialat", "Lhotka", "Otaslavice", "Slatinice",
+    "Nová Dědina", "Menton/Grottes du Grimaldi", "Žlutava",
+    "Grotte de Goyet", "Maisières-Canal", "Brassempouy",
+    "Istállóskő Cave", "Le Trou Du Renard", "Tuto de Camalhot",
+    "Peskő Cave", "Shelter Birów IV", "Wildscheuer",
+    "Hornos de la Pena", "Breitenbach"
+  ),
+  category = c(rep("B", 16), rep("C", 11)),
+  n_objects = c(6, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1,
+                4, 3, 3, 13, 7, 3, 3, 2, 2, 1, 1, 1, 1, 1),
+  signed_objects = c(5, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1,
+                     3, 2, 3, 12, 5, 3, 3, 2, 2, 1, 1, 1, 1, 1),
+  reason = c(
+    "No date_bp_max_min; signed objects from deep Dordogne Late Aurignacian context",
+    "No date_bp_max_min; multiple Aurignacian levels reported by historical excavations",
+    "No date_bp_max_min; single object from historical excavation",
+    "No date_bp_max_min; isolated Italian Early Aurignacian find with no associated dating",
+    "No date_bp_max_min; Swiss site with published chronology but no SignBase date entry",
+    "No date_bp_max_min", "No date_bp_max_min", "No date_bp_max_min", "No date_bp_max_min",
+    "No date_bp_max_min", "No date_bp_max_min", "No date_bp_max_min", "No date_bp_max_min",
+    "No date_bp_max_min; Late Aurignacian assemblage with 3 artifacts",
+    "No date_bp_max_min", "No date_bp_max_min", "No date_bp_max_min", "No date_bp_max_min",
+    "Date string lacks ± error notation; C14 date range 35160-33140 uncalibratable",
+    "Date string lacks ± error notation; C14 date range 33000-32000 uncalibratable",
+    "No date_bp_max_min in parsed form; AMS date range 35000-32000 lacks error field",
+    "Date string lacks ± error notation; C14 date range 33000-32000 uncalibratable",
+    "Date string lacks ± error notation; C14 single value 34750 uncalibratable",
+    "Date string lacks ± error notation; AMS date range 38300-33500 uncalibratable",
+    "Date string lacks ± error notation; C14 date range 34000-30000 uncalibratable",
+    "Date string lacks ± error notation; C14 date range 34000-30000 uncalibratable",
+    "Date string lacks ± error notation; C14 date range 34000-30000 uncalibratable"
+  )
+)
+knitr::kable(date_excluded, col.names = c("Site", "Category", "Objects", "Signed objects", "Exemption reason"),
+             caption = "27 sites excluded during the date-parsing/calibration step: 16 Category B (no date string) and 11 Category C (unparseable date string).")
+```
+
+```{r}
+#| label: tbl-excluded-summary
+#| echo: false
+n_date_excluded <- nrow(date_excluded)
+n_date_excluded_objects <- sum(date_excluded$n_objects)
+n_date_excluded_signed <- sum(date_excluded$signed_objects)
+
+cat(paste0(
+  "**Summary:** ", n_date_excluded, " sites with ", n_date_excluded_objects, " total objects (", n_date_excluded_signed, " signed) failed date parsing. "
+))
+```
+
 ### Aur-P1 (Proto/Early) — date-based assignment
 
 Sites assigned by the calibrated date thresholds in the `assign-phases` chunk (default case), which fall in Aur-P1 once the Proto/Early distinction is collapsed. Sites listed here are unchanged from a date-only assignment.
