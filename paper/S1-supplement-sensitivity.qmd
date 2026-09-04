@@ -2419,11 +2419,11 @@ The PerMANOVA results in S5.5 and bootstrap consensus in S6.1–S6.3 show that t
 
 ## S6.7.1 Community Membership by Algorithm and Phase {#sec-s6-7-1}
 
-We extract the community assignments for each of the four algorithms at the main-analysis threshold (Jaccard ≥ 0.2) and report the full site-by-site membership.
+We extract the community assignments for each of the four algorithms at the main-analysis threshold (Jaccard ≥ 0.2) and report the full site-by-site membership, with the manual restricted (1) / broad (2) group as reference. A reviewer can then read across any row to see where Louvain, Infomap, Leiden, and Walktrap place the same site.
 
 ```{r}
 #| label: tbl-community-membership
-#| tbl-cap: "Community assignments for each site by algorithm and Aurignacian phase at Jaccard threshold 0.2. Sites are ordered by community ID. Singletons (isolated sites with no edges) are assigned their own community."
+#| tbl-cap: "Community assignments for each site by algorithm and Aurignacian phase at Jaccard threshold 0.2, with the manual restricted (1) / broad (2) group as reference. Sites are ordered by phase, manual group, then site. Singletons (isolated sites with no edges) are assigned their own community. Community IDs are arbitrary within each algorithm column: compare which sites share a value within a column, not the numeric values across columns."
 #| tbl-cap-location: bottom
 
 # Get community assignments for all four algorithms at threshold 0.2
@@ -2458,16 +2458,54 @@ community_assignments <- map_dfr(algorithms, function(alg) {
   })
 })
 
-# Pivot to wide format for easier reading
+# Pivot to wide format for easier reading, adding the manual group as reference
 community_wide <- community_assignments %>%
   pivot_wider(names_from = Algorithm, values_from = Community) %>%
-  arrange(Phase, Site)
+  mutate(Manual = mapply(function(s, p) manual_groups[[p]][s], Site, Phase)) %>%
+  dplyr::select(Phase, Site, Manual, louvain, infomap, leiden, walktrap) %>%
+  arrange(Phase, Manual, Site)
 
 kable(community_wide,
-      col.names = c("Phase", "Site", "Louvain", "Infomap", "Leiden", "Walktrap"),
-      align = "llcccc",
+      col.names = c("Phase", "Site", "Manual", "Louvain", "Infomap", "Leiden", "Walktrap"),
+      align = "llccccc",
       digits = 0)
 ```
+
+```{r fig.height=8, fig.width=8}
+#| label: fig-comembership-heatmap
+#| fig-cap: "Sites-by-algorithm co-membership at Jaccard threshold 0.2. Rows are sites ordered by phase and manual group (1 = restricted, 2 = broad); columns are the manual reference and the four community-detection algorithms. Colour encodes the community ID within each column. Read within a column to see which sites each algorithm groups together. Community IDs are arbitrary within each column, so colours match across columns only by coincidence."
+#| fig-height: 8
+
+heatmap_long <- community_wide %>%
+  pivot_longer(cols = c(Manual, louvain, infomap, leiden, walktrap),
+               names_to = "Algorithm", values_to = "Group") %>%
+  mutate(
+    Algorithm = factor(Algorithm,
+                       levels = c("Manual", "louvain", "infomap", "leiden", "walktrap"),
+                       labels = c("Manual", "Louvain", "Infomap", "Leiden", "Walktrap")),
+    Group = factor(Group),
+    Site = factor(Site, levels = unique(rev(community_wide$Site)))
+  )
+
+group_pal <- c("1" = "#E41A1C", "2" = "#377EB8", "3" = "#4DAF4A", "4" = "#984EA3")
+
+p_comem <- ggplot(heatmap_long, aes(x = Algorithm, y = Site, fill = Group)) +
+  geom_tile(colour = "white", linewidth = 0.5) +
+  scale_fill_manual(values = group_pal, drop = FALSE, name = "Group") +
+  facet_grid(Phase ~ ., scales = "free_y", space = "free_y") +
+  labs(x = NULL, y = NULL) +
+  theme_minimal(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1),
+        panel.grid = element_blank(),
+        strip.text = element_text(face = "bold"))
+
+ggsave(filename = here::here("figures/comembership-heatmap.png"),
+       plot = p_comem, width = 8, height = 8, bg = "white")
+
+knitr::include_graphics(here::here("figures/comembership-heatmap.png"))
+```
+
+Stable sites keep the same within-column neighbours across all five columns; shifting sites change neighbours from column to column. In Aur-P1 the two large Louvain, Infomap, and Walktrap blocks track the manual restricted and broad groups, with Les Cottés and Trou al'Wesse splitting off as singletons while Leiden collapses the restricted and broad sites into one block. In Aur-P2 Infomap and Leiden collapse all nine sites into a single block, while Louvain and Walktrap split the restricted sites into two smaller blocks (Gargas, Les Rois, Mladeč, and Vindija Cave versus La Viña and Sirgenstein Cave) around the intact broad-range block of Trou Magrite, Bockstein-Törle, and Hohle Fels. The bootstrap consensus co-clustering matrices in @fig-bootstrap-consensus quantify which of these co-memberships survive resampling.
 
 ## S6.7.2 Community Composition and Sign-Type Profiles {#sec-s6-7-2}
 
@@ -2540,48 +2578,58 @@ kable(community_signs_wide %>%
 
 We map the communities to visualize their geographic structure. Community IDs are colored consistently within each phase.
 
-```{r fig.height=8, fig.width=12}
+```{r fig.height=7, fig.width=9}
 #| label: fig-community-maps
-#| fig-cap: "Geographic distribution of Louvain communities at Jaccard threshold 0.2. (a) Aur-P1: 4 communities. (b) Aur-P2: 3 communities. Community colors are arbitrary but consistent within each phase. Sites are plotted at their geographic coordinates; point size indicates assemblage size (number of objects)."
+#| fig-cap: "Geographic distribution of Louvain communities at Jaccard threshold 0.2. (a) Aur-P1: 4 communities. (b) Aur-P2: 3 communities. Community colours are arbitrary but consistent within each phase. Point size indicates assemblage size (number of objects). Map data from naturalearthdata.com."
+#| fig-height: 7
 
 # Get communities for each phase
 louvain_comms_p1 <- get_louvain_groups(aurp1_artifact_data, threshold = 0.2)
 louvain_comms_p2 <- get_louvain_groups(aurp2_artifact_data, threshold = 0.2)
 
-# Build data for mapping using unique data (has nobjects column)
-map_data_p1 <- aurp1_unique_data %>%
-  rename(Site = site_name) %>%
-  mutate(Community = as.factor(louvain_comms_p1[Site]))
+# Build one site-level table for both phases; coordinates are stored as
+# character by make_phase2_data(), so convert back to numeric for mapping
+map_data_comm <- bind_rows(
+  aurp1_unique_data %>%
+    mutate(Site = site_name,
+           Community = as.factor(louvain_comms_p1[site_name]),
+           Phase = "Aur-P1"),
+  aurp2_unique_data %>%
+    mutate(Site = site_name,
+           Community = as.factor(louvain_comms_p2[site_name]),
+           Phase = "Aur-P2")
+) %>%
+  mutate(longitude = as.numeric(longitude),
+         latitude = as.numeric(latitude)) %>%
+  sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326, remove = FALSE)
 
-map_data_p2 <- aurp2_unique_data %>%
-  rename(Site = site_name) %>%
-  mutate(Community = as.factor(louvain_comms_p2[Site]))
+world_comm <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+europe_comm <- world_comm[which(world_comm$continent == "Europe"),]
+comm_cols <- c("1" = "#E41A1C", "2" = "#377EB8", "3" = "#4DAF4A", "4" = "#984EA3")
 
-# Plot Aur-P1
-p1 <- ggplot() +
-  geom_sf(data = sf::st_as_sf(map_data_p1, coords = c("longitude", "latitude"), crs = 4326),
-          aes(color = Community), inherit.aes = FALSE) +
-  geom_point(data = map_data_p1, aes(x = longitude, y = latitude, size = nobjects), alpha = 0.8) +
-  geom_text_repel(data = map_data_p1, aes(x = longitude, y = latitude, label = Site), size = 2.5, max.overlaps = 20) +
-  scale_size_continuous(range = c(3, 10), name = "Objects") +
-  coord_sf(xlim = c(-5, 30), ylim = c(35, 55), expand = FALSE) +
-  labs(title = "Aur-P1 (Proto/Early Aurignacian)", x = "Longitude", y = "Latitude") +
+p_comm_map <- ggplot(europe_comm) +
+  geom_sf(fill = "grey95", colour = "grey70") +
+  geom_sf(data = map_data_comm,
+          aes(colour = Community, size = nobjects)) +
+  geom_text_repel(data = map_data_comm,
+                  aes(x = longitude, y = latitude, label = Site),
+                  size = 3, bg.color = "white", bg.r = 0.2,
+                  max.overlaps = 30) +
+  scale_colour_manual(values = comm_cols, name = "Louvain community") +
+  scale_size_continuous(range = c(2, 6), name = "Objects") +
+  coord_sf(xlim = c(-10, 30), ylim = c(35, 53), expand = FALSE) +
+  facet_wrap(~ Phase, ncol = 1) +
   theme_minimal() +
-  theme(legend.position = "right", plot.title = element_text(size = 12))
+  theme(axis.text = element_blank(),
+        axis.title = element_blank(),
+        panel.grid = element_blank(),
+        strip.text = element_text(face = "bold")) +
+  ggspatial::annotation_scale(width_hint = 0.3, height = unit(0.12, "cm"))
 
-# Plot Aur-P2
-p2 <- ggplot() +
-  geom_sf(data = sf::st_as_sf(map_data_p2, coords = c("longitude", "latitude"), crs = 4326),
-          aes(color = Community), inherit.aes = FALSE) +
-  geom_point(data = map_data_p2, aes(x = longitude, y = latitude, size = nobjects), alpha = 0.8) +
-  geom_text_repel(data = map_data_p2, aes(x = longitude, y = latitude, label = Site), size = 2.5, max.overlaps = 20) +
-  scale_size_continuous(range = c(3, 10), name = "Objects") +
-  coord_sf(xlim = c(-5, 30), ylim = c(35, 55), expand = FALSE) +
-  labs(title = "Aur-P2 (Evolved/Late Aurignacian)", x = "Longitude", y = "Latitude") +
-  theme_minimal() +
-  theme(legend.position = "right", plot.title = element_text(size = 12))
+ggsave(filename = here::here("figures/community-maps.png"),
+       plot = p_comm_map, width = 9, height = 7, dpi = 300, bg = "white")
 
-cowplot::plot_grid(p1, p2, ncol = 2, labels = c("a", "b"))
+knitr::include_graphics(here::here("figures/community-maps.png"))
 ```
 
 ## S6.7.4 Cross-Algorithm Community Comparison {#sec-s6-7-4}
@@ -2654,9 +2702,9 @@ kable(cross_algorithm_agreement,
 
 ## S6.7.5 Interpretation {#sec-s6-7-5}
 
-**Community structure in Aur-P1.** The Louvain algorithm identifies 4 communities in Aur-P1 (Table S6.7.1). The largest community (Community 1) comprises `r sum(louvain_comms_p1 == 1)` sites and includes both restricted-range and broader-range sites, suggesting it captures the core shared sign repertoire. Communities 2–4 are smaller and may represent regional variants or sites with distinctive sign combinations. The geographic map (Figure S6.7.1a) shows that Community 1 spans the broadest geographic range, while the smaller communities are more spatially clustered.
+**Community structure in Aur-P1.** The Louvain algorithm identifies 4 communities in Aur-P1 (Table S6.7.1). The largest communities (Community 1 with `r sum(louvain_comms_p1 == 1)` sites and Community 2 with `r sum(louvain_comms_p1 == 2)` sites) coincide almost exactly with the manual restricted and broad groups, with Les Cottés and Trou al'Wesse splitting off as singleton communities, suggesting the partition captures the core restricted and broad sign repertoires. The geographic map (@fig-community-maps, Aur-P1 facet) shows that Community 2 spans the broadest geographic range, while the smaller communities are more spatially clustered.
 
-**Community structure in Aur-P2.** Aur-P2 resolves into 3 Louvain communities (Table S6.7.1). With only `r nrow(aurp2_artifact_data)` sites total, the communities are small (1–3 sites each), and the PerMANOVA significance (S5.5) likely reflects strong pairwise similarities among a few sites rather than robust multi-site clusters. The geographic map (Figure S6.7.1b) shows limited spatial coherence, consistent with the non-significant null-benchmarked modularity (S5.3).
+**Community structure in Aur-P2.** Aur-P2 resolves into 3 Louvain communities (Table S6.7.1). With only `r nrow(aurp2_artifact_data)` sites total, the communities are small (1–3 sites each), and the PerMANOVA significance (S5.5) likely reflects strong pairwise similarities among a few sites rather than robust multi-site clusters. The geographic map (@fig-community-maps, Aur-P2 facet) shows limited spatial coherence, consistent with the non-significant null-benchmarked modularity (S5.3).
 
 **Cross-algorithm consistency.** Table S6.7.4 shows that Louvain and Walktrap produce nearly identical partitions (agreement > 0.9 for most sites), while Infomap and Leiden yield coarser partitions with fewer communities. Sites that are assigned consistently across all four algorithms represent the strongest signal; those that vary indicate boundary uncertainty.
 
