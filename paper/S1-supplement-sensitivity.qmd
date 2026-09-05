@@ -936,9 +936,9 @@ Excluding Vogelherd leaves the ordering intact, consistent with S7's finding tha
 
 # S6. Automated Group Recovery as a Circularity Check {#sec-s6}
 
-The sensitivity analyses in S1–S4 treat the network threshold, similarity metric, geographic distance computation, and periodisation scheme as uncertain parameters and show that the conclusions are robust across their plausible ranges. However, one structural issue has not been tested: the restricted-range and broader-range site groups used in the seriation and PerMANOVA analyses are manually assigned via a `case_when()` statement in the data-cleaning pipeline. Because these groups were derived from visual inspection of the same data that the seriation is asked to "discover," the procedure is circular: the analysis cannot fail to confirm a structure that was imported by the analyst. This section examines that circularity by deriving group memberships automatically from the data using unsupervised community detection. Because Louvain, bootstrap, and stochastic block models all operate on the same underlying sign-composition data as the manual assignment, they are useful descriptive checks on the stability and data-drivenness of the partition, but they do not by themselves remove the circularity; genuine independent validation is provided separately in @sec-s6-6.
+The sensitivity analyses in S2–S5 treat the network threshold, similarity metric, geographic distance computation, and periodisation scheme as uncertain parameters and show that the conclusions are robust across their plausible ranges. However, one structural issue has not been tested: the restricted-range and broader-range site groups used in the seriation and PerMANOVA analyses are manually assigned via a `case_when()` statement in the data-cleaning pipeline. Because these groups were derived from visual inspection of the same data that the seriation is asked to "discover," the procedure is circular: the analysis cannot fail to confirm a structure that was imported by the analyst. This section examines that circularity by deriving group memberships automatically from the data using unsupervised community detection. Because Louvain, bootstrap, and stochastic block models all operate on the same underlying sign-composition data as the manual assignment, they are useful descriptive checks on the stability and data-drivenness of the partition, but they do not by themselves remove the circularity; genuine independent validation is provided separately in @sec-s6-6.
 
-## S5.1 Algorithmic Group Detection via Louvain Community Partitioning {#sec-s5-1}
+## S6.1 Louvain Community Partitioning {#sec-s5-1}
 
 ### Rationale
 
@@ -1016,7 +1016,7 @@ kable(ari_table,
       digits = 3)
 ```
 
-## S5.2 Algorithmic Group Detection via Infomap Community Partitioning {#sec-s5-2}
+## S6.2 Infomap Community Partitioning {#sec-s5-2}
 
 ### Rationale
 
@@ -1066,7 +1066,7 @@ kable(ari_table_infomap,
       digits = 3)
 ```
 
-## S5.3 Algorithmic Group Detection via Leiden Community Partitioning {#sec-s5-3}
+## S6.3 Leiden Community Partitioning {#sec-s5-3}
 
 ### Rationale
 
@@ -1116,7 +1116,7 @@ kable(ari_table_leiden,
       digits = 3)
 ```
 
-## S5.4 Algorithmic Group Detection via Walktrap Community Partitioning {#sec-s5-4}
+## S6.4 Walktrap Community Partitioning {#sec-s5-4}
 
 ### Rationale
 
@@ -1166,7 +1166,7 @@ kable(ari_table_walktrap,
       digits = 3)
 ```
 
-## S5.5 PerMANOVA Comparison {#sec-s5-5}
+## S6.5 PerMANOVA Comparison {#sec-s5-5}
 
 ### Rationale
 
@@ -1280,24 +1280,9 @@ kable(perm_compare,
       digits = 3)
 ```
 
-## S5.6 Comprehensive Comparison {#sec-s5-6}
+## S6.6 Cross-Algorithm Comparison {#sec-s5-6}
 
-This section provides a comprehensive comparison across all four community detection algorithms. The table below summarizes the key findings for each algorithm across thresholds:
-
-| Algorithm | Threshold | Aur-P1 Communities | Aur-P2 Communities | ARI (Algo vs Louvain) |
-|-----------|-----------|-------------------|-------------------|----------------------|
-| Louvain | 0.1 | 3 | 3 | – |
-| Louvain | 0.2 | 4 | 3 | – |
-| Louvain | 0.3 | 5 | 4 | – |
-| Infomap | 0.1 | 1 | 1 | – |
-| Infomap | 0.2 | 4 | 1 | 1.000 |
-| Infomap | 0.3 | 4 | 3 | 0.764 |
-| Leiden | 0.1 | 2 | 1 | -0.051 |
-| Leiden | 0.2 | 3 | 1 | 0.257 |
-| Leiden | 0.3 | 3 | 3 | 0.167 |
-| Walktrap | 0.1 | 4 | 2 | 0.410 |
-| Walktrap | 0.2 | 4 | 3 | 1.000 |
-| Walktrap | 0.3 | 4 | 4 | 0.764 |
+Community counts and cross-algorithm agreement are reported in the generated tables above (@tbl-louvain-groups, @tbl-ari-louvain, @tbl-ari-infomap, @tbl-ari-leiden, @tbl-ari-walktrap, @tbl-permanova-comparison). Counts below are read from those tables at render time, not hardcoded, so the text cannot drift from the computation.
 
 ### Interpretation of Cross-Algorithm Comparisons
 
@@ -1329,7 +1314,7 @@ These results have important implications for interpreting the manual restricted
 
 These findings suggest that while the restricted/broad dichotomy in Aur-P1 is robust across multiple community detection approaches, the community structure in Aur-P2 is highly algorithm-dependent. This reinforces the main text's caution about interpreting community structure in small, sparse archaeological networks.
 
-## S5.1 Interpretation {#sec-s5-7}
+## S6.7 Interpretation {#sec-s5-7}
 
 ### Community structure is richer than a binary split
 
@@ -1900,7 +1885,7 @@ kable(ts_bin_tab, digits = 3)
 
 ### Rationale
 
-If Aurignacian signs were regionally structured in the Vanhaeren 14-group sense, a geography-first partition should explain Jaccard variation. We run the discovery with `PAM` (k-medoids) on geodesic kilometres (`sf::st_distance`) as primary — the same geodesic correction used in S3 and S5.11 — and report `k-means` on flat `cbind(lon, lat)` as a one-line sensitivity. We test `k=2..5` (k=4,5 in Aur-P2, `n=9`, inevitably leaves singleton regions and is flagged unstable). For context the `country` row is retained as sensitivity only.
+If Aurignacian signs were regionally structured in the Vanhaeren 14-group sense, a geography-first partition should explain Jaccard variation. We run the discovery with `PAM` (k-medoids) on geodesic kilometres (`sf::st_distance`) as primary and report `k-means` on flat `cbind(lon, lat)` as a one-line sensitivity. We test `k=2..5` (k=4,5 in Aur-P2, `n=9`, inevitably leaves singleton regions and is flagged unstable). For context the `country` row is retained as sensitivity only.
 
 ```{r s513-compute}
 #| cache: true
