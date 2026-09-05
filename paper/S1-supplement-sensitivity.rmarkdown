@@ -49,7 +49,6 @@ bibliography: references.bib
 csl: "../templates/elsevier-vancouver.csl"
 ---
 
-
 ```{r setup}
 library(tidyverse)
 library(MASS)
@@ -186,6 +185,7 @@ site_phase_comparison <- variant_results$midpoint$sites %>%
   )
 ```
 
+
 # Sample Foundation and Site Retention {#sec-s1}
 
 ## Rationale
@@ -195,6 +195,7 @@ This section expands on the site rejection details notes in the main text.
 ## Counts {#sec-S1-1-counts}
 
 The raw extract contains `r n_raw_signed_objects` signed objects (objects with at least one presence in `line:star` after dropping `other`/`rectangle`, as in `clean_signbase()`) at `r n_raw_signed_sites` sites. After removing the eight sites listed in the main text as examples of low quality data, `r nrow(after_eight)` signed objects at `r n_distinct(after_eight$site_name)` sites remain. A further `r n_dropped_sites` sites carrying `r n_dropped_objects` signed objects are lost at the data cleaning step and do not enter phase assignment. The retained analysed sample is therefore `r n_retained_objects` objects at `r n_retained_sites` unique geographic sites (the `r n_retained_sites` sites are later split into site-phase units in the next chunk).
+
 
 ```{r}
 #| label: tbl-dropped-sites
@@ -223,12 +224,14 @@ kable(dropped_tbl,
       align = "lclcl")
 ```
 
+
 ## Interpretation {#sec-S1-1-interpretation}
 
 Because the `r n_dropped_objects` objects include the seventh-largest assemblage (Grotte de Goyet, `r goyet_plain_objects` objects) and ten of the `r n_plain_sites` plain-range sites date to `38–30` ka, the small Aur-P2 sample is disproportionately affected — in the retained sample Aur-P2 rests on only 9 sites (see next chunk). All network, Mantel and PerMANOVA results in Sections [-@sec-s2]–[-@sec-s12] below are therefore conditional on the retained sample of `r n_retained_objects` objects at `r n_retained_sites` sites. The phase table in Supplement 2 lists the retained sites with their technological or date-based assignment; @tbl-dropped-sites provides the site-by-site loss table that the main text references. 
 
 
 ## Analysis-ready phase data {#sec-S1-1-analysis-ready-phase}
+
 
 ```{r}
 # ── Two-phase (Aur-P1/Aur-P2) technology-based data, mirroring paper.qmd ─────
@@ -243,6 +246,7 @@ aurp1_unique_data <- add_manual_group(aurp1_unique_data, "Aur-P1")
 aurp2_unique_data <- add_manual_group(aurp2_unique_data, "Aur-P2")
 ```
 
+
 # Network Threshold {#sec-s2}
 
 ## Rationale
@@ -255,6 +259,7 @@ To confirm that the primary findings reported in the main text are not an artefa
 ## Network Statistics Across Thresholds {#sec-S1-2-network-statistics-across}
 
 @tbl-sens-stats reports the key network statistics for each Aurignacian phase at thresholds of 0.1, 0.2, and 0.3. Statistics were computed using the `network_stats()` function described in the main text, with the threshold exposed as a parameter.
+
 
 ```{r}
 #| label: tbl-sens-stats
@@ -308,9 +313,11 @@ pval <- function(df, col, pattern) {
 }
 ```
 
+
 ## Network Visualisations Across Thresholds {#sec-S1-2-network-visualisations-across}
 
 @fig-sens-networks shows the site networks for each phase and each threshold. Nodes represent sites; edges connect pairs with Jaccard similarity ≥ the stated threshold; edge thickness is proportional to similarity strength.
+
 
 ```{r fig.height=10, fig.width=11}
 #| label: fig-sens-networks
@@ -337,6 +344,7 @@ ggsave(filename = here::here("figures/sensitivity-network-plot.png"),
 knitr::include_graphics(here::here("figures/sensitivity-network-plot.png"))
 ```
 
+
 ## Interpretation {#sec-S1-2-interpretation}
 
 The sensitivity analysis shows that the main findings reported in the text are **robust across the tested range of thresholds**. Several patterns hold consistently at all three values:
@@ -360,6 +368,7 @@ Below we quantify the stability of the network structures across thresholds usin
 - **Edge-set Jaccard similarity** between each pair of thresholds: the number of edges present at both thresholds divided by the number present at either threshold. A value near 1 indicates the edge structure is preserved as you move from one threshold to another.
 
 - **Adjacency-matrix correlation** between each pair of thresholds: the Pearson correlation between the vectorised upper triangles of the two adjacency matrices. This is a continuous measure of how similar the full set of pairwise similarity scores is before any cutoff is applied.
+
 
 ```{r}
 # | label: tbl-threshold-agreement
@@ -418,9 +427,11 @@ kable(agree_table,
       digits = 3)
 ```
 
+
 ## Continuous Threshold Sweep {#sec-s2-5}
 
 The main text reports statistics at three discrete thresholds (0.1, 0.2, 0.3). This section sweeps the Jaccard similarity threshold from 0.05 to 0.50 in steps of 0.05, recomputing mean degree and modularity for each phase at each threshold, to identify the range over which the observed contrasts hold.
+
 
 ```{r}
 #| label: fig-threshold-sweep
@@ -483,6 +494,7 @@ s56_p1_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P
 s56_p2_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P2"], na.rm = TRUE)
 ```
 
+
 The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree ordering holds. The two-phase contrast is monotonic and holds at every threshold in the swept range: Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across thresholds of 0.05–0.50, and the ordering is preserved throughout. At very low thresholds both networks are densely connected and the relative contrast compresses; at high thresholds both fragment as edges drop out, but Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses.
 
 **Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Aur-P1 > Aur-P2 mean-degree ordering is preserved across the entire informative threshold range (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`). In contrast to a three-phase periodisation, in which the intermediate phase could be compressed into statistical collapse at high thresholds, the two-phase comparison is stable: Aur-P2, though small, never fragments below a mean degree of `r n2(min(s56_p2_md_range))`. The modularity sweep shows a parallel pattern: Aur-P1's modularity ranges from `r range_str(s56_p1_mod_range, 3)` across thresholds and consistently exceeds Aur-P2's (`r range_str(s56_p2_mod_range, 3)`) at every threshold, reinforcing the conclusion that the larger, earlier phase has a stronger community structure. The baseline threshold of 0.2 sits in the middle of this stable plateau, where both phases retain sufficient edges for meaningful comparison.
@@ -497,6 +509,7 @@ In presence/absence assemblage data, different similarity formulations weight jo
 - **Simpson Similarity:** $J / \min(A, B)$, which evaluates shared overlap relative to the smaller assemblage, rendering it insensitive to differences in sample size / richness between sites.
 
 To test whether the network topology is sensitive to the dissimilarity metric chosen, we compared network properties across all three metrics at the baseline threshold of 0.2.
+
 
 ```{r}
 #| label: tbl-metric-stats
@@ -541,6 +554,7 @@ ggsave(filename = here::here("figures/sensitivity-metric-plot.png"),
 knitr::include_graphics(here::here("figures/sensitivity-metric-plot.png"))
 ```
 
+
 ## Interpretation {#sec-S1-3-interpretation}
 
 Across all three metrics:
@@ -555,6 +569,7 @@ Across all three metrics:
 ## Rationale {#sec-S1-4-rationale}
 
 In the main text, Mantel tests evaluate whether sign assemblage dissimilarity correlates with spatial distance. Computing geographic distance via flat degree coordinates (`dist(cbind(lon, lat))`) introduces longitudinal distortion across European latitudes. Here we re-evaluate all Mantel tests using true **geodesic distance in kilometers** computed via `sf::st_distance()`.
+
 
 ```{r}
 #| label: tbl-geodesic-mantel
@@ -571,6 +586,7 @@ kable(mantel_comp_df,
       col.names = c("Phase", "Euclidean R", "Euclidean p", "Geodesic R (km)", "Geodesic p (km)"),
       digits = 3)
 ```
+
 
 ## Interpretation {#sec-S1-4-interpretation}
 
@@ -592,6 +608,7 @@ The Mantel tests reported in the main text and in @sec-s4 evaluate a single glob
 ### Analysis
 
 We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the @sec-s4 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram` [@Goslee_Urban_2007], which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we additionally resample sites with replacement (B = 1000) and recompute the Mantel R each time, taking the 2.5% and 97.5% quantiles as the bootstrap interval.
+
 
 ```{r}
 #| label: setup-mantel-correlogram
@@ -659,6 +676,7 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
   theme_minimal()
 ```
 
+
 ### Interpretation
 
 **Question 1 — is there scale-dependent spatial structure?** No. In Aur-P1 the `r nclass_p1` distance lags yield Mantel r values from `r n3(min(mg_p1_df$mantelr))` to `r n3(max(mg_p1_df$mantelr))`, none significant (smallest p = `r n3(min(mg_p1_df$pval))`); in Aur-P2 the `r nclass_p2` lags range from `r n3(min(mg_p2_df$mantelr))` to `r n3(max(mg_p2_df$mantelr))`, also none significant (smallest p = `r n3(min(mg_p2_df$pval))`). Every lag's 95% bootstrap interval straddles or lies close to zero: the most extreme bounds across lags are `r n3(min(mg_p1_df$llim))` and `r n3(max(mg_p1_df$ulim))` for Aur-P1 and `r n3(min(mg_p2_df$llim))` and `r n3(max(mg_p2_df$ulim))` for Aur-P2, both comfortably including zero. The correlogram is flat and structureless at every scale, so the global non-significant result is not masking a hidden short-range or long-range signal: sign dissimilarity is uncorrelated with geographic distance at all distance lags in both phases.
@@ -670,6 +688,7 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
 ## Rationale {#sec-s5-1}
 
 The main analysis adopts the two-phase Aur-P1/Aur-P2 framework of @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021, which merges the Proto- and Early Aurignacian into a single early phase (Aur-P1, 43–37 ka BP) and treats the Evolved/Late Aurignacian as a single late phase (Aur-P2, 37–32 ka BP), with site membership assigned on technological grounds (@sec-s5-5). Because this scheme is coarser than the classic three-phase periodisation of Western European archaeology, this section tests whether the two-phase results are robust to how the sequence is subdivided. We decompose the two-phase baseline into its technology-assigned components , the relict Proto-Aurignacian, the Early Aurignacian, and the Evolved Aurignacian (Aur-P2) , and additionally split the Evolved Aurignacian into Evolved and Late sub-phases following the four-phase taxonomy of @teyssandier2018entity, with the Evolved–Late boundary at 35 ka BP calibrated. All schemes are evaluated at the main-text threshold of 0.2 using Jaccard similarity.
+
 
 ```{r}
 #| label: tbl-two-phase-ref
@@ -711,6 +730,7 @@ kable(three_phase_tech,
       digits = 3)
 ```
 
+
 ## Interpretation {#sec-s5-2}
 
 The two-phase, three-phase, and four-phase periodisations yield consistent conclusions about the broad structure of Aurignacian social connectivity, while clarifying which components carry the two-phase results.
@@ -720,6 +740,7 @@ The two-phase, three-phase, and four-phase periodisations yield consistent concl
 **The early/late contrast is not an artefact of merging.** Even without the Proto component, the Early Aurignacian alone (mean degree `r n2(pval(three_phase_tech, "mean_degree", "Early"))`) exceeds Aur-P2 (`r n2(pval(three_phase_tech, "mean_degree", "Evolved"))`), so the two-phase Aur-P1 > Aur-P2 result does not depend on the Proto/Early boundary being drawn one way or the other. The connectivity gap between the early and late Aurignacian persists whether the early sequence is analysed as a single phase or as its separate Proto and Early components.
 
 **Community structure is consistent with the two-phase scheme.** Modularity is highest in the Early component (`r pval(three_phase_tech, "modularity", "Early")`), moderate in the Evolved (`r pval(three_phase_tech, "modularity", "Evolved")`), and weakest in the relict Proto (`r pval(three_phase_tech, "modularity", "Proto")`). This mirrors the two-phase result in which Aur-P1's community structure is better developed than Aur-P2's (@sec-s5-1), and it indicates that the modularity of the merged early phase is not an artefact of the particular boundary chosen.
+
 
 ```{r}
 #| label: tbl-four-phase-periodisation
@@ -753,11 +774,13 @@ kable(four_phase_df,
       digits = 3)
 ```
 
+
 ### Four-phase interpretation
 
 The four-phase Aurignacian taxonomy of @teyssandier2018entity distinguishes Proto, Early (Aurignacian I), Evolved (Aurignacian II), and Late (Aurignacian III-IV) phases. The Early–Evolved transition has been dated to 37.0–36.5 ka BP, and the Late Aurignacian is associated with the terminal phase of the technocomplex before the onset of the Gravettian. Splitting the Evolved Aurignacian (Aur-P2) at 35 ka BP into Evolved and Late sub-phases tests whether Aur-P2's connectivity is internally differentiated. The Evolved Aurignacian (37.8–35 ka BP) retains moderate connectivity with `r pval(four_phase_df, "n_edges", "Evolved")` edges and a mean degree of `r n2(pval(four_phase_df, "mean_degree", "Evolved"))` across `r pval(four_phase_df, "n_sites", "Evolved")` sites, while the Late Aurignacian (35–32 ka BP) is severely data-limited: with only `r pval(four_phase_df, "n_sites", "Late")` sites and no edges at threshold 0.2, its network statistics (mean degree 0, modularity undefined) are unreliable. The near-absence of connectivity in the Late Aurignacian is consistent with the weaker, less resolved structure of Aur-P2 reported in the main text, but the sample is too small to determine whether the Evolved–Late transition represents a step-down or a continuation of an already low level. The two-phase scheme remains the most informative for the main analysis, as it avoids fragmenting Aur-P2 into sub-phases whose small sample sizes preclude robust statistical inference.
 
 ## Date-Variant Calibration {#sec-s5-3}
+
 
 ```{r}
 #| label: tbl-date-variant-comparison
@@ -784,6 +807,7 @@ kable(changing_sites,
       align = "lrclrclc")
 ```
 
+
 **Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms that single-end calibration systematically biases sites toward the older phase.
 
 ## Phase-Boundary Sensitivity {#sec-s5-4}
@@ -791,6 +815,7 @@ kable(changing_sites,
 ### Rationale
 
 The two-phase periodisation uses a single calibrated MedianBP threshold of 37799 separating Aur-P1 (43.0–37.8 ka) from Aur-P2 (37.8–32.0 ka). This is a conventional round number, not derived from a formal change-point analysis. Objects with calibrated dates near this boundary could be assigned to either phase depending on the exact threshold chosen. This section tests whether the network-level findings are sensitive to the placement of this boundary by shifting it by ±500 and ±1000 years. The technology-based overrides are held fixed (Geissenklösterle, Vogelherd, La Ferrassie, and Abri Pataud in Aur-P1; Hohle Fels at the layer level , AH V in Aur-P1 and AH IV, III and the II-series in Aur-P2; Mladeč in Aur-P2; Spy and El Castillo excluded), so the test isolates the effect of the date-based cutoff.
+
 
 ```{r}
 #| label: tbl-boundary-proximity
@@ -904,6 +929,7 @@ s55_blanchard <- s55_closest(37799, "Blanchard")
 s55_hohle    <- s55_closest(37799, "Hohle Fels")
 ```
 
+
 ### Diagnostic interpretation
 
 `r boundary_proximity$Objects[boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±1000 years"]` sites fall within ±1000 calibrated years of the boundary at 37799 BP, and `r boundary_proximity$Objects[boundary_proximity$Window == "±500 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±500 years"]` sites within ±500 years. The sites closest to the boundary are Hohle Fels (MedianBP `r n0(s55_hohle$MedianBP[s55_hohle$site_name == "Hohle Fels"])`, just `r n0(s55_hohle$dist[s55_hohle$site_name == "Hohle Fels"])` years below the threshold) and Vindija Cave (`r n0(s55_vindija$MedianBP[s55_vindija$site_name == "Vindija Cave"])`, `r n0(s55_vindija$dist[s55_vindija$site_name == "Vindija Cave"])` years below), while the closest site above the threshold is Blanchard (`r n0(s55_blanchard$MedianBP[s55_blanchard$site_name == "Blanchard"])`, `r n0(s55_blanchard$dist[s55_blanchard$site_name == "Blanchard"])` years above). Because only an upward shift can transfer sites into Aur-P2, and only a downward shift into Aur-P1, the reassignments are asymmetric: a downward shift of 500 years moves Vindija Cave from Aur-P2 to Aur-P1 (the only Aur-P2 site within reach), while an upward shift of 500 years moves Blanchard into Aur-P2 and an upward shift of 1000 years additionally moves Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt. Hohle Fels lies just below the boundary, but its near-boundary objects belong to AH IV, which the technology-based override fixes in Aur-P2 (its Aur-P1 horizon, AH V, is well above the boundary), so it does not change phase under any shift. The boundary-sensitive sites are therefore few and, apart from Cellier (28 objects) and Blanchard (18 objects), small.
@@ -928,6 +954,7 @@ The main analysis assigns each site to a phase (Aur-P1/Aur-P2) using specialist 
 - **Vogelherd**: Riek's 1931 excavation removed 500 m³ in 12 weeks with no screening, using large horizontal spits that did not follow geological horizons. Documented mixing includes 38 refit connections between Aurignacian layers IV and V, Neolithic burials disturbing the southwestern area, and ~2–3% of tools in the Aurignacian layers potentially deriving from other periods [@Schurch_Conard_2026_reassess].
 
 Because these attributions are important for the two-phase framework, this section tests the sensitivity of the network results to (A) reverting to the purely date-based assignment used in earlier analyses , each object assigned to a phase by its calibrated date alone , and (B) excluding Vogelherd entirely, given its documented stratigraphic mixing.
+
 
 ```{r}
 # ── Shared sensitivity summary (also used by S12 figurine section) ──────────
@@ -961,7 +988,9 @@ date_stats <- bind_rows(
 no_vog_stats <- excl$s8_novog
 ```
 
+
 ### Results
+
 
 ```{r}
 #| label: tbl-reclass-comparison
@@ -992,6 +1021,7 @@ s8_ne <- function(ph, cond) all_reclass$n_edges[all_reclass$Phase == ph & all_re
 s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph & all_reclass$Condition == cond], 3)
 ```
 
+
 ### Effects by condition
 
 **Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 because its calibrated median using the older-end of the date range (40,091 cal BP) falls in the Proto-Aurignacian range, which is folded into Aur-P1; the midpoint variant used in the main analysis gives 37,831 cal BP (Early Aurignacian, Aur-P1), and the younger-end gives 35,571 cal BP (Early Aurignacian, Aur-P1) [@Wild_et_al_2005]. Hohle Fels and Vogelherd are split across the phases by object date: `r excl$hf_p1` of `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels"))` Hohle Fels objects and `r excl$vog_p1_date` of `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` Vogelherd objects remain in Aur-P1, and `r excl$hf_p2` and `r excl$vog_p2_date` objects , those calibrated to ~32 ka BP or younger , move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 , now missing Mladeč but containing `r excl$young_total` young-dated objects from Hohle Fels and Vogelherd , has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
@@ -1001,6 +1031,7 @@ s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph
 ### Phase-ordering robustness
 
 The most consequential finding is that **the Aur-P1 > Aur-P2 connectivity ordering is preserved under every condition**:
+
 
 ```{r}
 #| label: tbl-ordering-by-condition
@@ -1017,6 +1048,7 @@ kable(s8_ordering,
       col.names = c("Condition", "Aur-P1 mean degree", "Aur-P2 mean degree", "Ordering"),
       digits = 2)
 ```
+
 
 Under the date-based assignment Aur-P1's mean degree rises (from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Date-based")`) and Aur-P2's falls (from `r s8_md("Aur-P2", "Baseline (technology-based)")` to `r s8_md("Aur-P2", "Date-based")`), so the contrast is not an artefact of the technological reassignment , the naive date-based assignment, if anything, strengthens it. Excluding Vogelherd weakens but does not remove the contrast (`r s8_md("Aur-P1", "Exclude Vogelherd")` vs `r s8_md("Aur-P2", "Exclude Vogelherd")`).
 
@@ -1042,6 +1074,7 @@ We run Louvain detection for each phase at each of the three thresholds (0.1, 0.
 
 1. **Adjusted Rand Index (ARI)** between the Louvain-derived communities and the manually assigned restricted/broad groups. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
 2. **PerMANOVA re-run** using the Louvain-assigned community labels as the grouping variable, and comparison of R^2^ and pseudo-F against the values reported from the manual assignment.
+
 
 ```{r}
 #| label: tbl-louvain-groups
@@ -1110,6 +1143,7 @@ kable(ari_table,
       digits = 3)
 ```
 
+
 ## Infomap Community Partitioning {#sec-s6-2}
 
 ### Rationale
@@ -1119,6 +1153,7 @@ We compare Infomap community detection with Louvain to assess whether different 
 We run Infomap detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute one measure:
 
 1. **Adjusted Rand Index (ARI)** between the Infomap-derived communities and the Louvain-derived communities. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
+
 
 ```{r}
 #| label: tbl-ari-infomap
@@ -1160,6 +1195,7 @@ kable(ari_table_infomap,
       digits = 3)
 ```
 
+
 ## Leiden Community Partitioning {#sec-s6-3}
 
 ### Rationale
@@ -1169,6 +1205,7 @@ We compare Leiden community detection with Louvain to assess whether the improve
 We run Leiden detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute one measure:
 
 1. **Adjusted Rand Index (ARI)** between the Leiden-derived communities and the Louvain-derived communities. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
+
 
 ```{r}
 #| label: tbl-ari-leiden
@@ -1210,6 +1247,7 @@ kable(ari_table_leiden,
       digits = 3)
 ```
 
+
 ## Walktrap Community Partitioning {#sec-s6-4}
 
 ### Rationale
@@ -1219,6 +1257,7 @@ We compare Walktrap community detection with Louvain to assess whether optimizin
 We run Walktrap detection for each phase at each of the three thresholds (0.1, 0.2, 0.3), using the Jaccard similarity metric of the main text. For each partition we compute one measure:
 
 1. **Adjusted Rand Index (ARI)** between the Walktrap-derived communities and the Louvain-derived communities. ARI = 1.0 means the two partitions are identical; ARI ≈ 0 means agreement arises purely by chance.
+
 
 ```{r}
 #| label: tbl-ari-walktrap
@@ -1260,6 +1299,7 @@ kable(ari_table_walktrap,
       digits = 3)
 ```
 
+
 ## PerMANOVA Comparison {#sec-s6-5}
 
 ### Rationale
@@ -1267,6 +1307,7 @@ kable(ari_table_walktrap,
 To further evaluate how algorithmically detected communities compare to the manual restricted/broad grouping, we run PerMANOVA tests using the group assignments from each community detection algorithm. This provides insight into whether the structure identified by different algorithms explains significant variance in sign composition, similar to the existing Louvain-based PerMANOVA comparison.
 
 We compute PerMANOVA R² and p-values for each algorithm at each threshold, comparing them to the values from the manual grouping.
+
 
 ```{r}
 #| label: tbl-permanova-comparison
@@ -1374,6 +1415,7 @@ kable(perm_compare,
       digits = 3)
 ```
 
+
 ## Cross-Algorithm Comparison {#sec-s6-6}
 
 Community counts and cross-algorithm agreement are reported in the generated tables above (@tbl-louvain-groups, @tbl-ari-louvain, @tbl-ari-infomap, @tbl-ari-leiden, @tbl-ari-walktrap, @tbl-permanova-comparison). Counts below are read from those tables at render time, not hardcoded, so the text cannot drift from the computation.
@@ -1433,6 +1475,7 @@ Calibration checks ask whether modularity, degree, and significance survive null
 ## Null-Benchmarked Modularity {#sec-s7-1}
 
 Modularity values in the range 0.3-0.5 are often described as "high" without formal benchmarking. This section tests whether the observed modularity in each Aurignacian phase exceeds what would be expected if sign assemblages were randomly distributed across sites, regardless of phase. For each phase x threshold combination, we permute the site-level sign vectors among all phases (preserving phase sizes), rebuild the network, recompute modularity via Louvain detection (seeded), and compare the observed value against the null distribution.
+
 
 ```{r}
 #| label: tbl-null-modularity
@@ -1514,6 +1557,7 @@ kable(null_display,
       align = "lccccc")
 ```
 
+
 The p-values indicate whether the observed community structure is significantly stronger than expected by chance. A p < 0.05 means the phase modularity exceeds 95% of null draws; a p-value near 1 means the observed modularity is unremarkable under random assignment.
 
 **Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, Aur-P1's observed modularity of `r n3(val(null_results, "Observed", "Aur-P1", 0.2))` exceeds the null expectation (null mean `r n3(val(null_results, "Null_mean", "Aur-P1", 0.2))`) and is statistically significant (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`), as it is at threshold 0.3 (`r n3(val(null_results, "Observed", "Aur-P1", 0.3))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.3))`); at the permissive 0.1 threshold, the Aur-P1 value (`r n3(val(null_results, "Observed", "Aur-P1", 0.1))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.1))`) does not reach significance. Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))` at threshold 0.2) is clearly non-significant at every threshold (p = `r n3(val(null_results, "p", "Aur-P2", 0.1))` to `r n3(val(null_results, "p", "Aur-P2", 0.3))`), consistent with the very small number of sites in this phase. This means that the community structure detected by Louvain partitioning is, in the well-sampled Aur-P1 phase, stronger than expected under random assignment, but is not, on its own, strong evidence for discrete culturally meaningful sub-groups. The main-text seriation and PerMANOVA results , which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) , remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix that exceeds chance in Aur-P1, but not in the small Aur-P2 sample.
@@ -1521,6 +1565,7 @@ The p-values indicate whether the observed community structure is significantly 
 ## Richness and Degree Confound {#sec-s7-2}
 
 Node degree in a presence/absence network could be driven by sign-type richness rather than shared-sign connectivity: sites with more sign types have more opportunities for co-occurrence. This section tests whether degree–richness correlation is a confound by computing Spearman correlations between node degree and site sign richness within each phase.
+
 
 ```{r}
 #| label: tbl-richness-confound
@@ -1562,6 +1607,7 @@ kable(richness_results,
       align = "lcccc")
 ```
 
+
 If degree is primarily driven by richness, the correlations will be strong and significant ($\rho > 0.7$, $p < 0.05$). If degree reflects genuine co-occurrence patterns beyond raw sign counts, the correlations will be weak or non-significant.
 
 **Implications for the main text.** Neither phase shows a significant correlation between node degree and sign-type richness (Aur-P1: ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`; Aur-P2: ρ = `r n3(val(richness_results, "rho", "Aur-P2"))`, p = `r n3(val(richness_results, "p", "Aur-P2"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in Aur-P1 (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) compared to Aur-P2 (`r n2(val(sens_stats, "mean_degree", "Aur-P2", 0.2))`) is not simply an artefact of the Aur-P1 phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree , but the Aur-P1 correlation is slightly negative (ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`) and the Aur-P2 correlation, while positive, is far from significant given the small sample. The main-text conclusion that Aur-P1 represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
@@ -1569,6 +1615,7 @@ If degree is primarily driven by richness, the correlations will be strong and s
 ## Bootstrap Confidence Intervals {#sec-s7-3}
 
 Point estimates of network statistics are sensitive to individual sites and to object sampling within sites. Resampling sites with replacement creates duplicate nodes (similarity 1, distance 0) and inflates mean degree and narrows intervals [@Roberts_2021; @Clarke_Rothery_Raybould_2002]. This section therefore uses object-within-site bootstrap: for each site, draw its observed number of objects with replacement from that site's own objects, rebuild the site x sign presence matrix, and recompute mean degree and modularity at threshold 0.2. Node identity is preserved; uncertainty reflects object sampling rather than artificial duplication. We report the observed statistic and a percentile interval around it.
+
 
 ```{r}
 #| label: tbl-bootstrap-ci
@@ -1629,6 +1676,7 @@ s57_md_sentence <- if (s57_md_overlap) {
 }
 ```
 
+
 The intervals quantify uncertainty due to object sampling within sites: a narrow interval means the observed statistic is stable when objects are resampled within sites, while a wide interval signals sensitivity to which objects were recovered. Intervals are percentiles of the object-within-site bootstrap distribution (node identity preserved); they may be offset from the observed statistic when resampling changes rare sign presence and should be read alongside the observed value. Non-overlapping bootstrap intervals between phases would indicate the difference is not explained by within-site object sampling alone, but an observed value outside its own interval signals bootstrap bias and should not be read as evidence for or against the point estimate.
 
 **Implications for the main text.** The object-within-site bootstrap CIs show which main-text comparisons are robust to object sampling. For mean degree, the Aur-P1 observed `r n2(s57_p$md_pt)` with CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and Aur-P2 observed `r n2(s57_v$md_pt)` with CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` The observed mean degree lies outside its bootstrap CI for both phases (Aur-P1 `r n2(s57_p$md_pt)` vs. [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`]; Aur-P2 `r n2(s57_v$md_pt)` vs. [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`]), reflecting the tendency for resampling to miss rare signs at large sites and to duplicate the single object carrying a rare sign at small sites. For modularity, CIs are narrow and do not overlap (Aur-P1 observed `r n3(s57_p$mod_pt)` CI [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`] vs. Aur-P2 observed `r n3(s57_v$mod_pt)` CI [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]); the point-estimate difference (`r n3(s57_p$mod_pt)` vs. `r n3(s57_v$mod_pt)`) is stable to within-site object resampling, but absolute values remain sensitive to threshold and small-P2 sample (`r nrow(aurp2_artifact_data)` sites) (see @sec-s2-5).
@@ -1636,6 +1684,7 @@ The intervals quantify uncertainty due to object sampling within sites: a narrow
 ## Multiple-Testing Correction {#sec-s7-4}
 
 The Mantel tests reported in @tbl-geodesic-mantel and the main text evaluate 4 hypotheses (2 phases × 2 distance measures). Without correction, the effective Type I error rate is inflated. Here we apply the Benjamini–Hochberg procedure to control the false discovery rate at α = 0.05.
+
 
 ```{r}
 #| label: tbl-mantel-bh
@@ -1688,16 +1737,20 @@ s58_after_text <- if (s58_n_sig == 0) {
 }
 ```
 
+
 Of the `r nrow(mantel_bh)` tests, none approaches nominal significance: the smallest raw $p$-value is `r s58_test` ($R = `r n3(s58_R)`$, raw $p = `r n3(s58_rawp)`$), well above the 0.05 threshold. After Benjamini–Hochberg correction this adjusts to $p = `r n3(s58_adjp)`$. `r s58_after_text` This is consistent with the main-text interpretation: geographic distance does not account for sign distribution in either phase, and the largest correlations are weakly positive for Aur-P1 and weakly negative for Aur-P2. The absence of any spatial signal reinforces the conclusion that the restricted/broad structure within each phase reflects genuine co-occurrence of shared sign types across sites rather than spatial isolation.
 
 ## Size-Normalised Comparison {#sec-s7-5}
+
 
 ```{r}
 # S5.9 prose helper: site counts and percentage surplus
 s59_pct_more <- round(100 * (nrow(aurp1_artifact_data) - nrow(aurp2_artifact_data)) / nrow(aurp2_artifact_data))
 ```
 
+
 Modularity and mean degree are not invariant to the number of nodes: larger networks tend to have higher modularity even under random assignment. Aur-P1 (`r nrow(aurp1_artifact_data)` sites) has `r s59_pct_more`% more nodes than Aur-P2 (`r nrow(aurp2_artifact_data)` sites). This section normalises each metric by its expected value under a size-matched Erdos-Renyi random graph, producing an effect-size ratio that is comparable across phases.
+
 
 ```{r}
 #| label: tbl-size-normalised
@@ -1750,6 +1803,7 @@ kable(norm_results,
       align = "lcccccccc")
 ```
 
+
 The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A ratio of 1.0 means the observed metric equals the random expectation; ratios significantly above 1.0 indicate genuine structure beyond what node count alone produces.
 
 **Implications for the main text.** The size-normalised results address a potential confound in the main-text phase comparison: because mean degree and modularity both scale with the number of nodes, the `r nrow(aurp1_artifact_data)`-site Aur-P1 network and the `r nrow(aurp2_artifact_data)`-site Aur-P2 network are not directly comparable on those raw measures. Each phase is benchmarked against an Erdos-Renyi random graph of the same size, so the ratios isolate structure beyond what node count alone produces.
@@ -1766,6 +1820,7 @@ Geography, time, and regions test alternative drivers of sign dissimilarity. The
 ## Multiple Regression on Distance Matrices {#sec-s8-1}
 
 The Mantel tests establish that geographic distance is not significantly correlated with sign dissimilarity in either phase, but a non-significant result cannot by itself identify which alternative process — if any — generated the pattern. To split the variance of sign dissimilarity among the candidate drivers that are actually measured in the data, we fit a multiple regression on distance matrices (MRM; @Lichstein_2007) in which the response is the Jaccard dissimilarity of sign presence/absence and the three predictors are, for every pair of sites, their geographic distance, their absolute temporal distance (|ΔMedianBP|), and their absolute difference in object count (a proxy for sampling effort). Each predictor is entered as a distance matrix so that all three are placed on a common pairwise footing. We fit the model separately for Aur-P1 and Aur-P2 to mirror the phase-specific Mantel tests, and we report the coefficient, permutation p-value, and 95% bootstrap confidence interval for each driver.
+
 
 ```{r}
 #| label: setup-mrm
@@ -1824,6 +1879,7 @@ mrm_p2_temp_lo <- mrm_p2$temp_ci[1]; mrm_p2_temp_hi <- mrm_p2$temp_ci[2]
 mrm_p2_obj_lo <- mrm_p2$obj_ci[1]; mrm_p2_obj_hi <- mrm_p2$obj_ci[2]
 ```
 
+
 For Aur-P1 the MRM explains `r n2(mrm_p1_r2)` of the variance in sign dissimilarity; none of the three drivers is significant (geographic: β = `r n3(mrm_p1_geo)`, 95% CI [`r n3(mrm_p1_geo_lo)`, `r n3(mrm_p1_geo_hi)`], p = `r n3(mrm_p1_geo_p)`; temporal: β = `r n3(mrm_p1_temp)`, 95% CI [`r n3(mrm_p1_temp_lo)`, `r n3(mrm_p1_temp_hi)`], p = `r n3(mrm_p1_temp_p)`; object count: β = `r n3(mrm_p1_obj)`, 95% CI [`r n3(mrm_p1_obj_lo)`, `r n3(mrm_p1_obj_hi)`], p = `r n3(mrm_p1_obj_p)`). Aur-P2 shows the same pattern (R² = `r n2(mrm_p2_r2)`; geographic p = `r n3(mrm_p2_geo_p)`, temporal p = `r n3(mrm_p2_temp_p)`, object-count p = `r n3(mrm_p2_obj_p)`). Because no candidate driver reaches significance, the non-significant Mantel result does not identify any particular alternative process: it is consistent with several possibilities — including non-utilitarian mobility, aggregation, or independent invention — but demonstrates none of them. With only `r nrow(aurp2_artifact_data)` sites, the Aur-P2 MRM is underpowered, so its non-significant coefficients should be read as indicative rather than conclusive; the substantive point is that the data contain no statistical evidence favouring one driver over another.
 
 ## Time-Lag Check {#sec-s8-2}
@@ -1835,6 +1891,7 @@ The main text reports a temporal Mantel test in which sign dissimilarity is corr
 1. **Does sign dissimilarity increase with temporal lag?** We bin all site pairs by their absolute temporal separation (|ΔMedianBP|) and ask whether mean Jaccard dissimilarity of sign presence/absence rises as the lag grows — the signature of gradual compositional change through time.
 2. **Is any time signal driven by the between-phase gap or by gradual within-phase change?** Because the two-phase scheme pools spans of several millennia, most temporal variance in a pooled sample is the ~5 ka gap between Aur-P1 and Aur-P2. We therefore separate within-phase pairs (gradual change) from between-phase pairs (the phase boundary) and test the lag–dissimilarity trend in each.
 3. **How should a flat or null trend be interpreted?** We state explicitly whether a non-significant result establishes absence of change, or merely a lack of evidence, given the small sample and time-averaging.
+
 
 ```{r}
 #| label: setup-time-lag
@@ -1860,9 +1917,11 @@ ts_last_bin      <- tl$last_bin
 ts_last_n        <- tl$last_n
 ```
 
+
 ### Analysis
 
 We aggregate the cleaned object-level data to **site level**: for each of the `r n_sites_ts` sites we record the presence/absence of every sign type (any object at the site carrying the sign counts as present) and a single calibrated age taken as the median `MedianBP` (years BP) across the site's objects. Pairwise Jaccard dissimilarity of the binary sign vectors and the absolute temporal lag |ΔMedianBP| (converted to ka) are computed for all `r n_pairs_ts` unordered site pairs. The lag–dissimilarity trend is tested with Spearman rank correlation, overall and restricted to within-phase pairs, and summarised in temporal-lag bins.
+
 
 ```{r}
 n_p1_ts          <- tl$n_p1
@@ -1890,6 +1949,7 @@ ts_last_n        <- tl$last_n
 kable(ts_bin_tab, digits = 3)
 ```
 
+
 ### Interpretation
 
 **Question 1 — does sign dissimilarity increase with temporal lag?** No. Across all `r n_pairs_ts` site pairs the Spearman correlation between temporal lag (|ΔMedianBP|, ka) and Jaccard sign dissimilarity is `r ts_rho_all` (p = `r ts_p_all`) — essentially zero and non-significant — so dissimilarity does not rise as sites become more separated in time. The binned means are flat and non-monotonic (@tbl-ts-lag): mean dissimilarity is `r ts_jac_short` at the shortest lags (0–2 ka) and shows no orderly increase at longer lags; the highest-lag bin (`r ts_last_bin`, only `r ts_last_n` pairs) is too sparsely sampled to support any trend. As a more direct test of temporal turnover than the single global temporal Mantel, this analysis finds no evidence that sign repertoires became more dissimilar with time.
@@ -1903,6 +1963,7 @@ kable(ts_bin_tab, digits = 3)
 ### Rationale
 
 If Aurignacian signs were regionally structured in the Vanhaeren 14-group sense, a geography-first partition should explain Jaccard variation. We run the discovery with `PAM` (k-medoids) on geodesic kilometres (`sf::st_distance`) as primary and report `k-means` on flat `cbind(lon, lat)` as a one-line sensitivity. We test `k=2..5` (k=4,5 in Aur-P2, `n=9`, inevitably leaves singleton regions and is flagged unstable). For context the `country` row is retained as sensitivity only.
+
 
 ```{r s513-compute}
 #| cache: true
@@ -2063,6 +2124,7 @@ ggsave(here::here("figures/s513-region-map.png"), plot = s513_map, width = 8, he
 knitr::include_graphics(here::here("figures/s513-region-map.png"))
 ```
 
+
 ### Interpretation
 
 PAM on geodesic distances finds `k=2` as the parsimonious objective region — West versus Central — which in practice separates the Dordogne bloc tradition from the Swabian ivory tradition. For Aur-P1 the mean silhouette is `r s513_best_sil_pam_p1` at best `k=` `r s513_best_k_pam_p1` (PAM geodesic), versus flat `k-means` silhouette within `r round(abs(s513_sil_tab$mean_sil[s513_sil_tab$Phase=="Aur-P1" & s513_sil_tab$Method=="PAM geodesic" & s513_sil_tab$k==2] - s513_sil_tab$mean_sil[s513_sil_tab$Phase=="Aur-P1" & s513_sil_tab$Method=="k-means flat" & s513_sil_tab$k==2]),3)`; agreement between the two geography clusterings at `k=2` is `ARI=` `r round(s513_ari_pam_km_p1_k2,2)` (Aur-P1) and `r round(s513_ari_pam_km_p2_k2,2)` (Aur-P2), so the flat version changes `R2` by `<0.02` and does not alter the conclusion. `k=4,5` in Aur-P2 (`n=9`) leaves singleton regions and is flagged unstable — not interpreted, shown only for completeness.
@@ -2084,6 +2146,7 @@ This section addresses both limitations. In @sec-s9-2 we use bootstrap resamplin
 ### Rationale
 
 For each phase we assess stability of the two-group partition by resampling (**site subsampling without replacement, 80% of sites per replicate**) Site resampling with replacement creates duplicate nodes that always co-cluster (similarity 1) and inflates within-block co-clustering; we therefore use subsampling without replacement (80% of sites per replicate) as implemented below. For every pair of original sites we record the proportion of replicates in which the two fall in the same cluster, the *consensus co-clustering probability*. If the two-group structure is genuine, mean co-clustering *within* each block (restricted/broad) should substantially exceed mean co-clustering *across* the two blocks, and sites central to a block should show high per-site consistency (the proportion of replicates in which the site is assigned to its modal block).
+
 
 ```{r}
 #| label: setup-boot-functions
@@ -2227,6 +2290,7 @@ ggsave(filename = here::here("figures/bootstrap-consensus-plot.png"),
 knitr::include_graphics(here::here("figures/bootstrap-consensus-plot.png"))
 ```
 
+
 ### Interpretation
 
 The bootstrap consensus analysis supports the main-text two-group partition as a **coherent, non-random division of the sign data** in each phase, while quantifying how much tighter one block is than the other. In **Aur-P1**, mean within-block co-clustering is `r s6_summary$Within_restricted[s6_summary$Phase == "Aur-P1"]` for the restricted-range block and `r s6_summary$Within_broad[s6_summary$Phase == "Aur-P1"]` for the broader-range block, against `r s6_summary$Across[s6_summary$Phase == "Aur-P1"]` across the two blocks , a strong signal that both groups are internally coherent and sharply separated. In **Aur-P2**, the pattern is `r s6_summary$Within_restricted[s6_summary$Phase == "Aur-P2"]` within the restricted block and `r s6_summary$Within_broad[s6_summary$Phase == "Aur-P2"]` within the broader block, against `r s6_summary$Across[s6_summary$Phase == "Aur-P2"]` across the blocks.
@@ -2240,6 +2304,7 @@ The bootstrap consensus analysis supports the main-text two-group partition as a
 ### Rationale
 
 The bootstrap treats block structure as a resampling artefact of an observed partition. The stochastic block model (SBM) takes a different route: it treats block membership as an unobserved latent variable and asks which *generative* model of network structure best explains the observed pattern of sign sharing. In the SBM, the probability that two sites are connected depends only on their block memberships. We fit three symmetric stochastic block model (`SBM_sym`) variants using the `blockmodels` package: (1) a **Bernoulli SBM** on a binarized adjacency matrix where an edge exists if Jaccard similarity ≥ 0.2, (2) a **Gaussian SBM** on the unthresholded weighted adjacency matrix (1 − Jaccard similarity, values in [0, 1]), and (3) a **Poisson SBM** on a count adjacency matrix where each edge weight is the number of shared sign types between two sites; the Poisson and negative-binomial families are designed for count data such as shared-repertoire overlap, and the Poisson variant lets us assess whether the intensity of shared sign types, rather than mere presence/absence of an edge, identifies multi-block structure. Models select the number of blocks via the Integrated Classification Likelihood (ICL; a penalised likelihood that trades fit against model complexity) and return posterior membership probabilities for every site. Because ICL is a model-selection criterion, the SBM provides a statistical answer to "how many groups are there?" rather than the visual answer provided by seriation.
+
 
 ```{r}
 #| label: setup-sbm-compute
@@ -2335,6 +2400,7 @@ if (length(s6_sbm)) {
 }
 ```
 
+
 ### Interpretation
 
 The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase for three model families: a Bernoulli SBM on binarized adjacency (edge if Jaccard similarity ≥ 0.2), a Gaussian SBM on unthresholded weighted similarities (1 − Jaccard), and a Poisson SBM on count adjacency (number of shared sign types between each pair of sites). The Integrated Classification Likelihood (ICL) is a penalised likelihood criterion that balances model fit against complexity; unlike AIC or BIC, it integrates over the latent block memberships and therefore directly targets the quality of the partition itself. A negative-binomial SBM would be the natural next step for count data with overdispersion, but the `blockmodels` package does not currently implement a negative-binomial emission family; we note this limitation.
@@ -2356,6 +2422,7 @@ The SBM results must be interpreted alongside the bootstrap consensus (@sec-s9-2
 ### Rationale
 
 To quantify overall agreement among the four ways of partitioning sites — the main-text manual restricted/broad groups, the bootstrap modal blocks (@sec-s9-2), and the SBM modal assignments (@sec-s9-3) under Bernoulli and Poisson emission models — we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the @sec-s6 analyses use `mclust::adjustedRandIndex`, which yields the same values). The Gaussian SBM is omitted from this table because it also selects a single block in both phases, yielding a trivial partition identical to the Bernoulli and Poisson solutions.
+
 
 ```{r}
 #| label: setup-ari
@@ -2412,6 +2479,7 @@ kable(s6_ari_tab,
       digits = 2, align = "lccc")
 ```
 
+
 ### Interpretation
 
 The ARI values summarise how far the three routes to the two-group partition agree, and the agreement is informative precisely because it varies by phase and method (@tbl-ari-bootstrap-sbm). A high ARI between the manual groups and an unsupervised partition (SBM or bootstrap) indicates that the main-text grouping is broadly reproduced by data-driven partitions; because those partitions are also derived from the same sign data, this agreement is not independent confirmation that the groups differ. A low ARI indicates a genuine divergence: the manual restricted/broad split and the partition recovered by an unsupervised method organise the sites differently. Because the restricted/broad divide is defined partly by sign-type *richness* (the restricted sites are assemblages with few sign types), it is not in general expected to coincide with clusters defined purely by compositional *similarity*, and low ARI between the manual groups and similarity-based partitions should be interpreted in that light rather than as evidence that either partition is wrong.  
@@ -2429,6 +2497,7 @@ The restricted/broad groups were defined from the same sign-composition data tha
 - **(C) Group-free gradient PerMANOVA:** instead of asserting discrete groups, sign composition is regressed on continuous predictors that are independent of the distance matrix (log object count and site richness). Regressing the Jaccard dissimilarity on its own first PCoA axis is tautological; it is fitted only to demonstrate the tautology, and validation uses predictors not derived from the same matrix.
 
 All three are exploratory companions to, not replacements for, the main-text PerMANOVA, which we present as descriptive rather than confirmatory, framed as selective inference on data-adaptive groups [@Gao_Bien_Witten_2022; @Neufeld_2024]. P-values from 100 dependent splits are reported as median p, proportion significant, and Brown's method for dependent p-values [@Brown_1975; @Poole_2016], not Fisher's method which assumes independence. Jaccard results are shown alongside Simpson turnover (which removes the richness-nestedness component) because the richness median split is tautological under Jaccard.
+
 
 ```{r}
 # ── S6.6 computation: circularity-breaking validation ────────────────────────
@@ -2507,6 +2576,7 @@ s6_6_tab <- data.frame(
 kable(s6_6_tab, digits = 3, align = "llc")
 ```
 
+
 ### Interpretation
 
 The methods below answer one general question, whether the restricted/broad difference is a genuine pattern recoverable from data independent of how the groups were originally defined, through three specific questions, each answered by a different route.
@@ -2535,6 +2605,7 @@ The methods below answer one general question, whether the restricted/broad diff
 Jaccard dissimilarity confounds turnover with nestedness: a poor assemblage nested inside a rich one scores as dissimilar by construction, so a PerMANOVA of rich versus poor sites on Jaccard distances partly tests richness itself. Simpson turnover dissimilarity, $\beta_{sim} = \min(b,c)/(a + \min(b,c))$, keeps only the turnover component — nested pairs score 0 — and therefore tests whether the groups differ in *composition* rather than in *size*. We report the manual-group PerMANOVA on both distances, and we place the observed Jaccard R², Simpson R², and Louvain-to-manual ARI on richness-preserving null distributions: a fixed-fixed Curveball null (preserves site richness and sign-type frequencies) and an object-count null (each site redrawn with its observed object count from the phase pool). R² values use the same Gower algebra as `adonis2(sqrt.dist = TRUE)`.
 
 **Question this analysis answers:** is the restricted/broad pattern stronger than richness structure alone, and does any group separation survive once the nestedness component is removed?
+
 
 ```{r}
 #| label: tbl-simpson-null
@@ -2595,6 +2666,7 @@ s97_adon_sp1 <- round(adon_s_p1$`Pr(>F)`[1], 3)
 s97_adon_sp2 <- round(adon_s_p2$`Pr(>F)`[1], 3)
 ```
 
+
 ### Interpretation
 
 **Question: is the pattern stronger than richness structure alone, and does any separation survive on turnover alone?** On Jaccard distances the manual groups separate (Aur-P1 R² = `r round(s97_cb_p1$observed$R2_jac, 3)`, Aur-P2 R² = `r round(s97_cb_p2$observed$R2_jac, 3)`). Under the fixed-fixed Curveball null this separation is not distinguished from richness structure alone (quantile p = `r round(s97_cb_p1$p_R2_jac, 3)` and `r round(s97_cb_p2$p_R2_jac, 3)`): randomised matrices with identical site richness and sign-type frequencies separate at least as well. Under the object-count null the Aur-P1 separation exceeds sampling expectation (p = `r round(s97_oc_p1$p_R2_jac, 3)`) while Aur-P2 does not (p = `r round(s97_oc_p2$p_R2_jac, 3)`). Louvain-to-manual agreement is perfect in the observed data (ARI = `r round(s97_cb_p1$observed$ARI, 3)` both phases) but is likewise reproduced by the fixed-fixed null (p = `r round(s97_cb_p1$p_ARI, 3)` and `r round(s97_cb_p2$p_ARI, 3)`), exceeding only the object-count null. On Simpson turnover dissimilarity there is no separation to explain (Aur-P1 R² = `r s97_r2s_p1`, Aur-P2 R² = `r s97_r2s_p2`; adonis p = `r s97_adon_sp1` and `r s97_adon_sp2`). The small quantile p for Aur-P1 Simpson under the object-count null is a low-tail extreme — the observed R² lies below, not above, its null — meaning even less turnover separation than random object draws produce, not evidence for group structure.
@@ -2608,6 +2680,7 @@ The PerMANOVA results in @sec-s6-5 and bootstrap consensus in @sec-s9-2 show tha
 ## Community Membership {#sec-s11-1}
 
 We extract the community assignments for each of the four algorithms at the main-analysis threshold (Jaccard ≥ 0.2) and report the full site-by-site membership, with the manual restricted (1) / broad (2) group as reference. A reviewer can then read across any row to see where Louvain, Infomap, Leiden, and Walktrap place the same site.
+
 
 ```{r}
 #| label: tbl-community-membership
@@ -2693,11 +2766,13 @@ ggsave(filename = here::here("figures/comembership-heatmap.png"),
 knitr::include_graphics(here::here("figures/comembership-heatmap.png"))
 ```
 
+
 Stable sites keep the same within-column neighbours across all five columns; shifting sites change neighbours from column to column. In Aur-P1 the two large Louvain, Infomap, and Walktrap blocks track the manual restricted and broad groups, with Les Cottés and Trou al'Wesse splitting off as singletons while Leiden collapses the restricted and broad sites into one block. In Aur-P2 Infomap and Leiden collapse all nine sites into a single block, while Louvain and Walktrap split the restricted sites into two smaller blocks (Gargas, Les Rois, Mladeč, and Vindija Cave versus La Viña and Sirgenstein Cave) around the intact broad-range block of Trou Magrite, Bockstein-Törle, and Hohle Fels. The bootstrap consensus co-clustering matrices in @fig-bootstrap-consensus quantify which of these co-memberships survive resampling.
 
 ## Sign-Type Profiles {#sec-s11-2}
 
 For each community, we summarize the sign-type composition to understand what distinguishes one community from another.
+
 
 ```{r}
 #| label: tbl-community-composition
@@ -2762,9 +2837,11 @@ kable(community_signs_wide %>%
       align = "lccc" %>% paste0(strrep("c", ncol(community_signs_wide) - 4), collapse = ""))
 ```
 
+
 ## Geographic Distribution {#sec-s11-3}
 
 We map the communities to visualize their geographic structure. Community IDs are colored consistently within each phase.
+
 
 ```{r fig.height=7, fig.width=9}
 #| label: fig-community-maps
@@ -2820,9 +2897,11 @@ ggsave(filename = here::here("figures/community-maps.png"),
 knitr::include_graphics(here::here("figures/community-maps.png"))
 ```
 
+
 ## Cross-Algorithm Comparison {#sec-s11-4}
 
 We examine how consistently sites are assigned to communities across the four algorithms, focusing on the main-analysis threshold of 0.2.
+
 
 ```{r}
 #| label: tbl-cross-algorithm-agreement
@@ -2888,6 +2967,7 @@ kable(cross_algorithm_agreement,
       align = "llcccccc")
 ```
 
+
 ## Interpretation {#sec-s11-5}
 
 **Community structure in Aur-P1.** The Louvain algorithm identifies 4 communities in Aur-P1 (@tbl-community-membership). The largest communities (Community 1 with `r sum(louvain_comms_p1 == 1)` sites and Community 2 with `r sum(louvain_comms_p1 == 2)` sites) coincide almost exactly with the manual restricted and broad groups, with Les Cottés and Trou al'Wesse splitting off as singleton communities, suggesting the partition captures the core restricted and broad sign repertoires. The geographic map (@fig-community-maps, Aur-P1 facet) shows that Community 2 spans the broadest geographic range, while the smaller communities are more spatially clustered.
@@ -2913,6 +2993,7 @@ The main-text and supplementary analyses establish the restricted/broad (R/B) di
 5. **(@sec-s12-7)** Taken together, is the R/B division independent of sampling intensity, and if not, what limitation must be stated?
 6. **(@sec-s10-1)** Does the restricted/broad pattern survive richness-preserving nulls, and does the manual-group PerMANOVA hold on Simpson turnover dissimilarity, which removes the nestedness component of Jaccard?
 
+
 ```{r}
 #| label: setup-objcounts
 #| include: false
@@ -2937,11 +3018,13 @@ for (k in k_levels) for (ph in c("Aur-P1", "Aur-P2")) {
 }
 ```
 
+
 ## Object-count distribution and feasible common counts {#sec-s12-1}
 
 ### Rationale
 
 Before resampling, we must know how many objects each site contributes. Object counts are highly skewed: a handful of sites (e.g. Vogelherd with `r obj_counts$nobjects[obj_counts$site_name == "Vogelherd" & obj_counts$phase == "Aur-P1"]` objects in Aur-P1) dominate, while many sites contribute only one or two objects (Trou al'Wesse and Fumane contribute a single object; Les Cottés and Labeko Koba contribute two). We therefore tally objects per site and choose common downsampling levels that retain as many sites as possible: **k = 3, 5, and 10 objects per site**. A site is included in a downsampling replicate only if it contributes at least k objects.
+
 
 ```{r}
 #| label: tbl-objcount
@@ -2969,6 +3052,7 @@ ggplot(obj_counts, aes(x = nobjects, fill = phase)) +
   guides(fill = "none")
 ```
 
+
 ### Interpretation
 
 **Question: how many sites can be retained at each common object count?** At **k = 3**, `r n_qual[["Aur-P1_3"]]` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` Aur-P1 sites and `r n_qual[["Aur-P2_3"]]` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` Aur-P2 sites qualify. At **k = 5** the numbers fall to `r n_qual[["Aur-P1_5"]]` and `r n_qual[["Aur-P2_5"]]`, and at **k = 10** only `r n_qual[["Aur-P1_10"]]` and `r n_qual[["Aur-P2_10"]]` sites remain. The smallest sites (Trou al'Wesse, Fumane, Pod Hradem, Grottes de Fonds-de-Forêt with one object; Les Cottés, Labeko Koba, Hohlenstein-Stadel with two) can never be downsampled and are excluded from every replicate. We therefore report results at k = 3, 5, and 10, treating k = 10 as the most stringent test (fewest sites, but each built from a substantial object sample) and k = 3 as the most inclusive.
@@ -2980,6 +3064,7 @@ ggplot(obj_counts, aes(x = nobjects, fill = phase)) +
 For each phase and each common count k ∈ {3, 5, 10}, and for `r ds_R` replicates, we sample k objects **without replacement** from each qualifying site, aggregate them to a site × sign presence vector (a sign is present at a site if any of its k sampled objects carries it), and rebuild the Jaccard network at the main-text threshold of 0.2. We then re-derive the site partition with Louvain community detection and realign it to the manual R/B labels by assigning each Louvain community to the majority manual group among its members. This mirrors the data-driven re-derivation used in @sec-s6-1, but operates on object-downsampled data rather than on the observed site totals. Two quantities are recorded per replicate: (i) for each site, whether its realigned partition matches its manual group (**group retention**), and (ii) the Adjusted Rand Index (ARI) between the realigned partition and the manual groups, plus the network modularity. Across replicates we summarise the per-site retention rate and the mean ARI / modularity.
 
 **Question this analysis answers:** when the R/B assignment is re-derived from object-downsampled data, how often does each site keep its group, and how stable is the community structure?
+
 
 ```{r}
 #| label: tbl-retention
@@ -3046,6 +3131,7 @@ ggplot(ret_all, aes(x = reorder(site_name, nobjects), y = retention_rate,
   labs(x = "Site (ordered by object count)", y = "Group-retention rate")
 ```
 
+
 ### Interpretation
 
 **Question: does each site keep its group under object-level downsampling, and how stable is the community structure?** No. The assignment is stable only for the better-sampled sites. In Aur-P1 at k = 3, large broad-range sites such as Vogelherd (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Vogelherd"], 2)`), Hohle Fels (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Hohle Fels"], 2)`), and La Ferrassie (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "La Ferrassie"], 2)`) retain their group in the large majority of replicates, whereas small restricted-range sites collapse: Gatzarria (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Gatzarria"], 2)`) and Grotte de la Verpillière I (`r round(ds_res[["Aur-P1_3"]]$retention$retention_rate[ds_res[["Aur-P1_3"]]$retention$site_name == "Grotte de la Verpillière I"], 2)`) keep their group little more often than chance. The mean ARI between the downsampled partition and the manual groups is low at every level (`r round(ds_res[["Aur-P1_3"]]$mean_ari, 2)` at k = 3, `r round(ds_res[["Aur-P1_5"]]$mean_ari, 2)` at k = 5, `r round(ds_res[["Aur-P1_10"]]$mean_ari, 2)` at k = 10 for Aur-P1), and modularity falls to near zero (e.g. `r round(ds_res[["Aur-P1_3"]]$mean_modularity, 2)` at k = 3), reflecting the fragmentation of the network when each site is represented by only a handful of objects.
@@ -3059,6 +3145,7 @@ The same pattern holds in Aur-P2, where even fewer sites qualify at higher k and
 Equal object counts do not equalise *sampling effort* when sites differ in how concentrated their signs are. Our method is **coverage-based rarefaction**: compare richness at equal *sample coverage* rather than equal object count [@Chao_Jost_2012; @Gotelli_Colwell_2001]. For each site we estimate its sign-type richness at a target coverage of `r cov_target` (a standard "high coverage" benchmark) with `iNEXT::estimateD` on the site's object-by-sign incidence matrix (`datatype = "incidence_raw"`), which returns 95% confidence intervals from `r cov_perm` bootstrap replicates [@Hsieh_Ma_Chao_2016]. Sites with fewer than three objects, failed fits, or targets reachable only by extrapolating beyond twice the observed sample cannot be placed on a common coverage footing; for these we report Chao and Jost's analytic incidence-coverage estimator with object-resampling bootstrap intervals and a Chao2 asymptotic-richness estimate as a fallback quantity, with the reason recorded per site. We then compare restricted and broad sites at that equal coverage.
 
 **Question this analysis answers:** at equal sample coverage, do restricted and broad sites still differ in sign-type richness?
+
 
 ```{r}
 #| label: tbl-rarefaction
@@ -3111,6 +3198,7 @@ ggplot(cov_plot, aes(x = group, y = richness_at_target, colour = group)) +
   guides(colour = "none")
 ```
 
+
 ### Interpretation
 
 **Question: at equal sample coverage, do restricted and broad sites still differ in sign-type richness?** Only a subset of sites can be assessed. In Aur-P1, `r s9_cov_n_p1` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` sites reach coverage 0.9; in Aur-P2 only `r s9_cov_n_p2` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` do. Among the Aur-P1 sites that do reach the target, restricted sites remain low-richness (mean `r s9_cov_mean_r_p1` sign types) while broad sites remain high-richness (mean `r s9_cov_mean_b_p1`), a difference that persists at equal coverage (Wilcoxon p = `r s9_cov_wilcox_p1`). For Aur-P2 only `r s9_cov_n_p2` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` sites reach the target (`r s9_cov_nbroad_p2` broad, `r s9_cov_nrest_p2` restricted), too few for a reliable group comparison (Wilcoxon p = `r s9_cov_wilcox_p2`).
@@ -3126,6 +3214,7 @@ The two resampling approaches above ask whether the *partition* and the *richnes
 $$\text{richness}_i \sim \text{NegativeBinomial}\big(\exp(\beta_0 + \beta_1 \text{group}_i + \beta_2 \text{phase}_i + \beta_3 \log(\text{objects}_i))\big).$$
 
 **Question this analysis answers:** does the group effect on sign-type richness survive after accounting for sampling effort (object count)?
+
 
 ```{r}
 #| label: tbl-mixed-nb
@@ -3171,11 +3260,13 @@ mix_tbl <- data.frame(
 kable(mix_tbl, digits = 3, row.names = FALSE)
 ```
 
+
 ### Interpretation
 
 **Question: does the group effect on sign-type richness survive after accounting for sampling effort?** The answer depends on the specification, which is itself the finding. Under the offset specification the group coefficient is `r s9_mix_coef` (rate ratio `r s9_mix_rr`, p = `r s9_mix_p`), i.e. non-significant and even slightly *negative*. Under the free-slope specification the estimated richness-effort exponent is `r s9_fs_exp` (95% CI `r s9_fs_exp_lcl`–`r s9_fs_exp_ucl`), which excludes 1: richness saturates with object count, so the offset's proportionality assumption is rejected on these data and its rate ratio is biased against the large broad-group sites. With the exponent freed, broad-range sites are richer than restricted-range sites at equal object count (rate ratio `r s9_fs_rr`, p = `r s9_fs_p`). This reversal shows the offset-based "sampling-effort artefact" reading was a property of the mis-specified model, not of the data, and it agrees with @sec-s12-3, where the contrast persists among the sites assessable at equal coverage. **Caveat:** the free-slope fit has three predictors on 29 site-phase units with group strongly collinear with object count`r if (s9_fs_theta) ", and the dispersion fit reached its iteration limit, so its intervals are approximate" else ""`; it is reported as a corrected specification, not a precise effect estimate. **Answer:** the raw richness gap is not distinguishable from a genuine group difference once saturating sampling effort is accounted for; a non-significant offset coefficient cannot be read as positive evidence that effort explains the gap.
 
 ## Equal-effort pool comparison (iNEXT) {#sec-s12-5}
+
 
 ```{r}
 #| label: setup-pool-inext
@@ -3193,6 +3284,7 @@ s95_pool_all <- pool_inext_incidence(signbase_full_clean, target_n = s95_obj_p2,
 s95_pool_shared <- pool_inext_restricted_incidence(signbase_full_clean, target_n = s95_obj_p2, nboot = 200)
 ```
 
+
 ### Rationale
 
 The Conclusion states that the sign-type pool contracts from Aur-P1 (`r s95_n_p1` types) to Aur-P2 (`r s95_n_p2` types), consistent with cultural drift in small populations. This raw count compares pools sampled with very different effort: `r s95_obj_p1` objects at `r s95_sites_p1` sites in Aur-P1 versus `r s95_obj_p2` objects at `r s95_sites_p2` sites in Aur-P2. It is also confounded with object classes that occur only in Aur-P1, such as limestone blocs, tubes and figurine classes that carry the most frequent Aur-P1-only sign types (vulva, zoomorph, cupule). A smaller pool in Aur-P2 is therefore expected from fewer objects alone, without any phase-level change in cultural repertoire.
@@ -3200,6 +3292,7 @@ The Conclusion states that the sign-type pool contracts from Aur-P1 (`r s95_n_p1
 We test the contraction at equal effort with incidence-based rarefaction and extrapolation using `iNEXT` [@Chao_Jost_2012; @Hsieh_Ma_Chao_2016]. Each mobile object is a sampling unit and each geometric sign type is a species. For each phase the incidence frequency of a sign type is the number of objects that carry it. `iNEXT` with `datatype = "incidence_freq"` standardises richness by sample completeness and returns 95% confidence intervals from 200 bootstrap replicates. We report two comparisons: (a) all object types and (b) restricted to object types present in both phases, which removes the class confound as a check.
 
 **Question this analysis answers:** at equal object count or equal coverage, does the Aur-P1 pool remain larger than the Aur-P2 pool, or is the raw `r s95_n_p1` vs `r s95_n_p2` difference not distinguishable from sampling variation?
+
 
 ```{r}
 #| label: tbl-pool-inext
@@ -3246,6 +3339,7 @@ p_shared <- iNEXT::ggiNEXT(pool_shared$iNEXT_obj, type = 1) + ggplot2::geom_vlin
 cowplot::plot_grid(p_all, p_shared, ncol = 2)
 ```
 
+
 ### Interpretation
 
 **Question: does the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction survive equal effort?** No. When Aur-P1 is rarefied to `r s95_obj_p2` objects, its expected richness drops into the range `r round(pool_all$target_est$qD[pool_all$target_est$Assemblage == "Aur-P1"], 1)` types (95% CI `r round(pool_all$target_est$qD.LCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`–`r round(pool_all$target_est$qD.UCL[pool_all$target_est$Assemblage == "Aur-P1"], 1)`), which overlaps the Aur-P2 observed pool of `r round(pool_all$observed$qD[pool_all$observed$Assemblage == "Aur-P2"], 1)` types. The Aur-P2 95% interval extended to the same effort likewise overlaps.
@@ -3255,6 +3349,7 @@ When the comparison is restricted to object types present in both phases, the ov
 **Answer:** the raw pool difference is not distinguishable from sampling variation at equal object count or equal coverage. The raw `r s95_n_p1` vs `r s95_n_p2` count reflects `r s95_obj_p1` vs `r s95_obj_p2` objects and phase-specific object classes, not a demonstrated phase-level contraction. The diversity-pool paragraphs in the Discussion and Conclusion that call this the most robust finding should be rewritten to the not distinguishable from form and the sample-difference caveat stated.
 
 ## Figurine Exclusion {#sec-s12-6}
+
 
 
 ```{r}
@@ -3285,11 +3380,13 @@ s7_fig_p1 <- sum(figurine_summary$Total[figurine_summary$phase2 == "Aur-P1"])
 s7_fig_p2 <- sum(figurine_summary$Total[figurine_summary$phase2 == "Aur-P2"])
 ```
 
+
 ### Rationale
 
 @Bentz_Dutkiewicz_2026 demonstrate that ivory figurines in the Swabian Aurignacian carry sign sequences with higher information density than tools. If figurines encode different sign repertoires than other object types, their inclusion could bias site-level sign assemblages , particularly at Vogelherd, where `r s7_fig_count("Vogelherd")` of the dataset's `r s7_fig_total` figurines are concentrated. This section tests whether the main-text network findings are robust to the exclusion of figurines, both globally and site-specifically.
 
 ### Figurine Distribution in the Dataset
+
 
 ```{r}
 #| label: tbl-figurine-count
@@ -3329,6 +3426,7 @@ s7_pct <- function(cond) {
 }
 ```
 
+
 @tbl-figurine-count shows that figurines are heavily concentrated at Vogelherd (`r s7_fig_count("Vogelherd")` objects), with minor representation at Hohle Fels (`r s7_fig_count("Hohle Fels")`), Geissenklösterle (`r s7_fig_count("Geissenklösterle")`), Hohlenstein-Stadel (`r s7_fig_count("Hohlenstein-Stadel")`), and La Ferrassie (`r s7_fig_count("La Ferrassie")`). Of these, `r s7_fig_p1` fall within Aur-P1 and the remaining `r s7_fig_p2` , all Hohle Fels objects from AH IV and Iid , fall within Aur-P2 under the layer-level assignment. The analysis therefore tests whether the Aur-P1 network structure , which reports the higher mean degree (`r s7_md("Aur-P1")`) , is driven by these `r s7_fig_count("Vogelherd")` objects at a single site.
 
 ### Analysis 1: Exclude All Figurines
@@ -3336,6 +3434,7 @@ s7_pct <- function(cond) {
 ### Method
 
 We remove all objects where `object_type` contains "figurine" (63 objects total: 25 zoomorph, 10 undetermined, 5 anthropomorph, 23 possible figurine) from the full cleaned dataset, recompute site-level sign matrices by summing remaining objects per site, and rebuild networks at the baseline threshold of 0.2.
+
 
 ```{r}
 #| label: tbl-exclude-figurines
@@ -3362,6 +3461,7 @@ kable(s7_sites_lost %>% dplyr::select(Phase, sites_before, sites_after, lost),
       digits = 0)
 ```
 
+
 ### Interpretation
 
 Excluding all `r s7_fig_total` figurines has only a small effect on the Aur-P1 network: one edge is lost (`r s7_ed("Aur-P1")` → `r s7_ed("Aur-P1","Exclude all figurines")`) and mean degree falls from `r s7_md("Aur-P1")` to `r s7_md("Aur-P1","Exclude all figurines")`, with no sites lost (all `r s7_ns("Aur-P1")` sites retained). Aur-P2 is unchanged (mean degree `r s7_md("Aur-P2")`, `r s7_ed("Aur-P2")` edges, `r s7_ns("Aur-P2")` sites): the `r s7_fig_count_cond("Hohle Fels","Aur-P2")` Hohle Fels figurines removed from it do not alter the site's sign repertoire, so its network is unaffected. The detectable Aur-P1 effects are declines in transitivity (`r s7_tr("Aur-P1")` → `r s7_tr("Aur-P1","Exclude all figurines")`) and modularity (`r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude all figurines")`), indicating that figurines contribute modestly to community cohesion but do not create the communities themselves.
@@ -3373,6 +3473,7 @@ Critically, Aur-P1 retains the higher mean degree (`r s7_md("Aur-P1","Exclude al
 ### Method
 
 Rather than removing all figurines globally, this analysis removes only the 50 figurines from Vogelherd , the site where figurines are most concentrated , while retaining figurines at other sites. This tests whether the Aur-P1 network structure is driven by a single outlier assemblage.
+
 
 ```{r}
 #| label: tbl-vogelherd-exclude
@@ -3399,6 +3500,7 @@ kable(s7_vog_summary %>% dplyr::select(Phase, objects_before, objects_after, rem
       digits = 0)
 ```
 
+
 ### Interpretation
 
 Removing only Vogelherd's figurines (`r s7_fig_count("Vogelherd")` objects: `r s7_vog_before$objects_before[s7_vog_before$phase2 == "Aur-P1"]` → `r s7_vog_summary$objects_after[s7_vog_summary$Phase == "Aur-P1"]` in Aur-P1) has a negligible effect on Aur-P1: mean degree drops from `r s7_md("Aur-P1")` to `r s7_md("Aur-P1","Exclude Vogelherd figurines")` (`r s7_pct("Exclude Vogelherd figurines")`), one edge is lost (`r s7_ed("Aur-P1")` → `r s7_ed("Aur-P1","Exclude Vogelherd figurines")`), and modularity decreases from `r s7_mo("Aur-P1")` to `r s7_mo("Aur-P1","Exclude Vogelherd figurines")`. Aur-P2 shows no change whatsoever (mean degree `r s7_md("Aur-P2")` → `r s7_md("Aur-P2","Exclude Vogelherd figurines")`, modularity `r s7_mo("Aur-P2")` → `r s7_mo("Aur-P2","Exclude Vogelherd figurines")`), confirming that Vogelherd figurines do not contribute to network structure in the later phase.
@@ -3406,6 +3508,7 @@ Removing only Vogelherd's figurines (`r s7_fig_count("Vogelherd")` objects: `r s
 The effect of removing Vogelherd figurines alone (`r s7_pct("Exclude Vogelherd figurines")` in Aur-P1) is the same as removing all `r s7_fig_total` figurines globally (`r s7_pct("Exclude all figurines")`), and in both cases the network is essentially unchanged. The figurine effect therefore does not scale with the number of figurines removed; figurines at Hohle Fels (`r s7_fig_count("Hohle Fels")`), Geissenklösterle (`r s7_fig_count("Geissenklösterle")`), Hohlenstein-Stadel (`r s7_fig_count("Hohlenstein-Stadel")`), and La Ferrassie (`r s7_fig_count("La Ferrassie")`) do not alter the network structure , including the `r s7_fig_count_cond("Hohle Fels","Aur-P2")` Hohle Fels figurines assigned to Aur-P2, which leave that phase's network unchanged , and Vogelherd's connectivity within Aur-P1 is carried by its `r s7_vog_summary$objects_after[s7_vog_summary$Phase == "Aur-P1"]` non-figurine objects.
 
 ### Joint Comparison
+
 
 ```{r}
 #| label: tbl-objtype-joint
@@ -3420,9 +3523,11 @@ kable(joint_comparison,
       align = "lllccccc")
 ```
 
+
 ### Interpretation
 
 The joint comparison in @tbl-objtype-joint shows that figurine exclusion has a modest and phase-dependent effect on network structure:
+
 
 ```{r}
 #| label: tbl-meandegree-summary
@@ -3455,6 +3560,7 @@ kable(s7_md_summary,
       align = "llcccc")
 ```
 
+
 **Outcome observed: Negligible effect, no qualitative change.** Mean degree changes are at most `r s7_pct("Exclude all figurines")` across both phases and all conditions, and excluding all figurines removes a single edge from Aur-P1 (`r s7_ed("Aur-P1")` → `r s7_ed("Aur-P1","Exclude all figurines")`, mean degree `r s7_md("Aur-P1")` → `r s7_md("Aur-P1","Exclude all figurines")`) while leaving Aur-P2's edge set unchanged (`r s7_ed("Aur-P2")` edges, mean degree `r s7_md("Aur-P2")`). Modularity decreases slightly for Aur-P1 when figurines are excluded (`r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude all figurines")` excluding all; `r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude Vogelherd figurines")` excluding Vogelherd only) while Aur-P2 is unchanged (`r s7_mo("Aur-P2")`), indicating that figurines contribute marginally to within-group cohesion but do not create the community structure.
 
 **Phase ordering is preserved.** The main-text connectivity contrast Aur-P1 > Aur-P2 (`r s7_md("Aur-P1")` > `r s7_md("Aur-P2")`) is unchanged under both exclusion scenarios (`r s7_md("Aur-P1","Exclude all figurines")` > `r s7_md("Aur-P2")` excluding all figurines; `r s7_md("Aur-P1","Exclude Vogelherd figurines")` > `r s7_md("Aur-P2")` excluding Vogelherd figurines only), preserving the key finding that the early phase is the more connected.
@@ -3480,4 +3586,5 @@ Sampling intensity qualifies small-site assignments. Downsampling, coverage, reg
 For the main text, report raw degree descriptively and base inference on permutation and withheld-data results. Present the restricted versus broad contrast as a recoverable gradient that is strong for well sampled sites and provisional for small ones. Present Aur-P2 community structure as indicative rather than conclusive. Present the pool contraction as not demonstrated at equal effort, with the sample-difference caveat stated.
 
 ## References cited {.unnumbered}
+
 

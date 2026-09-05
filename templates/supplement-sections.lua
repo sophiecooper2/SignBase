@@ -15,7 +15,9 @@
 -- A header opts into numbering when it has a `sec-` identifier or its text
 -- still carries a legacy manual prefix (e.g. "S5.5"). Headers with class
 -- `unnumbered` or `unlisted` are skipped. `@tbl-` / `@fig-` cites and cites
--- with affixes are left untouched for Quarto / citeproc.
+-- with affixes other than lone parentheses are left untouched for Quarto /
+-- citeproc. A lone parenthesised cite `(@sec-x)` keeps tight parens:
+-- `(Section S..)` rather than Quarto's padded `( Section S.. )`.
 
 local supp = nil
 local sec_map = {}
@@ -72,16 +74,39 @@ end
 
 -- Rewrite `@sec-` cites using the map built in the Pandoc pass below.
 -- Runs on each Cite element; returns nil to leave tbl/fig cites for Quarto.
+-- A Cite carrying exactly lone parentheses, `(@sec-x)` or `([-@sec-x])`,
+-- is also handled: the parens are re-emitted tight, avoiding Quarto's
+-- padded `( Section S.. )` rendering.
+local function is_lone_paren(inlines, want)
+  if inlines == nil or #inlines ~= 1 then
+    return false
+  end
+  return pandoc.utils.stringify(inlines) == want
+end
+
 local function rewrite_sec_cite(el)
   local texts = {}
+  local wrap_parens = false
+  if #el.citations == 1 then
+    local single = el.citations[1]
+    if is_lone_paren(single.prefix, "(")
+        and is_lone_paren(single.suffix, ")") then
+      wrap_parens = true
+    elseif (single.prefix and #single.prefix > 0)
+        or (single.suffix and #single.suffix > 0) then
+      return nil
+    end
+  end
   for _, cit in ipairs(el.citations) do
     local idl = cit.id:lower()
     if not idl:match("^sec%-") then
       return nil
     end
-    if (cit.prefix and #cit.prefix > 0)
-        or (cit.suffix and #cit.suffix > 0) then
-      return nil
+    if not wrap_parens then
+      if (cit.prefix and #cit.prefix > 0)
+          or (cit.suffix and #cit.suffix > 0) then
+        return nil
+      end
     end
     local label = sec_map[idl]
     if not label then
@@ -96,12 +121,18 @@ local function rewrite_sec_cite(el)
     end
   end
   local inlines = pandoc.List({})
+  if wrap_parens then
+    inlines:insert(pandoc.Str("("))
+  end
   for i, t in ipairs(texts) do
     inlines:insert(pandoc.Str(t))
     if i < #texts then
       inlines:insert(pandoc.Str(";"))
       inlines:insert(pandoc.Space())
     end
+  end
+  if wrap_parens then
+    inlines:insert(pandoc.Str(")"))
   end
   return pandoc.Span(inlines)
 end
