@@ -1021,7 +1021,7 @@ Excluding Vogelherd leaves the ordering intact, consistent with S7's finding tha
 
 # S6. Automated Group Recovery as a Circularity Check {#sec-s6}
 
-The sensitivity analyses in S2–S5 treat the network threshold, similarity metric, geographic distance computation, and periodisation scheme as uncertain parameters and show that the conclusions are robust across their plausible ranges. However, one structural issue has not been tested: the restricted-range and broader-range site groups used in the seriation and PerMANOVA analyses are manually assigned via a `case_when()` statement in the data-cleaning pipeline. Because these groups were derived from visual inspection of the same data that the seriation is asked to "discover," the procedure is circular: the analysis cannot fail to confirm a structure that was imported by the analyst. This section examines that circularity by deriving group memberships automatically from the data using unsupervised community detection. Because Louvain, bootstrap, and stochastic block models all operate on the same underlying sign-composition data as the manual assignment, they are useful descriptive checks on the stability and data-drivenness of the partition, but they do not by themselves remove the circularity; genuine independent validation is provided separately in @sec-s6-6.
+The sensitivity analyses in S2–S5 treat the network threshold, similarity metric, geographic distance computation, and periodisation scheme as uncertain parameters and show that the conclusions are robust across their plausible ranges. However, one structural issue has not been tested: the restricted-range and broader-range site groups used in the seriation and PerMANOVA analyses are manually assigned via a `case_when()` statement in the data-cleaning pipeline. Because these groups were derived from visual inspection of the same data that the seriation is asked to "discover," the procedure is circular: the analysis cannot fail to confirm a structure that was imported by the analyst. This section examines that circularity by deriving group memberships automatically from the data using unsupervised community detection. Because Louvain, bootstrap, and stochastic block models all operate on the same underlying sign-composition data as the manual assignment, they are useful descriptive checks on the stability and data-drivenness of the partition, but they do not by themselves remove the circularity; genuine independent validation is provided separately in @sec-s10.
 
 ## S6.1 Louvain Community Partitioning {#sec-s5-1}
 
@@ -1415,7 +1415,7 @@ The PerMANOVA comparison provides the most direct test of whether the main-text 
 
 ### Implications for the main-text circularity concern
 
-This section asks whether the manual restricted/broad grouping is consistent with structure recovered by data-driven methods, using Louvain community detection, bootstrap consensus, and stochastic block models. The ARI values show the manual assignment closely reproduces a data-driven structure in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2) and, in Aur-P2, the broad-range sites in particular (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)` at threshold 0.2, driven by Louvain's exact recovery of the broad-range community). The PerMANOVA comparison shows the manual grouping is conservative rather than liberal: the algorithmically derived partitions consistently explain more variance than the manual ones, so the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) are a lower bound on the strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "Algorithm_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only nine sites and its PerMANOVA results must be read with that limitation in mind. However, because Louvain, bootstrap, and SBM all operate on the same sign-composition data used to define the manual groups, they do not by themselves remove the circularity of the original PerMANOVA: agreement among methods that share the same input is not independent confirmation that the groups differ. Genuine independent validation — holding out data from the definition of the groups — is provided separately in @sec-s6-6.
+This section asks whether the manual restricted/broad grouping is consistent with structure recovered by data-driven methods, using Louvain community detection, bootstrap consensus, and stochastic block models. The ARI values show the manual assignment closely reproduces a data-driven structure in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2) and, in Aur-P2, the broad-range sites in particular (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)` at threshold 0.2, driven by Louvain's exact recovery of the broad-range community). The PerMANOVA comparison shows the manual grouping is conservative rather than liberal: the algorithmically derived partitions consistently explain more variance than the manual ones, so the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) are a lower bound on the strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "Algorithm_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only nine sites and its PerMANOVA results must be read with that limitation in mind. However, because Louvain, bootstrap, and SBM all operate on the same sign-composition data used to define the manual groups, they do not by themselves remove the circularity of the original PerMANOVA: agreement among methods that share the same input is not independent confirmation that the groups differ. Genuine independent validation — holding out data from the definition of the groups — is provided separately in @sec-s10.
 
 # S7. Network Calibration {#sec-s7}
 
@@ -2407,9 +2407,9 @@ kable(s6_ari_tab,
 
 The ARI values summarise how far the three routes to the two-group partition agree, and the agreement is informative precisely because it varies by phase and method (@tbl-s6-ari). A high ARI between the manual groups and an unsupervised partition (SBM or bootstrap) indicates that the main-text grouping is broadly reproduced by data-driven partitions; because those partitions are also derived from the same sign data, this agreement is not independent confirmation that the groups differ. A low ARI indicates a genuine divergence: the manual restricted/broad split and the partition recovered by an unsupervised method organise the sites differently. Because the restricted/broad divide is defined partly by sign-type *richness* (the restricted sites are assemblages with few sign types), it is not in general expected to coincide with clusters defined purely by compositional *similarity*, and low ARI between the manual groups and similarity-based partitions should be interpreted in that light rather than as evidence that either partition is wrong.  
 
-**Implications for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-s6-ari). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The SBM columns are undefined because Bernoulli, Gaussian, and Poisson models all select a single block in both phases (S9.3), yielding a trivial partition where all sites share the same block assignment; consequently no meaningful two-group ARI can be computed. The SBM's result that the sign-sharing networks are too sparse to support more than one block is consistent with the bootstrap finding that the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s6-6.
+**Implications for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-s6-ari). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The SBM columns are undefined because Bernoulli, Gaussian, and Poisson models all select a single block in both phases (S9.3), yielding a trivial partition where all sites share the same block assignment; consequently no meaningful two-group ARI can be computed. The SBM's result that the sign-sharing networks are too sparse to support more than one block is consistent with the bootstrap finding that the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s10.
 
-# S6.6 Circularity-Breaking Validation of the Restricted/Broad Group Difference {#sec-s6-6}
+# S10. Withheld-Data Validation {#sec-s10}
 
 ## Rationale
 
@@ -2417,7 +2417,7 @@ The restricted/broad groups were defined from the same sign-composition data tha
 
 - **(A) Maximally-selected achieved-significance test:** the optimal two-group split is re-derived from *randomised* data in every permutation, and the observed optimal split is compared against that null. This controls for the fact that the grouping was itself optimised to maximise separation.
 - **(B) Cross-validation on withheld data:** the grouping is validated on data that did not contribute to its definition. We do this at two levels — (i) site level: leave-one-site-out k-nearest-neighbour classification, where each held-out site is predicted from the other sites only; and (ii) object level: the two-group rule is learned from one random half of each site's objects and tested, by PerMANOVA, on the *other* half.
-- **(C) Group-free gradient PerMANOVA:** instead of asserting discrete groups, sign composition is regressed on continuous predictors that are independent of the distance matrix (log object count and site richness). Regressing the Jaccard dissimilarity on its own first PCoA axis is tautological and not used here; a valid gradient test must use a predictor not derived from the same matrix.
+- **(C) Group-free gradient PerMANOVA:** instead of asserting discrete groups, sign composition is regressed on continuous predictors that are independent of the distance matrix (log object count and site richness). Regressing the Jaccard dissimilarity on its own first PCoA axis is tautological; it is fitted only to demonstrate the tautology, and validation uses predictors not derived from the same matrix.
 
 All three are exploratory companions to, not replacements for, the main-text PerMANOVA, which we present as descriptive rather than confirmatory, framed as selective inference on data-adaptive groups [@Gao_Bien_Witten_2022; @Neufeld_2024]. P-values from 100 dependent splits are reported as median p, proportion significant, and Brown's method for dependent p-values [@Brown_1975; @Poole_2016], not Fisher's method which assumes independence. Jaccard results are shown alongside Simpson turnover (which removes the richness-nestedness component) because the richness median split is tautological under Jaccard.
 
@@ -2518,6 +2518,79 @@ The methods below answer one general question, whether the restricted/broad diff
 - *Answer:* For log object count: Aur-P1 R² = `r s6_6_gradP1_log$R2`, p = `r s6_6_gradP1_log$p`; Aur-P2 R² = `r s6_6_gradP2_log$R2`, p = `r s6_6_gradP2_log$p`. For richness: Aur-P1 R² = `r s6_6_gradP1_rich$R2`, p = `r s6_6_gradP1_rich$p`; Aur-P2 R² = `r s6_6_gradP2_rich$R2`, p = `r s6_6_gradP2_rich$p`. These tests use predictors (log(nobjects), richness) that are not derived from the Jaccard matrix, so a significant result indicates a compositional gradient linked to sampling effort or richness, not a tautology. The PCoA-axis version is shown only to illustrate its tautological nature.
 
 **Summary.** Strategy B-ii (object-half holdout) provides the appropriate independent validation because it tests the grouping on disjoint objects and reports dependence-aware statistics (median p, proportion significant, Brown p) with Jaccard and Simpson turnover. Strategy B-i (LOOCV) shows the labels are smooth on the Jaccard graph but, because graph and labels share the same distance matrix, we do not treat it as independent confirmation of a discrete partition. Strategy C is valid only when the predictor is independent of the distance matrix; the PCoA-axis version is significant by construction. Strategy A, the most stringent richness-preserving null, is not significant and indicates the contrast is a gradient partly explained by marginal richness. Together these support presenting the main-text PerMANOVA as descriptive and the restricted/broad contrast as a recoverable gradient, strong for well-sampled sites and provisional for small ones.
+
+## S10.1 Richness-Preserving Nulls and Simpson Turnover {#sec-s10-1}
+
+### Rationale
+
+Jaccard dissimilarity confounds turnover with nestedness: a poor assemblage nested inside a rich one scores as dissimilar by construction, so a PerMANOVA of rich versus poor sites on Jaccard distances partly tests richness itself. Simpson turnover dissimilarity, $\beta_{sim} = \min(b,c)/(a + \min(b,c))$, keeps only the turnover component — nested pairs score 0 — and therefore tests whether the groups differ in *composition* rather than in *size*. We report the manual-group PerMANOVA on both distances, and we place the observed Jaccard R², Simpson R², and Louvain-to-manual ARI on richness-preserving null distributions: a fixed-fixed Curveball null (preserves site richness and sign-type frequencies) and an object-count null (each site redrawn with its observed object count from the phase pool). R² values use the same Gower algebra as `adonis2(sqrt.dist = TRUE)`.
+
+**Question this analysis answers:** is the restricted/broad pattern stronger than richness structure alone, and does any group separation survive once the nestedness component is removed?
+
+```{r}
+#| label: tbl-s9-simpson-null
+#| tbl-cap: "Manual-group separation under richness-preserving nulls. R2_jac and R2_sim are the observed PerMANOVA R-squared of the manual groups on Jaccard and Simpson turnover dissimilarities; ARI is the Adjusted Rand Index between the Louvain partition (realigned to manual labels) and the manual groups. Each is compared to fixed-fixed Curveball and object-count null distributions (999 replicates); p is the quantile of the observed value in its null (upper-tail). Negative R2_sim values indicate zero separation, with within-group variation exceeding between-group variation."
+#| tbl-cap-location: bottom
+
+names(aurp1_grp) <- rownames(aurp1_artifact_data)
+names(aurp2_grp) <- rownames(aurp2_artifact_data)
+
+s97_cb_p1 <- group_null_quantiles(as.data.frame(aurp1_artifact_data), aurp1_grp,
+                                  B = 999, seed = 11, null_type = "curveball")
+s97_cb_p2 <- group_null_quantiles(as.data.frame(aurp2_artifact_data), aurp2_grp,
+                                  B = 999, seed = 11, null_type = "curveball")
+s97_oc_p1 <- group_null_quantiles(as.data.frame(aurp1_artifact_data), aurp1_grp,
+                                  B = 999, seed = 12, null_type = "object_count",
+                                  object_df = signbase_full_clean %>% filter(phase2 == "Aur-P1"),
+                                  site_sign_cols = SIGN_COLS,
+                                  site_nobjects = aurp1_unique_data$nobjects[match(rownames(aurp1_artifact_data), aurp1_unique_data$site_name)])
+s97_oc_p2 <- group_null_quantiles(as.data.frame(aurp2_artifact_data), aurp2_grp,
+                                  B = 999, seed = 12, null_type = "object_count",
+                                  object_df = signbase_full_clean %>% filter(phase2 == "Aur-P2"),
+                                  site_sign_cols = SIGN_COLS,
+                                  site_nobjects = aurp2_unique_data$nobjects[match(rownames(aurp2_artifact_data), aurp2_unique_data$site_name)])
+
+# Reference adonis2 p-values for the observed manual-group separations
+set.seed(500)
+adon_j_p1 <- vegan::adonis2(vegan::vegdist(aurp1_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE) ~ as.factor(aurp1_grp), sqrt.dist = TRUE)
+adon_s_p1 <- vegan::adonis2(simpson_turnover_dist(aurp1_artifact_data) ~ as.factor(aurp1_grp), sqrt.dist = TRUE)
+adon_j_p2 <- vegan::adonis2(vegan::vegdist(aurp2_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE) ~ as.factor(aurp2_grp), sqrt.dist = TRUE)
+adon_s_p2 <- vegan::adonis2(simpson_turnover_dist(aurp2_artifact_data) ~ as.factor(aurp2_grp), sqrt.dist = TRUE)
+
+s97_row <- function(ph, null, gq, adon_j, adon_s) {
+  data.frame(
+    Phase = ph, Null = null,
+    R2_jac = round(gq$observed$R2_jac, 3),
+    R2_jac_p = round(gq$p_R2_jac, 3),
+    R2_sim = round(gq$observed$R2_sim, 3),
+    R2_sim_p = round(gq$p_R2_sim, 3),
+    ARI = round(gq$observed$ARI, 3),
+    ARI_p = round(gq$p_ARI, 3),
+    adonis_jac_p = round(adon_j$`Pr(>F)`[1], 3),
+    adonis_sim_p = round(adon_s$`Pr(>F)`[1], 3),
+    check.names = FALSE
+  )
+}
+
+s97_tab <- bind_rows(
+  s97_row("Aur-P1", "Curveball", s97_cb_p1, adon_j_p1, adon_s_p1),
+  s97_row("Aur-P1", "Object-count", s97_oc_p1, adon_j_p1, adon_s_p1),
+  s97_row("Aur-P2", "Curveball", s97_cb_p2, adon_j_p2, adon_s_p2),
+  s97_row("Aur-P2", "Object-count", s97_oc_p2, adon_j_p2, adon_s_p2)
+)
+kable(s97_tab, digits = 3)
+
+s97_r2s_p1 <- round(s97_cb_p1$observed$R2_sim, 3)
+s97_r2s_p2 <- round(s97_cb_p2$observed$R2_sim, 3)
+s97_adon_sp1 <- round(adon_s_p1$`Pr(>F)`[1], 3)
+s97_adon_sp2 <- round(adon_s_p2$`Pr(>F)`[1], 3)
+```
+
+### Interpretation
+
+**Question: is the pattern stronger than richness structure alone, and does any separation survive on turnover alone?** On Jaccard distances the manual groups separate (Aur-P1 R² = `r round(s97_cb_p1$observed$R2_jac, 3)`, Aur-P2 R² = `r round(s97_cb_p2$observed$R2_jac, 3)`). Under the fixed-fixed Curveball null this separation is not distinguished from richness structure alone (quantile p = `r round(s97_cb_p1$p_R2_jac, 3)` and `r round(s97_cb_p2$p_R2_jac, 3)`): randomised matrices with identical site richness and sign-type frequencies separate at least as well. Under the object-count null the Aur-P1 separation exceeds sampling expectation (p = `r round(s97_oc_p1$p_R2_jac, 3)`) while Aur-P2 does not (p = `r round(s97_oc_p2$p_R2_jac, 3)`). Louvain-to-manual agreement is perfect in the observed data (ARI = `r round(s97_cb_p1$observed$ARI, 3)` both phases) but is likewise reproduced by the fixed-fixed null (p = `r round(s97_cb_p1$p_ARI, 3)` and `r round(s97_cb_p2$p_ARI, 3)`), exceeding only the object-count null. On Simpson turnover dissimilarity there is no separation to explain (Aur-P1 R² = `r s97_r2s_p1`, Aur-P2 R² = `r s97_r2s_p2`; adonis p = `r s97_adon_sp1` and `r s97_adon_sp2`). The small quantile p for Aur-P1 Simpson under the object-count null is a low-tail extreme — the observed R² lies below, not above, its null — meaning even less turnover separation than random object draws produce, not evidence for group structure.
+
+**Answer:** the restricted/broad pattern is carried by the nestedness component — rich versus poor repertoires — rather than by compositional turnover between the groups. This is consistent with S9.3 and the free-slope S9.4: the groups differ in how much they contain at comparable effort, not in turnover-independent composition. The division should accordingly be read as a richness axis whose separation from sampling effort is not demonstrated for small-object sites.
 
 # S6.7 Characterization of Detected Communities {#sec-s6-7}
 
@@ -3382,80 +3455,6 @@ When the comparison is restricted to object types present in both phases, the ov
 ## S12.6 Synthesis and limitation {#sec-s12-6}
 
 The four object-level analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S9.2). (2) Coverage-based rarefaction shows the broad/restricted contrast persists among the sites assessable at equal coverage, but the majority of the smallest sites never reach a comparable coverage, so the method cannot vindicate them (S9.3). (3) The offset model's null group effect was a property of fixing the richness-effort exponent at 1; with the exponent estimated, the group contrast persists, so the gap is not distinguishable from a genuine group difference at saturating effort (S9.4). (4) At equal effort with `iNEXT`, the Aur-P1 vs Aur-P2 sign-type pool difference lies inside sampling variation, even when restricted to shared object types (S9.5). (5) Under fixed margins the Jaccard group separation is not distinguished from richness structure alone (Aur-P1 exceeds object-sampling expectation; Aur-P2 does not), while Simpson turnover dissimilarity shows no group separation in either phase (S9.7). Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered, and the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction does not survive equal-effort standardisation.
-
-## S12.7 Simpson-dissimilarity group test and richness-preserving nulls {#sec-s12-7}
-
-### Rationale
-
-Jaccard dissimilarity confounds turnover with nestedness: a poor assemblage nested inside a rich one scores as dissimilar by construction, so a PerMANOVA of rich versus poor sites on Jaccard distances partly tests richness itself. Simpson turnover dissimilarity, $\beta_{sim} = \min(b,c)/(a + \min(b,c))$, keeps only the turnover component — nested pairs score 0 — and therefore tests whether the groups differ in *composition* rather than in *size*. We report the manual-group PerMANOVA on both distances, and we place the observed Jaccard R², Simpson R², and Louvain-to-manual ARI on richness-preserving null distributions: a fixed-fixed Curveball null (preserves site richness and sign-type frequencies) and an object-count null (each site redrawn with its observed object count from the phase pool). R² values use the same Gower algebra as `adonis2(sqrt.dist = TRUE)`.
-
-**Question this analysis answers:** is the restricted/broad pattern stronger than richness structure alone, and does any group separation survive once the nestedness component is removed?
-
-```{r}
-#| label: tbl-s9-simpson-null
-#| tbl-cap: "Manual-group separation under richness-preserving nulls. R2_jac and R2_sim are the observed PerMANOVA R-squared of the manual groups on Jaccard and Simpson turnover dissimilarities; ARI is the Adjusted Rand Index between the Louvain partition (realigned to manual labels) and the manual groups. Each is compared to fixed-fixed Curveball and object-count null distributions (999 replicates); p is the quantile of the observed value in its null (upper-tail). Negative R2_sim values indicate zero separation, with within-group variation exceeding between-group variation."
-#| tbl-cap-location: bottom
-
-names(aurp1_grp) <- rownames(aurp1_artifact_data)
-names(aurp2_grp) <- rownames(aurp2_artifact_data)
-
-s97_cb_p1 <- group_null_quantiles(as.data.frame(aurp1_artifact_data), aurp1_grp,
-                                  B = 999, seed = 11, null_type = "curveball")
-s97_cb_p2 <- group_null_quantiles(as.data.frame(aurp2_artifact_data), aurp2_grp,
-                                  B = 999, seed = 11, null_type = "curveball")
-s97_oc_p1 <- group_null_quantiles(as.data.frame(aurp1_artifact_data), aurp1_grp,
-                                  B = 999, seed = 12, null_type = "object_count",
-                                  object_df = signbase_full_clean %>% filter(phase2 == "Aur-P1"),
-                                  site_sign_cols = SIGN_COLS,
-                                  site_nobjects = aurp1_unique_data$nobjects[match(rownames(aurp1_artifact_data), aurp1_unique_data$site_name)])
-s97_oc_p2 <- group_null_quantiles(as.data.frame(aurp2_artifact_data), aurp2_grp,
-                                  B = 999, seed = 12, null_type = "object_count",
-                                  object_df = signbase_full_clean %>% filter(phase2 == "Aur-P2"),
-                                  site_sign_cols = SIGN_COLS,
-                                  site_nobjects = aurp2_unique_data$nobjects[match(rownames(aurp2_artifact_data), aurp2_unique_data$site_name)])
-
-# Reference adonis2 p-values for the observed manual-group separations
-set.seed(500)
-adon_j_p1 <- vegan::adonis2(vegan::vegdist(aurp1_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE) ~ as.factor(aurp1_grp), sqrt.dist = TRUE)
-adon_s_p1 <- vegan::adonis2(simpson_turnover_dist(aurp1_artifact_data) ~ as.factor(aurp1_grp), sqrt.dist = TRUE)
-adon_j_p2 <- vegan::adonis2(vegan::vegdist(aurp2_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE) ~ as.factor(aurp2_grp), sqrt.dist = TRUE)
-adon_s_p2 <- vegan::adonis2(simpson_turnover_dist(aurp2_artifact_data) ~ as.factor(aurp2_grp), sqrt.dist = TRUE)
-
-s97_row <- function(ph, null, gq, adon_j, adon_s) {
-  data.frame(
-    Phase = ph, Null = null,
-    R2_jac = round(gq$observed$R2_jac, 3),
-    R2_jac_p = round(gq$p_R2_jac, 3),
-    R2_sim = round(gq$observed$R2_sim, 3),
-    R2_sim_p = round(gq$p_R2_sim, 3),
-    ARI = round(gq$observed$ARI, 3),
-    ARI_p = round(gq$p_ARI, 3),
-    adonis_jac_p = round(adon_j$`Pr(>F)`[1], 3),
-    adonis_sim_p = round(adon_s$`Pr(>F)`[1], 3),
-    check.names = FALSE
-  )
-}
-
-s97_tab <- bind_rows(
-  s97_row("Aur-P1", "Curveball", s97_cb_p1, adon_j_p1, adon_s_p1),
-  s97_row("Aur-P1", "Object-count", s97_oc_p1, adon_j_p1, adon_s_p1),
-  s97_row("Aur-P2", "Curveball", s97_cb_p2, adon_j_p2, adon_s_p2),
-  s97_row("Aur-P2", "Object-count", s97_oc_p2, adon_j_p2, adon_s_p2)
-)
-kable(s97_tab, digits = 3)
-
-s97_r2s_p1 <- round(s97_cb_p1$observed$R2_sim, 3)
-s97_r2s_p2 <- round(s97_cb_p2$observed$R2_sim, 3)
-s97_adon_sp1 <- round(adon_s_p1$`Pr(>F)`[1], 3)
-s97_adon_sp2 <- round(adon_s_p2$`Pr(>F)`[1], 3)
-```
-
-### Interpretation
-
-**Question: is the pattern stronger than richness structure alone, and does any separation survive on turnover alone?** On Jaccard distances the manual groups separate (Aur-P1 R² = `r round(s97_cb_p1$observed$R2_jac, 3)`, Aur-P2 R² = `r round(s97_cb_p2$observed$R2_jac, 3)`). Under the fixed-fixed Curveball null this separation is not distinguished from richness structure alone (quantile p = `r round(s97_cb_p1$p_R2_jac, 3)` and `r round(s97_cb_p2$p_R2_jac, 3)`): randomised matrices with identical site richness and sign-type frequencies separate at least as well. Under the object-count null the Aur-P1 separation exceeds sampling expectation (p = `r round(s97_oc_p1$p_R2_jac, 3)`) while Aur-P2 does not (p = `r round(s97_oc_p2$p_R2_jac, 3)`). Louvain-to-manual agreement is perfect in the observed data (ARI = `r round(s97_cb_p1$observed$ARI, 3)` both phases) but is likewise reproduced by the fixed-fixed null (p = `r round(s97_cb_p1$p_ARI, 3)` and `r round(s97_cb_p2$p_ARI, 3)`), exceeding only the object-count null. On Simpson turnover dissimilarity there is no separation to explain (Aur-P1 R² = `r s97_r2s_p1`, Aur-P2 R² = `r s97_r2s_p2`; adonis p = `r s97_adon_sp1` and `r s97_adon_sp2`). The small quantile p for Aur-P1 Simpson under the object-count null is a low-tail extreme — the observed R² lies below, not above, its null — meaning even less turnover separation than random object draws produce, not evidence for group structure.
-
-**Answer:** the restricted/broad pattern is carried by the nestedness component — rich versus poor repertoires — rather than by compositional turnover between the groups. This is consistent with S9.3 and the free-slope S9.4: the groups differ in how much they contain at comparable effort, not in turnover-independent composition. The division should accordingly be read as a richness axis whose separation from sampling effort is not demonstrated for small-object sites.
-
 
 ## References cited
 
