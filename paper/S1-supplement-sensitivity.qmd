@@ -2064,17 +2064,17 @@ Aur-P2 results are indicative. With `n=9` the PAM `k=2` region explains `R2=` `r
 
 # S9. Partition Stability and Generative Models {#sec-s9}
 
-## S6.1 Rationale {#sec-s6-1}
+## S9.1 Rationale {#sec-s9-1}
 
-The main-text claim that each phase resolves into two cultural groups, restricted-range versus broader-range sign repertoires, rests on a single Brower-Kile seriation run followed by manual block assignment (see S5). Two limitations remain unaddressed by S1–S5. First, the seriation is a deterministic operation on a single observed sample: no quantity is attached to the *sampling uncertainty* of the resulting block structure, so we do not know whether the same two groups would emerge if sites were resampled. Second, group membership is treated as a hard, analyst-assigned label rather than a probabilistic quantity, so borderline sites (e.g. Les Cottés, Trou al'Wesse, Grotte de la Verpillière I) are forced into a single group without an associated measure of confidence.
+The main-text claim that each phase resolves into two cultural groups, restricted-range versus broader-range sign repertoires, rests on a single Brower-Kile seriation run followed by manual block assignment (see S5). Two limitations remain unaddressed by S2–S8. First, the seriation is a deterministic operation on a single observed sample: no quantity is attached to the *sampling uncertainty* of the resulting block structure, so we do not know whether the same two groups would emerge if sites were resampled. Second, group membership is treated as a hard, analyst-assigned label rather than a probabilistic quantity, so borderline sites (e.g. Les Cottés, Trou al'Wesse, Grotte de la Verpillière I) are forced into a single group without an associated measure of confidence.
 
-This section addresses both limitations. In S6.2 we use bootstrap resampling of sites within each phase to build a **consensus co-clustering matrix** [@Monti_2003], quantifying the stability of the two-group partition as a whole and of each site's assignment. In S6.3 we fit **stochastic block models (SBM)** using the `blockmodels` R package [@Leger_2016], which treat block membership as a latent variable, select the number of blocks via the Integrated Classification Likelihood (ICL), and return posterior membership probabilities for every site. In S6.4 we cross-validate the bootstrap and SBM assignments against the main-text restricted/broad groups using the Adjusted Rand Index (ARI) [@Hubert_Arabie_1985].
+This section addresses both limitations. In S9.2 we use bootstrap resampling of sites within each phase to build a **consensus co-clustering matrix** [@Monti_2003], quantifying the stability of the two-group partition as a whole and of each site's assignment. In S9.3 we fit **stochastic block models (SBM)** using the `blockmodels` R package [@Leger_2016], which treat block membership as a latent variable, select the number of blocks via the Integrated Classification Likelihood (ICL), and return posterior membership probabilities for every site. In S9.4 we cross-validate the bootstrap and SBM assignments against the main-text restricted/broad groups using the Adjusted Rand Index (ARI) [@Hubert_Arabie_1985].
 
-## S6.2 Bootstrap Consensus Analysis {#sec-s6-2}
+## S9.2 Bootstrap Consensus Analysis {#sec-s9-2}
 
 ### Rationale
 
-For each phase we assess stability of the two-group partition by resampling (**site subsampling without replacement, 80% of sites per replicate**) and, separately, by object-within-site bootstrap (S5.7 method). Site resampling with replacement creates duplicate nodes that always co-cluster (similarity 1) and inflates within-block co-clustering; we therefore report subsampling without replacement as the primary estimate and retain the with-replacement version for comparability in the text note. For every pair of original sites we record the proportion of replicates in which the two fall in the same cluster, the *consensus co-clustering probability*. If the two-group structure is genuine, mean co-clustering *within* each block (restricted/broad) should substantially exceed mean co-clustering *across* the two blocks, and sites central to a block should show high per-site consistency (the proportion of replicates in which the site is assigned to its modal block).
+For each phase we assess stability of the two-group partition by resampling (**site subsampling without replacement, 80% of sites per replicate**) Site resampling with replacement creates duplicate nodes that always co-cluster (similarity 1) and inflates within-block co-clustering; we therefore use subsampling without replacement (80% of sites per replicate) as implemented below. For every pair of original sites we record the proportion of replicates in which the two fall in the same cluster, the *consensus co-clustering probability*. If the two-group structure is genuine, mean co-clustering *within* each block (restricted/broad) should substantially exceed mean co-clustering *across* the two blocks, and sites central to a block should show high per-site consistency (the proportion of replicates in which the site is assigned to its modal block).
 
 ```{r}
 #| label: s6-boot-functions
@@ -2226,7 +2226,7 @@ The bootstrap consensus analysis supports the main-text two-group partition as a
 
 **Implications for the main text.** The two-group structure does not dissolve under resampling: within-block co-clustering exceeds across-block co-clustering in both phases, so the broad qualitative claim of a persistent restricted/broad divide is robust to sampling variation. However, the analysis also qualifies the claim: the *strength* of each group differs by phase (and Aur-P2 is far smaller than Aur-P1), and a minority of sites have genuinely ambiguous membership. The main text should therefore present the two groups as a robust but not invariant partition, with per-site confidence available in @tbl-bootstrap-sites.
 
-## S6.3 Stochastic Block Models {#sec-s6-3}
+## S9.3 Stochastic Block Models {#sec-s9-3}
 
 ### Rationale
 
@@ -2342,7 +2342,7 @@ The SBM results must be interpreted alongside the bootstrap consensus (S6.2) and
 
 **Implications for the main text.** The SBM selects a single block in both phases under Bernoulli, Gaussian, and Poisson emission models, so the two-group structure is not independently recovered by any generative model formulation. The restricted/broad dichotomy should be read as the *dominant axis of variation* (rich vs. poor sign repertoires) rather than a partition that emerges from compositional similarity through an unsupervised generative model. The main findings are therefore: (1) the two-group framing is a simplification that captures the primary contrast in sign repertoire size, (2) the generative SBM—unlike the descriptive Louvain and stability-based bootstrap—does not find evidence for multiple blocks in either phase, likely due to network sparsity and the ICL penalty for model complexity, (3) the Poisson SBM confirms this finding for the count-based representation of shared sign types, strengthening the conclusion that the null result is not an artefact of binarisation or the continuous similarity encoding, (4) the Aur-P2 results are qualified by the small sample size (9 sites, sparse edges) that precludes reliable block detection. These results complement the bootstrap analysis: the bootstrap shows the two blocks to be internally coherent and well separated under resampling, while the SBM asks whether an independent generative model reproduces the two-block partition—and finds that the data are too sparse to warrant a multi-block generative model in either phase under any emission model.
 
-## S6.4 Cross-Validation of Group Assignments (ARI) {#sec-s6-4}
+## S9.4 Cross-Validation of Group Assignments (ARI) {#sec-s9-4}
 
 ### Rationale
 
@@ -2407,11 +2407,7 @@ kable(s6_ari_tab,
 
 The ARI values summarise how far the three routes to the two-group partition agree, and the agreement is informative precisely because it varies by phase and method (@tbl-s6-ari). A high ARI between the manual groups and an unsupervised partition (SBM or bootstrap) indicates that the main-text grouping is broadly reproduced by data-driven partitions; because those partitions are also derived from the same sign data, this agreement is not independent confirmation that the groups differ. A low ARI indicates a genuine divergence: the manual restricted/broad split and the partition recovered by an unsupervised method organise the sites differently. Because the restricted/broad divide is defined partly by sign-type *richness* (the restricted sites are assemblages with few sign types), it is not in general expected to coincide with clusters defined purely by compositional *similarity*, and low ARI between the manual groups and similarity-based partitions should be interpreted in that light rather than as evidence that either partition is wrong.  
 
-**Implications for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-s6-ari). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The SBM columns are undefined for the Bernoulli model (and Gaussian model) because both select a single block in both phases (S6.3), yielding a trivial partition where all sites share the same block assignment; consequently no meaningful two-group ARI can be computed. The SBM's result that the sign-sharing networks are too sparse to support more than one block is consistent with the bootstrap finding that the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s6-6.
-
-## S6.5 Summary of Implications {#sec-s6-5}
-
-Taken together, S6 provides three converging but graded lines of evidence for the main-text two-group claim. (1) **Resampling stability**: within-block co-clustering exceeds across-block co-clustering in every phase (@fig-bootstrap-consensus, @tbl-bootstrap-summary), so the partition does not arise from a particular sample of sites. (2) **Model selection**: the SBM attaches posterior probabilities to each site's membership (@tbl-sbm-membership) and reports the number of blocks best supported by the sign-sharing network in each phase for two emission models—Bernoulli (binarized adjacency) and Gaussian (unthresholded similarities) (@tbl-sbm-icl). Both model families select a single block in both Aur-P1 and Aur-P2, indicating that the sparse sign-sharing networks do not provide sufficient evidence for a multi-block generative model—this is a null result for block structure, not a contradiction of the two-group contrast. (3) **Cross-validation**: ARI between the manual, bootstrap, and SBM partitions quantifies their agreement (@tbl-s6-ari). The three routes are mutually informative but not redundant: the bootstrap shows the two blocks to be internally coherent and well separated under resampling; the SBM finds the data too sparse to warrant a multi-block generative model under either emission model; and the manual assignment captures the dominant axis of variation in sign repertoire size. The circularity of the main-text PerMANOVA itself is addressed separately in @sec-s6-6, which validates the grouping on withheld data rather than on the data used to define it.
+**Implications for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-s6-ari). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The SBM columns are undefined because Bernoulli, Gaussian, and Poisson models all select a single block in both phases (S9.3), yielding a trivial partition where all sites share the same block assignment; consequently no meaningful two-group ARI can be computed. The SBM's result that the sign-sharing networks are too sparse to support more than one block is consistent with the bootstrap finding that the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s6-6.
 
 # S6.6 Circularity-Breaking Validation of the Restricted/Broad Group Difference {#sec-s6-6}
 
@@ -3066,7 +3062,7 @@ for (k in k_levels) for (ph in c("Aur-P1", "Aur-P2")) {
 }
 ```
 
-## S12.1 Object-count distribution and feasible common counts {#sec-s9-1}
+## S12.1 Object-count distribution and feasible common counts {#sec-s12-1}
 
 ### Rationale
 
@@ -3102,7 +3098,7 @@ ggplot(obj_counts, aes(x = nobjects, fill = phase)) +
 
 **Question: how many sites can be retained at each common object count?** At **k = 3**, `r n_qual[["Aur-P1_3"]]` of `r nrow(obj_counts %>% filter(phase=="Aur-P1"))` Aur-P1 sites and `r n_qual[["Aur-P2_3"]]` of `r nrow(obj_counts %>% filter(phase=="Aur-P2"))` Aur-P2 sites qualify. At **k = 5** the numbers fall to `r n_qual[["Aur-P1_5"]]` and `r n_qual[["Aur-P2_5"]]`, and at **k = 10** only `r n_qual[["Aur-P1_10"]]` and `r n_qual[["Aur-P2_10"]]` sites remain. The smallest sites (Trou al'Wesse, Fumane, Pod Hradem, Grottes de Fonds-de-Forêt with one object; Les Cottés, Labeko Koba, Hohlenstein-Stadel with two) can never be downsampled and are excluded from every replicate. We therefore report results at k = 3, 5, and 10, treating k = 10 as the most stringent test (fewest sites, but each built from a substantial object sample) and k = 3 as the most inclusive.
 
-## S12.2 Object-level downsampling sensitivity {#sec-s9-2}
+## S12.2 Object-level downsampling sensitivity {#sec-s12-2}
 
 ### Rationale
 
@@ -3181,7 +3177,7 @@ ggplot(ret_all, aes(x = reorder(site_name, nobjects), y = retention_rate,
 
 The same pattern holds in Aur-P2, where even fewer sites qualify at higher k and retention is correspondingly noisier. **Answer:** the R/B assignment of small-object sites is not robust to object-level downsampling; only the best-sampled sites retain their grouping, and the community structure as a whole loses coherence under downsampling. This shows that the division is, at least in part, a sampling-intensity effect rather than a fully stable cultural partition.
 
-## S12.3 Coverage-based rarefaction {#sec-s9-3}
+## S12.3 Coverage-based rarefaction {#sec-s12-3}
 
 ### Rationale
 
@@ -3246,7 +3242,7 @@ ggplot(cov_plot, aes(x = group, y = richness_at_target, colour = group)) +
 
 **Answer:** at equal coverage the broad/restricted richness contrast is preserved *among the sites that can be evaluated* — it is not removed by standardising on completeness — but the majority of the smallest sites never attain the target coverage and therefore cannot be placed on a common coverage footing at all. Coverage-based rarefaction is consequently unreliable for the smallest assemblages: it can compare well-sampled sites, but it cannot rescue the assignment of sites with only one or two objects, for which the table reports Chao coverage and Chao2 fallback quantities instead. This is the same limitation encountered in S9.2, approached from the richness axis.
 
-## S12.4 Negative-binomial regression with object-count covariate {#sec-s9-4}
+## S12.4 Negative-binomial regression with object-count covariate {#sec-s12-4}
 
 ### Rationale
 
@@ -3304,7 +3300,7 @@ kable(mix_tbl, digits = 3, row.names = FALSE)
 
 **Question: does the group effect on sign-type richness survive after accounting for sampling effort?** The answer depends on the specification, which is itself the finding. Under the offset specification the group coefficient is `r s9_mix_coef` (rate ratio `r s9_mix_rr`, p = `r s9_mix_p`), i.e. non-significant and even slightly *negative*. Under the free-slope specification the estimated richness-effort exponent is `r s9_fs_exp` (95% CI `r s9_fs_exp_lcl`–`r s9_fs_exp_ucl`), which excludes 1: richness saturates with object count, so the offset's proportionality assumption is rejected on these data and its rate ratio is biased against the large broad-group sites. With the exponent freed, broad-range sites are richer than restricted-range sites at equal object count (rate ratio `r s9_fs_rr`, p = `r s9_fs_p`). This reversal shows the offset-based "sampling-effort artefact" reading was a property of the mis-specified model, not of the data, and it agrees with S9.3, where the contrast persists among the sites assessable at equal coverage. **Caveat:** the free-slope fit has three predictors on 29 site-phase units with group strongly collinear with object count`r if (s9_fs_theta) ", and the dispersion fit reached its iteration limit, so its intervals are approximate" else ""`; it is reported as a corrected specification, not a precise effect estimate. **Answer:** the raw richness gap is not distinguishable from a genuine group difference once saturating sampling effort is accounted for; a non-significant offset coefficient cannot be read as positive evidence that effort explains the gap.
 
-## S12.5 Equal-effort pool comparison (iNEXT) {#sec-s9-5}
+## S12.5 Equal-effort pool comparison (iNEXT) {#sec-s12-5}
 
 ```{r}
 #| label: s95-inline-setup
@@ -3383,11 +3379,11 @@ When the comparison is restricted to object types present in both phases, the ov
 
 **Answer:** the raw pool difference is not distinguishable from sampling variation at equal object count or equal coverage. The raw `r s95_n_p1` vs `r s95_n_p2` count reflects `r s95_obj_p1` vs `r s95_obj_p2` objects and phase-specific object classes, not a demonstrated phase-level contraction. The diversity-pool paragraphs in the Discussion and Conclusion that call this the most robust finding should be rewritten to the not distinguishable from form and the sample-difference caveat stated.
 
-## S12.6 Synthesis and limitation {#sec-s9-6}
+## S12.6 Synthesis and limitation {#sec-s12-6}
 
 The four object-level analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S9.2). (2) Coverage-based rarefaction shows the broad/restricted contrast persists among the sites assessable at equal coverage, but the majority of the smallest sites never reach a comparable coverage, so the method cannot vindicate them (S9.3). (3) The offset model's null group effect was a property of fixing the richness-effort exponent at 1; with the exponent estimated, the group contrast persists, so the gap is not distinguishable from a genuine group difference at saturating effort (S9.4). (4) At equal effort with `iNEXT`, the Aur-P1 vs Aur-P2 sign-type pool difference lies inside sampling variation, even when restricted to shared object types (S9.5). (5) Under fixed margins the Jaccard group separation is not distinguished from richness structure alone (Aur-P1 exceeds object-sampling expectation; Aur-P2 does not), while Simpson turnover dissimilarity shows no group separation in either phase (S9.7). Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered, and the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction does not survive equal-effort standardisation.
 
-## S12.7 Simpson-dissimilarity group test and richness-preserving nulls {#sec-s9-7}
+## S12.7 Simpson-dissimilarity group test and richness-preserving nulls {#sec-s12-7}
 
 ### Rationale
 
