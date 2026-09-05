@@ -571,6 +571,91 @@ The geodesic distance calculation provides an important clarification:
 
 Consistent with the main-text Mantel tests (which report no significant geographic signal in either phase), neither phase shows a significant correlation between geographic distance and sign assemblage dissimilarity, whether distance is measured as flat Euclidean coordinates or as true geodesic kilometers.
 
+## S4.3 Mantel Correlogram {#sec-s4-3}
+
+### Rationale
+
+The Mantel tests reported in the main text and in S3 evaluate a single global null hypothesis: that geometric-sign dissimilarity is uncorrelated with geographic distance across all site pairs simultaneously. A non-significant global result can conceal scale-dependent structure — for example, sign sharing might be geographically clustered at short distances but random at long distances, producing a net correlation near zero. Because the global test cannot distinguish "no spatial structure at any scale" from "positive and negative structure that cancel," we ask two specific questions:
+
+1. **Does sign dissimilarity show any spatial autocorrelation at a specific distance lag?** A Mantel correlogram partitions site pairs by geographic-distance bin and tests the Mantel correlation within each bin; a significant positive r at one or more lags would reveal scale-dependent structure that the global test misses.
+2. **How uncertain is the global Mantel R estimate, and what does that imply about statistical power?** We place a bootstrap 95% confidence interval on the single global Mantel R reported for each phase. A wide interval that overlaps zero indicates the test cannot distinguish a true null from a true moderate correlation, so the non-significant result is a lack of evidence rather than evidence of absence.
+
+### Analysis
+
+We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the S3 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram` [@Goslee_Urban_2007], which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we additionally resample sites with replacement (B = 1000) and recompute the Mantel R each time, taking the 2.5% and 97.5% quantiles as the bootstrap interval.
+
+```{r}
+#| label: s5-11-mantel-corr
+#| warning: false
+
+phase_distances <- function(df) {
+  art <- df %>%
+    dplyr::select(line:star) %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
+  sf_obj <- sf::st_as_sf(df, coords = c("longitude", "latitude"), crs = 4326)
+  geo <- as.dist(sf::st_distance(sf_obj) / 1000)
+  list(jac = jac, geo = geo)
+}
+
+pd_p1 <- phase_distances(aurp1_unique_data)
+pd_p2 <- phase_distances(aurp2_unique_data)
+
+nclass_p1 <- 5
+nclass_p2 <- 3
+set.seed(2024)
+
+mg_p1 <- ecodist::mgram(pd_p1$jac, pd_p1$geo,
+                        nclass = nclass_p1, equiprobable = TRUE,
+                        nboot = 1000, cboot = 0.95, nperm = 1000)
+mg_p2 <- ecodist::mgram(pd_p2$jac, pd_p2$geo,
+                        nclass = nclass_p2, equiprobable = TRUE,
+                        nboot = 1000, cboot = 0.95, nperm = 1000)
+
+mg_p1_df <- as.data.frame(mg_p1$mgram) %>% mutate(Phase = "Aur-P1")
+mg_p2_df <- as.data.frame(mg_p2$mgram) %>% mutate(Phase = "Aur-P2")
+mg_plot_df <- bind_rows(mg_p1_df, mg_p2_df)
+
+# Global Mantel R (point estimate + permutation p), same construction as S3
+mp1 <- vegan::mantel(pd_p1$geo, pd_p1$jac, permutations = 1000)
+mp2 <- vegan::mantel(pd_p2$geo, pd_p2$jac, permutations = 1000)
+mg_p1_r <- mp1$statistic; mg_p1_p <- mp1$signif
+mg_p2_r <- mp2$statistic; mg_p2_p <- mp2$signif
+
+# Bootstrap 95% CI on the global Mantel R via object-within-site resampling.
+# Site-with-replacement bootstrap creates duplicate nodes (distance 0,
+# dissimilarity 0) and biases R upward; we instead resample objects within
+# each site (object-within-site bootstrap, see functions.R).
+mb_p1_res <- bootstrap_mantel_R(aurp1_unique_data, signbase_full_clean, "Aur-P1", B = 1000, seed = 42)
+mb_p2_res <- bootstrap_mantel_R(aurp2_unique_data, signbase_full_clean, "Aur-P2", B = 1000, seed = 42)
+mb_p1_lo <- mb_p1_res$ci_lo; mb_p1_hi <- mb_p1_res$ci_hi
+mb_p2_lo <- mb_p2_res$ci_lo; mb_p2_hi <- mb_p2_res$ci_hi
+mb_p1_obs <- mb_p1_res$observed_R; mb_p2_obs <- mb_p2_res$observed_R
+
+n_pairs_p1 <- nrow(aurp1_unique_data) * (nrow(aurp1_unique_data) - 1) / 2
+n_pairs_p2 <- nrow(aurp2_unique_data) * (nrow(aurp2_unique_data) - 1) / 2
+```
+
+```{r fig.height=5, fig.width=8}
+#| label: fig-mantel-correlogram
+#| fig-cap: "Mantel correlogram of geometric-sign dissimilarity against geographic distance, by phase. Points are the Mantel r within each distance lag; error bars are 95% bootstrap confidence intervals (ecodist::mgram, llim/ulim). The dashed line is r = 0. No lag reaches significance, and all intervals straddle zero."
+
+ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
+  geom_point(size = 2.5, colour = "#2c7fb8") +
+  geom_errorbar(aes(ymin = llim, ymax = ulim), width = 0.08, colour = "#2c7fb8") +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
+  facet_wrap(~ Phase, scales = "free_x") +
+  labs(x = "Geographic distance lag (km)", y = "Mantel r") +
+  theme_minimal()
+```
+
+### Interpretation
+
+**Question 1 — is there scale-dependent spatial structure?** No. In Aur-P1 the `r nclass_p1` distance lags yield Mantel r values from `r n3(min(mg_p1_df$mantelr))` to `r n3(max(mg_p1_df$mantelr))`, none significant (smallest p = `r n3(min(mg_p1_df$pval))`); in Aur-P2 the `r nclass_p2` lags range from `r n3(min(mg_p2_df$mantelr))` to `r n3(max(mg_p2_df$mantelr))`, also none significant (smallest p = `r n3(min(mg_p2_df$pval))`). Every lag's 95% bootstrap interval straddles or lies close to zero: the most extreme bounds across lags are `r n3(min(mg_p1_df$llim))` and `r n3(max(mg_p1_df$ulim))` for Aur-P1 and `r n3(min(mg_p2_df$llim))` and `r n3(max(mg_p2_df$ulim))` for Aur-P2, both comfortably including zero. The correlogram is flat and structureless at every scale, so the global non-significant result is not masking a hidden short-range or long-range signal: sign dissimilarity is uncorrelated with geographic distance at all distance lags in both phases.
+
+**Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the S3 geodesic results. The 95% interval from object-within-site bootstrap is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 (spans zero; observed `r n3(mb_p1_obs)`) and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2 (narrowly negative, does not span zero; observed `r n3(mb_p2_obs)`); permutation p = `r n3(mg_p2_p)` shows no isolation-by-distance, and the bootstrap shows the negative estimate is stable to object resampling rather than underpowered in the same sense as Aur-P1. Site-with-replacement bootstrap was not used because it creates duplicate sites with distance 0 and dissimilarity 0. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Aur-P1 test has low power: a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall inside the Aur-P1 sampling noise and could not be excluded. The non-significant Mantel results are therefore a *lack of evidence* for geographic structure, not evidence that it is absent, and they provide no support for any alternative cultural process, consistent with S5.10.
+
 # S5. Periodisation Scheme Sensitivity {#sec-s5}
 
 ## S5.1 Rationale
@@ -1332,399 +1417,6 @@ The PerMANOVA comparison provides the most direct test of whether the main-text 
 
 This section asks whether the manual restricted/broad grouping is consistent with structure recovered by data-driven methods, using Louvain community detection, bootstrap consensus, and stochastic block models. The ARI values show the manual assignment closely reproduces a data-driven structure in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2) and, in Aur-P2, the broad-range sites in particular (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)` at threshold 0.2, driven by Louvain's exact recovery of the broad-range community). The PerMANOVA comparison shows the manual grouping is conservative rather than liberal: the algorithmically derived partitions consistently explain more variance than the manual ones, so the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) are a lower bound on the strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "Algorithm_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only nine sites and its PerMANOVA results must be read with that limitation in mind. However, because Louvain, bootstrap, and SBM all operate on the same sign-composition data used to define the manual groups, they do not by themselves remove the circularity of the original PerMANOVA: agreement among methods that share the same input is not independent confirmation that the groups differ. Genuine independent validation — holding out data from the definition of the groups — is provided separately in @sec-s6-6.
 
-## S5.10 Multiple Regression on Distance Matrices (Drivers of Sign Dissimilarity) {#sec-s5-16}
-
-The Mantel tests establish that geographic distance is not significantly correlated with sign dissimilarity in either phase, but a non-significant result cannot by itself identify which alternative process — if any — generated the pattern. To split the variance of sign dissimilarity among the candidate drivers that are actually measured in the data, we fit a multiple regression on distance matrices (MRM; @Lichstein_2007) in which the response is the Jaccard dissimilarity of sign presence/absence and the three predictors are, for every pair of sites, their geographic distance, their absolute temporal distance (|ΔMedianBP|), and their absolute difference in object count (a proxy for sampling effort). Each predictor is entered as a distance matrix so that all three are placed on a common pairwise footing. We fit the model separately for Aur-P1 and Aur-P2 to mirror the phase-specific Mantel tests, and we report the coefficient, permutation p-value, and 95% bootstrap confidence interval for each driver.
-
-```{r}
-#| label: s5-10-mrm
-#| warning: false
-
-mrm_phase <- function(art, uniq, nperm = 10000, B = 500) {
-  sites <- uniq   # rows are assumed aligned with the rows of art
-  Y   <- as.dist(vegan::vegdist(art, method = "jaccard", binary = TRUE))
-  pts <- sites %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
-  geo <- sf::st_distance(pts) %>% as.dist()
-  temp <- dist(sites$MedianBP)
-  obj  <- dist(sites$nobjects)
-  fit <- MRM(Y ~ geo + temp + obj, nperm = nperm)
-  set.seed(7)
-  boot_one <- function() {
-    idx <- sample(nrow(art), replace = TRUE)
-    Yb  <- as.dist(vegan::vegdist(art[idx, ], method = "jaccard", binary = TRUE))
-    pb  <- sites[idx, , drop = FALSE] %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
-    gb  <- sf::st_distance(pb) %>% as.dist()
-    tb  <- dist(sites$MedianBP[idx])
-    ob  <- dist(sites$nobjects[idx])
-    res <- tryCatch(MRM(Yb ~ gb + tb + ob, nperm = 10)$coef,
-                    error = function(e) NULL)
-    if (is.null(res) || !("Y" %in% colnames(res))) return(NULL)
-    if (any(is.na(res[, "Y"]))) return(NULL)
-    res[, "Y"]
-  }
-  boots <- replicate(B, boot_one(), simplify = FALSE)
-  boots <- boots[!sapply(boots, is.null)]
-  boots <- do.call(cbind, boots)
-  list(coef   = fit$coef,
-       r2     = fit$r.squared,
-       geo_ci = quantile(boots["geo", ], c(0.025, 0.975)),
-       temp_ci= quantile(boots["temp", ], c(0.025, 0.975)),
-       obj_ci = quantile(boots["obj", ],  c(0.025, 0.975)))
-}
-
-mrm_p1 <- mrm_phase(aurp1_artifact_data, aurp1_unique_data)
-mrm_p2 <- mrm_phase(aurp2_artifact_data, aurp2_unique_data)
-
-mrm_p1_r2 <- mrm_p1$r.squared
-mrm_p2_r2 <- mrm_p2$r.squared
-
-mrm_p1_geo <- mrm_p1$coef["geo","Y"]; mrm_p1_geo_p <- mrm_p1$coef["geo","pval"]
-mrm_p1_geo_lo <- mrm_p1$geo_ci[1]; mrm_p1_geo_hi <- mrm_p1$geo_ci[2]
-mrm_p1_temp <- mrm_p1$coef["temp","Y"]; mrm_p1_temp_p <- mrm_p1$coef["temp","pval"]
-mrm_p1_temp_lo <- mrm_p1$temp_ci[1]; mrm_p1_temp_hi <- mrm_p1$temp_ci[2]
-mrm_p1_obj <- mrm_p1$coef["obj","Y"]; mrm_p1_obj_p <- mrm_p1$coef["obj","pval"]
-mrm_p1_obj_lo <- mrm_p1$obj_ci[1]; mrm_p1_obj_hi <- mrm_p1$obj_ci[2]
-
-mrm_p2_geo <- mrm_p2$coef["geo","Y"]; mrm_p2_geo_p <- mrm_p2$coef["geo","pval"]
-mrm_p2_temp <- mrm_p2$coef["temp","Y"]; mrm_p2_temp_p <- mrm_p2$coef["temp","pval"]
-mrm_p2_obj <- mrm_p2$coef["obj","Y"]; mrm_p2_obj_p <- mrm_p2$coef["obj","pval"]
-mrm_p2_geo_lo <- mrm_p2$geo_ci[1]; mrm_p2_geo_hi <- mrm_p2$geo_ci[2]
-mrm_p2_temp_lo <- mrm_p2$temp_ci[1]; mrm_p2_temp_hi <- mrm_p2$temp_ci[2]
-mrm_p2_obj_lo <- mrm_p2$obj_ci[1]; mrm_p2_obj_hi <- mrm_p2$obj_ci[2]
-```
-
-For Aur-P1 the MRM explains `r n2(mrm_p1_r2)` of the variance in sign dissimilarity; none of the three drivers is significant (geographic: β = `r n3(mrm_p1_geo)`, 95% CI [`r n3(mrm_p1_geo_lo)`, `r n3(mrm_p1_geo_hi)`], p = `r n3(mrm_p1_geo_p)`; temporal: β = `r n3(mrm_p1_temp)`, 95% CI [`r n3(mrm_p1_temp_lo)`, `r n3(mrm_p1_temp_hi)`], p = `r n3(mrm_p1_temp_p)`; object count: β = `r n3(mrm_p1_obj)`, 95% CI [`r n3(mrm_p1_obj_lo)`, `r n3(mrm_p1_obj_hi)`], p = `r n3(mrm_p1_obj_p)`). Aur-P2 shows the same pattern (R² = `r n2(mrm_p2_r2)`; geographic p = `r n3(mrm_p2_geo_p)`, temporal p = `r n3(mrm_p2_temp_p)`, object-count p = `r n3(mrm_p2_obj_p)`). Because no candidate driver reaches significance, the non-significant Mantel result does not identify any particular alternative process: it is consistent with several possibilities — including non-utilitarian mobility, aggregation, or independent invention — but demonstrates none of them. With only `r nrow(aurp2_artifact_data)` sites, the Aur-P2 MRM is underpowered, so its non-significant coefficients should be read as indicative rather than conclusive; the substantive point is that the data contain no statistical evidence favouring one driver over another.
-
-## S5.11 Mantel Correlogram and Bootstrap Confidence Intervals on the Mantel R {#sec-s5-17}
-
-### Rationale
-
-The Mantel tests reported in the main text and in S3 evaluate a single global null hypothesis: that geometric-sign dissimilarity is uncorrelated with geographic distance across all site pairs simultaneously. A non-significant global result can conceal scale-dependent structure — for example, sign sharing might be geographically clustered at short distances but random at long distances, producing a net correlation near zero. Because the global test cannot distinguish "no spatial structure at any scale" from "positive and negative structure that cancel," we ask two specific questions:
-
-1. **Does sign dissimilarity show any spatial autocorrelation at a specific distance lag?** A Mantel correlogram partitions site pairs by geographic-distance bin and tests the Mantel correlation within each bin; a significant positive r at one or more lags would reveal scale-dependent structure that the global test misses.
-2. **How uncertain is the global Mantel R estimate, and what does that imply about statistical power?** We place a bootstrap 95% confidence interval on the single global Mantel R reported for each phase. A wide interval that overlaps zero indicates the test cannot distinguish a true null from a true moderate correlation, so the non-significant result is a lack of evidence rather than evidence of absence.
-
-### Analysis
-
-We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the S3 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram` [@Goslee_Urban_2007], which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we additionally resample sites with replacement (B = 1000) and recompute the Mantel R each time, taking the 2.5% and 97.5% quantiles as the bootstrap interval.
-
-```{r}
-#| label: s5-11-mantel-corr
-#| warning: false
-
-phase_distances <- function(df) {
-  art <- df %>%
-    dplyr::select(line:star) %>%
-    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
-    mutate(across(everything(), ~ as.numeric(. > 0)))
-  jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
-  sf_obj <- sf::st_as_sf(df, coords = c("longitude", "latitude"), crs = 4326)
-  geo <- as.dist(sf::st_distance(sf_obj) / 1000)
-  list(jac = jac, geo = geo)
-}
-
-pd_p1 <- phase_distances(aurp1_unique_data)
-pd_p2 <- phase_distances(aurp2_unique_data)
-
-nclass_p1 <- 5
-nclass_p2 <- 3
-set.seed(2024)
-
-mg_p1 <- ecodist::mgram(pd_p1$jac, pd_p1$geo,
-                        nclass = nclass_p1, equiprobable = TRUE,
-                        nboot = 1000, cboot = 0.95, nperm = 1000)
-mg_p2 <- ecodist::mgram(pd_p2$jac, pd_p2$geo,
-                        nclass = nclass_p2, equiprobable = TRUE,
-                        nboot = 1000, cboot = 0.95, nperm = 1000)
-
-mg_p1_df <- as.data.frame(mg_p1$mgram) %>% mutate(Phase = "Aur-P1")
-mg_p2_df <- as.data.frame(mg_p2$mgram) %>% mutate(Phase = "Aur-P2")
-mg_plot_df <- bind_rows(mg_p1_df, mg_p2_df)
-
-# Global Mantel R (point estimate + permutation p), same construction as S3
-mp1 <- vegan::mantel(pd_p1$geo, pd_p1$jac, permutations = 1000)
-mp2 <- vegan::mantel(pd_p2$geo, pd_p2$jac, permutations = 1000)
-mg_p1_r <- mp1$statistic; mg_p1_p <- mp1$signif
-mg_p2_r <- mp2$statistic; mg_p2_p <- mp2$signif
-
-# Bootstrap 95% CI on the global Mantel R via object-within-site resampling.
-# Site-with-replacement bootstrap creates duplicate nodes (distance 0,
-# dissimilarity 0) and biases R upward; we instead resample objects within
-# each site (object-within-site bootstrap, see functions.R).
-mb_p1_res <- bootstrap_mantel_R(aurp1_unique_data, signbase_full_clean, "Aur-P1", B = 1000, seed = 42)
-mb_p2_res <- bootstrap_mantel_R(aurp2_unique_data, signbase_full_clean, "Aur-P2", B = 1000, seed = 42)
-mb_p1_lo <- mb_p1_res$ci_lo; mb_p1_hi <- mb_p1_res$ci_hi
-mb_p2_lo <- mb_p2_res$ci_lo; mb_p2_hi <- mb_p2_res$ci_hi
-mb_p1_obs <- mb_p1_res$observed_R; mb_p2_obs <- mb_p2_res$observed_R
-
-n_pairs_p1 <- nrow(aurp1_unique_data) * (nrow(aurp1_unique_data) - 1) / 2
-n_pairs_p2 <- nrow(aurp2_unique_data) * (nrow(aurp2_unique_data) - 1) / 2
-```
-
-```{r fig.height=5, fig.width=8}
-#| label: fig-mantel-correlogram
-#| fig-cap: "Mantel correlogram of geometric-sign dissimilarity against geographic distance, by phase. Points are the Mantel r within each distance lag; error bars are 95% bootstrap confidence intervals (ecodist::mgram, llim/ulim). The dashed line is r = 0. No lag reaches significance, and all intervals straddle zero."
-
-ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
-  geom_point(size = 2.5, colour = "#2c7fb8") +
-  geom_errorbar(aes(ymin = llim, ymax = ulim), width = 0.08, colour = "#2c7fb8") +
-  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
-  facet_wrap(~ Phase, scales = "free_x") +
-  labs(x = "Geographic distance lag (km)", y = "Mantel r") +
-  theme_minimal()
-```
-
-### Interpretation
-
-**Question 1 — is there scale-dependent spatial structure?** No. In Aur-P1 the `r nclass_p1` distance lags yield Mantel r values from `r n3(min(mg_p1_df$mantelr))` to `r n3(max(mg_p1_df$mantelr))`, none significant (smallest p = `r n3(min(mg_p1_df$pval))`); in Aur-P2 the `r nclass_p2` lags range from `r n3(min(mg_p2_df$mantelr))` to `r n3(max(mg_p2_df$mantelr))`, also none significant (smallest p = `r n3(min(mg_p2_df$pval))`). Every lag's 95% bootstrap interval straddles or lies close to zero: the most extreme bounds across lags are `r n3(min(mg_p1_df$llim))` and `r n3(max(mg_p1_df$ulim))` for Aur-P1 and `r n3(min(mg_p2_df$llim))` and `r n3(max(mg_p2_df$ulim))` for Aur-P2, both comfortably including zero. The correlogram is flat and structureless at every scale, so the global non-significant result is not masking a hidden short-range or long-range signal: sign dissimilarity is uncorrelated with geographic distance at all distance lags in both phases.
-
-**Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the S3 geodesic results. The 95% interval from object-within-site bootstrap is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 (spans zero; observed `r n3(mb_p1_obs)`) and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2 (narrowly negative, does not span zero; observed `r n3(mb_p2_obs)`); permutation p = `r n3(mg_p2_p)` shows no isolation-by-distance, and the bootstrap shows the negative estimate is stable to object resampling rather than underpowered in the same sense as Aur-P1. Site-with-replacement bootstrap was not used because it creates duplicate sites with distance 0 and dissimilarity 0. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Aur-P1 test has low power: a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall inside the Aur-P1 sampling noise and could not be excluded. The non-significant Mantel results are therefore a *lack of evidence* for geographic structure, not evidence that it is absent, and they provide no support for any alternative cultural process, consistent with S5.10.
-
-## S5.12 Time-Series Style Check: Does Sign Dissimilarity Increase with Temporal Lag? {#sec-s5-18}
-
-### Rationale
-
-The main text reports a temporal Mantel test in which sign dissimilarity is correlated with temporal distance (|ΔMedianBP|); that test is weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) yet explains little variation, and it cannot demonstrate whether substantial change in sign types did or did not occur through time. A single global Mantel R is also indirect: it asks whether time and composition co-vary on average, not whether sites *further apart in time* have *more dissimilar* repertoires. To test temporal turnover more directly we ask three specific questions:
-
-1. **Does sign dissimilarity increase with temporal lag?** We bin all site pairs by their absolute temporal separation (|ΔMedianBP|) and ask whether mean Jaccard dissimilarity of sign presence/absence rises as the lag grows — the signature of gradual compositional change through time.
-2. **Is any time signal driven by the between-phase gap or by gradual within-phase change?** Because the two-phase scheme pools spans of several millennia, most temporal variance in a pooled sample is the ~5 ka gap between Aur-P1 and Aur-P2. We therefore separate within-phase pairs (gradual change) from between-phase pairs (the phase boundary) and test the lag–dissimilarity trend in each.
-3. **How should a flat or null trend be interpreted?** We state explicitly whether a non-significant result establishes absence of change, or merely a lack of evidence, given the small sample and time-averaging.
-
-```{r}
-#| label: s5-12-time-lag
-#| warning: false
-
-# Site-level time-lag check, computed once in functions.R (time_lag_pairs).
-tl <- time_lag_pairs(signbase_full_clean)
-n_sites_ts       <- tl$n_sites
-n_p1_ts          <- tl$n_p1
-n_p2_ts          <- tl$n_p2
-n_pairs_ts       <- tl$n_pairs
-ts_rho_all       <- tl$rho_all
-ts_p_all         <- tl$p_all
-ts_rho_within    <- tl$rho_within
-ts_p_within      <- tl$p_within
-mean_jac_within  <- tl$mean_jac_within
-mean_jac_between <- tl$mean_jac_between
-mean_lag_within  <- tl$mean_lag_within
-mean_lag_between <- tl$mean_lag_between
-ts_bin_tab       <- tl$bin_tab
-ts_jac_short     <- tl$jac_short
-ts_last_bin      <- tl$last_bin
-ts_last_n        <- tl$last_n
-```
-
-### Analysis
-
-We aggregate the cleaned object-level data to **site level**: for each of the `r n_sites_ts` sites we record the presence/absence of every sign type (any object at the site carrying the sign counts as present) and a single calibrated age taken as the median `MedianBP` (years BP) across the site's objects. Pairwise Jaccard dissimilarity of the binary sign vectors and the absolute temporal lag |ΔMedianBP| (converted to ka) are computed for all `r n_pairs_ts` unordered site pairs. The lag–dissimilarity trend is tested with Spearman rank correlation, overall and restricted to within-phase pairs, and summarised in temporal-lag bins.
-
-```{r}
-n_p1_ts          <- tl$n_p1
-n_p2_ts          <- tl$n_p2
-n_pairs_ts       <- tl$n_pairs
-ts_rho_all       <- tl$rho_all
-ts_p_all         <- tl$p_all
-ts_rho_within    <- tl$rho_within
-ts_p_within      <- tl$p_within
-mean_jac_within  <- tl$mean_jac_within
-mean_jac_between <- tl$mean_jac_between
-mean_lag_within  <- tl$mean_lag_within
-mean_lag_between <- tl$mean_lag_between
-ts_bin_tab       <- tl$bin_tab
-ts_jac_short     <- tl$jac_short
-ts_last_bin      <- tl$last_bin
-ts_last_n        <- tl$last_n
-```
-
-```{r}
-#| label: tbl-ts-lag
-#| tbl-cap: "Mean Jaccard dissimilarity of geometric-sign repertoires by temporal-lag class (absolute |ΔMedianBP| between site pairs, in ka). Each row pools all site pairs whose temporal separation falls in the bin; Pairs is the number of site pairs; Mean Jaccard dissimilarity is the average over those pairs."
-#| tbl-cap-location: bottom
-
-kable(ts_bin_tab, digits = 3)
-```
-
-### Interpretation
-
-**Question 1 — does sign dissimilarity increase with temporal lag?** No. Across all `r n_pairs_ts` site pairs the Spearman correlation between temporal lag (|ΔMedianBP|, ka) and Jaccard sign dissimilarity is `r ts_rho_all` (p = `r ts_p_all`) — essentially zero and non-significant — so dissimilarity does not rise as sites become more separated in time. The binned means are flat and non-monotonic (@tbl-ts-lag): mean dissimilarity is `r ts_jac_short` at the shortest lags (0–2 ka) and shows no orderly increase at longer lags; the highest-lag bin (`r ts_last_bin`, only `r ts_last_n` pairs) is too sparsely sampled to support any trend. As a more direct test of temporal turnover than the single global temporal Mantel, this analysis finds no evidence that sign repertoires became more dissimilar with time.
-
-**Question 2 — is any time signal driven by the between-phase gap or by gradual within-phase change?** The time signal is absent in both components. Within-phase pairs (mean lag `r mean_lag_within` ka) give ρ = `r ts_rho_within` (p = `r ts_p_within`), again flat. The between-phase gap dominates the temporal variance in the pooled sample — between-phase pairs have a mean lag of `r mean_lag_between` ka, roughly double the within-phase mean — yet between-phase pairs are if anything slightly *less* dissimilar (mean Jaccard `r mean_jac_between`) than within-phase pairs (mean Jaccard `r mean_jac_within`). The ~5 ka phase boundary therefore does not impose a temporal-turnover signal: sites in different phases are no more dissimilar in sign repertoire than sites within the same phase. This also clarifies the main-text temporal Mantel, which was weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) only because it pairs 438 objects that largely share a site `MedianBP`, inflating the effective sample; at the site level, where each age is measured once, no monotonic time trend remains.
-
-**Question 3 — how should a flat trend be interpreted?** A null result here cannot establish that substantial change did *not* occur. The test is underpowered — only `r n_sites_ts` sites (`r n_p1_ts` in Aur-P1, `r n_p2_ts` in Aur-P2) yielding `r n_pairs_ts` pairs — each phase spans several millennia and each site is collapsed to a single `MedianBP` with large calibrated errors (time-averaging), and genuine change could be non-monotonic (signs appearing and later disappearing) or additive (later sites retaining earlier repertoires while adding new ones), either of which would leave Jaccard dissimilarity nearly constant. The lag analysis therefore shows only that the data contain *no strong evidence* of time-structured change in sign repertoires; it does **not** demonstrate the absence of change. This is consistent with the corrected temporal-Mantel wording in the main text and with the S5.10 multiple regression, both of which conclude that temporal distance explains little of the variation in sign composition and cannot establish whether substantial change did or did not occur.
-
-# S5.13 Objective Regional Grouping Exploration: Geography-First, Then Ask Do Signs Differ {#sec-s5-19}
-
-### Rationale
-
-If Aurignacian signs were regionally structured in the Vanhaeren 14-group sense, a geography-first partition should explain Jaccard variation. We run the discovery with `PAM` (k-medoids) on geodesic kilometres (`sf::st_distance`) as primary and report `k-means` on flat `cbind(lon, lat)` as a one-line sensitivity. We test `k=2..5` (k=4,5 in Aur-P2, `n=9`, inevitably leaves singleton regions and is flagged unstable). For context the `country` row is retained as sensitivity only.
-
-```{r s513-compute}
-#| cache: true
-#| warning: false
-#| message: false
-# Source country-free helpers (also available via functions.R)
-# PAM on geodesic (primary) and k-means on flat lon/lat (sensitivity) for k=2..5
-
-library(cluster)
-
-# Site-level data already built at top of S1 (aurp1_unique_data, aurp2_unique_data, aurp1_artifact_data, aurp2_artifact_data)
-k_range <- 2:5
-
-# Primary: PAM on geodesic distances
-s513_pam_p1 <- objective_region_pam(aurp1_unique_data, k_range = k_range, seed = 42)
-s513_pam_p2 <- objective_region_pam(aurp2_unique_data, k_range = k_range, seed = 42)
-
-# Sensitivity: k-means on flat lon/lat
-s513_km_p1 <- objective_region_kmeans(aurp1_unique_data, k_range = k_range, seed = 42)
-s513_km_p2 <- objective_region_kmeans(aurp2_unique_data, k_range = k_range, seed = 42)
-
-# Best k by mean silhouette (within PAM)
-s513_best_k_pam_p1 <- as.integer(names(which.max(sapply(s513_pam_p1, function(x) x$mean_sil))))
-s513_best_k_pam_p2 <- as.integer(names(which.max(sapply(s513_pam_p2, function(x) x$mean_sil))))
-s513_best_sil_pam_p1 <- round(max(sapply(s513_pam_p1, function(x) x$mean_sil), na.rm = TRUE), 3)
-s513_best_sil_pam_p2 <- round(max(sapply(s513_pam_p2, function(x) x$mean_sil), na.rm = TRUE), 3)
-
-# Choose k=2 as primary interpretive partition (Core vs Extended), with k=3 reported if silhouette peaks there;
-# keep k=2 primary per plan regardless of silhouette tie, but record best-k for table
-s513_primary_k <- 2
-s513_pam_p1_k2 <- s513_pam_p1[["2"]]$assignment
-s513_pam_p2_k2 <- s513_pam_p2[["2"]]$assignment
-s513_pam_p1_k3 <- s513_pam_p1[["3"]]$assignment
-s513_pam_p2_k3 <- s513_pam_p2[["3"]]$assignment
-
-# ARI PAM vs k-means at k=2 (agreement between the two geography clusterings)
-s513_ari_pam_km_p1_k2 <- mclust::adjustedRandIndex(s513_pam_p1_k2, s513_km_p1[["2"]]$assignment)
-s513_ari_pam_km_p2_k2 <- mclust::adjustedRandIndex(s513_pam_p2_k2, s513_km_p2[["2"]]$assignment)
-
-# PERMANOVA of signs across objective regions (primary k=2) and marginal with manual group
-# adonis_region_marginal uses Jaccard sqrt.dist=TRUE and bg country row
-s513_perm_p1_k2 <- adonis_region_marginal(aurp1_artifact_data, aurp1_unique_data, s513_pam_p1_k2, seed = 500)
-s513_perm_p2_k2 <- adonis_region_marginal(aurp2_artifact_data, aurp2_unique_data, s513_pam_p2_k2, seed = 500)
-s513_perm_p1_k3 <- adonis_region_marginal(aurp1_artifact_data, aurp1_unique_data, s513_pam_p1_k3, seed = 500)
-s513_perm_p2_k3 <- adonis_region_marginal(aurp2_artifact_data, aurp2_unique_data, s513_pam_p2_k3, seed = 500)
-
-# Helper to extract adonis2 stats safely
-s513_ad <- function(fit, term = 1) {
-  if (is.null(fit)) return(list(R2 = NA_real_, F = NA_real_, p = NA_real_))
-  df <- as.data.frame(fit)
-  list(R2 = round(df$R2[term], 3), F = round(df$F[term], 3), p = round(df$`Pr(>F)`[term], 3))
-}
-s513_reg_p1_k2 <- s513_ad(s513_perm_p1_k2$region, 1)
-s513_reg_p2_k2 <- s513_ad(s513_perm_p2_k2$region, 1)
-s513_country_p1 <- s513_ad(s513_perm_p1_k2$country, 1)
-s513_country_p2 <- s513_ad(s513_perm_p2_k2$country, 1)
-# Marginal (region + group, by="margin") — term 1 = region, term 2 = group
-s513_marg_reg_p1 <- s513_ad(s513_perm_p1_k2$marginal, 1)
-s513_marg_grp_p1 <- s513_ad(s513_perm_p1_k2$marginal, 2)
-s513_marg_reg_p2 <- s513_ad(s513_perm_p2_k2$marginal, 1)
-s513_marg_grp_p2 <- s513_ad(s513_perm_p2_k2$marginal, 2)
-
-# Louvain vs objective region ARI (bridge to S5.1)
-# Louvain at threshold 0.2 primary (get_louvain_groups from functions.R)
-s513_louv_p1 <- get_louvain_groups(aurp1_artifact_data, threshold = 0.2)
-s513_louv_p2 <- get_louvain_groups(aurp2_artifact_data, threshold = 0.2)
-# Align names
-s513_ari_louv_reg_p1 <- mclust::adjustedRandIndex(s513_louv_p1[names(s513_pam_p1_k2)], s513_pam_p1_k2[names(s513_louv_p1)])
-s513_ari_louv_reg_p2 <- mclust::adjustedRandIndex(s513_louv_p2[names(s513_pam_p2_k2)], s513_pam_p2_k2[names(s513_louv_p2)])
-s513_ari_manual_reg_p1 <- mclust::adjustedRandIndex(manual_groups[["Aur-P1"]][names(s513_pam_p1_k2)], s513_pam_p1_k2[names(manual_groups[["Aur-P1"]])])
-s513_ari_manual_reg_p2 <- mclust::adjustedRandIndex(manual_groups[["Aur-P2"]][names(s513_pam_p2_k2)], s513_pam_p2_k2[names(manual_groups[["Aur-P2"]])])
-
-# Betadisper p for objective region k=2
-s513_bd_p1_k2 <- round(s513_perm_p1_k2$betadisper_p, 3)
-s513_bd_p2_k2 <- round(s513_perm_p2_k2$betadisper_p, 3)
-
-# Silhouette summary table data (PAM geodesic)
-s513_sil_tab <- bind_rows(
-  map_dfr(names(s513_pam_p1), function(k) data.frame(Phase = "Aur-P1", Method = "PAM geodesic", k = as.integer(k), mean_sil = round(s513_pam_p1[[k]]$mean_sil, 3), n_per_region = s513_pam_p1[[k]]$n_per_region, unstable = s513_pam_p1[[k]]$unstable)),
-  map_dfr(names(s513_pam_p2), function(k) data.frame(Phase = "Aur-P2", Method = "PAM geodesic", k = as.integer(k), mean_sil = round(s513_pam_p2[[k]]$mean_sil, 3), n_per_region = s513_pam_p2[[k]]$n_per_region, unstable = s513_pam_p2[[k]]$unstable)),
-  map_dfr(names(s513_km_p1), function(k) data.frame(Phase = "Aur-P1", Method = "k-means flat", k = as.integer(k), mean_sil = round(s513_km_p1[[k]]$mean_sil, 3), n_per_region = s513_km_p1[[k]]$n_per_region, unstable = s513_km_p1[[k]]$n_per_region_vec[1]==1 && nrow(aurp1_unique_data)<=10)),
-  map_dfr(names(s513_km_p2), function(k) data.frame(Phase = "Aur-P2", Method = "k-means flat", k = as.integer(k), mean_sil = round(s513_km_p2[[k]]$mean_sil, 3), n_per_region = s513_km_p2[[k]]$n_per_region, unstable = s513_km_p2[[k]]$n_per_region_vec[1]==1))
-)
-
-# PERMANOVA summary long table for k=2 (and k=3 as sensitivity)
-s513_perm_tab <- bind_rows(
-  data.frame(Phase = "Aur-P1", Partition = "PAM geodesic k=2 (primary)", Term = "objective_region", R2 = s513_reg_p1_k2$R2, F = s513_reg_p1_k2$F, p = s513_reg_p1_k2$p, betadisper_p = s513_bd_p1_k2),
-  data.frame(Phase = "Aur-P2", Partition = "PAM geodesic k=2 (primary)", Term = "objective_region", R2 = s513_reg_p2_k2$R2, F = s513_reg_p2_k2$F, p = s513_reg_p2_k2$p, betadisper_p = s513_bd_p2_k2),
-  data.frame(Phase = "Aur-P1", Partition = "country (sensitivity)", Term = "country", R2 = s513_country_p1$R2, F = s513_country_p1$F, p = s513_country_p1$p, betadisper_p = NA_real_),
-  data.frame(Phase = "Aur-P2", Partition = "country (sensitivity)", Term = "country", R2 = s513_country_p2$R2, F = s513_country_p2$F, p = s513_country_p2$p, betadisper_p = NA_real_),
-  data.frame(Phase = "Aur-P1", Partition = "marginal: region + group", Term = "region|group (k=2)", R2 = s513_marg_reg_p1$R2, F = s513_marg_reg_p1$F, p = s513_marg_reg_p1$p, betadisper_p = NA_real_),
-  data.frame(Phase = "Aur-P1", Partition = "marginal: region + group", Term = "group|region (k=2)", R2 = s513_marg_grp_p1$R2, F = s513_marg_grp_p1$F, p = s513_marg_grp_p1$p, betadisper_p = NA_real_),
-  data.frame(Phase = "Aur-P2", Partition = "marginal: region + group", Term = "region|group (k=2)", R2 = s513_marg_reg_p2$R2, F = s513_marg_reg_p2$F, p = s513_marg_reg_p2$p, betadisper_p = NA_real_),
-  data.frame(Phase = "Aur-P2", Partition = "marginal: region + group", Term = "group|region (k=2)", R2 = s513_marg_grp_p2$R2, F = s513_marg_grp_p2$F, p = s513_marg_grp_p2$p, betadisper_p = NA_real_)
-)
-
-# k=3 rows (reported but not primary)
-s513_reg_p1_k3_ad <- s513_ad(s513_perm_p1_k3$region, 1)
-s513_reg_p2_k3_ad <- s513_ad(s513_perm_p2_k3$region, 1)
-s513_perm_tab_k3 <- bind_rows(
-  data.frame(Phase = "Aur-P1", Partition = "PAM geodesic k=3", Term = "objective_region", R2 = s513_reg_p1_k3_ad$R2, F = s513_reg_p1_k3_ad$F, p = s513_reg_p1_k3_ad$p, betadisper_p = round(s513_perm_p1_k3$betadisper_p, 3)),
-  data.frame(Phase = "Aur-P2", Partition = "PAM geodesic k=3", Term = "objective_region", R2 = s513_reg_p2_k3_ad$R2, F = s513_reg_p2_k3_ad$F, p = s513_reg_p2_k3_ad$p, betadisper_p = round(s513_perm_p2_k3$betadisper_p, 3))
-)
-s513_perm_tab <- bind_rows(s513_perm_tab, s513_perm_tab_k3)
-
-# Flat k-means at k=2 PERMANOVA for ΔR2 sentence
-s513_flat_p1 <- adonis_region_marginal(aurp1_artifact_data, aurp1_unique_data, s513_km_p1[["2"]]$assignment, seed = 500)
-s513_flat_p2 <- adonis_region_marginal(aurp2_artifact_data, aurp2_unique_data, s513_km_p2[["2"]]$assignment, seed = 500)
-s513_flat_reg_p1 <- s513_ad(s513_flat_p1$region, 1)
-s513_flat_reg_p2 <- s513_ad(s513_flat_p2$region, 1)
-```
-
-```{r}
-#| label: tbl-s513-silhouette
-#| tbl-cap: "Objective geographic region choice: PAM on geodesic kilometres (primary) and k-means on flat lon/lat (sensitivity) for k=2..5. Mean silhouette computed on the same distance used for clustering. k=2 (West vs Central) is primary interpretive partition (Core vs Extended sensu Schmidt & Zimmermann); k=4,5 in Aur-P2 (n=9) leaves singleton regions and is flagged unstable. Best PAM k by silhouette is marked."
-#| tbl-cap-location: bottom
-kable(s513_sil_tab, col.names = c("Phase","Method","k","Mean silhouette","Sites per region","Unstable"), digits = 3, align = "llcccc")
-```
-
-```{r}
-#| label: tbl-s513-permanova
-#| tbl-cap: "Sign composition (Jaccard, sqrt.dist=TRUE, 999 permutations) across objective geographic regions. PAM geodesic k=2 is primary; k=3 and modern country are sensitivity rows. Marginal rows are from adonis2(J ~ region + group, by='margin'). Betadisper p tests homogeneity of dispersions for the region term; country row betadisper not shown. Aur-P2 n=9 so k>=4 and all Aur-P2 PERMANOVAs are indicative (Anderson & Walsh 2013)."
-#| tbl-cap-location: bottom
-kable(s513_perm_tab, col.names = c("Phase","Partition","Term","R2","F","p","Betadisper p"), digits = 3, align = "lllcccc")
-```
-
-```{r fig.height=6, fig.width=8}
-#| label: fig-s513-region-map
-#| fig-cap: "Objective geographic regions discovered by PAM on geodesic distances (primary, k=2). Sites coloured by region; Jaccard sign data not used. West vs Central (Aur-P1) partitions the Dordogne vs Swabian research blocks."
-#| fig-height: 6
-# Recolour site-level sf by PAM k=2 region
-s513_map_df <- bind_rows(
-  aurp1_unique_data %>% mutate(region = factor(s513_pam_p1_k2[site_name]), Phase = "Aur-P1"),
-  aurp2_unique_data %>% mutate(region = factor(s513_pam_p2_k2[site_name]), Phase = "Aur-P2")
-) %>% sf::st_as_sf(coords = c("longitude","latitude"), crs = 4326)
-
-# Base Europe map as in paper qmd fig-site-map
-world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
-Europe <- world[which(world$continent == "Europe"),]
-phase_cols <- c("Aur-P1"="#F8766D","Aur-P2"="#00BA38")
-# Region palette: colour-blind safe
-reg_cols <- c("1"="#4477AA","2"="#CC6677","3"="#DDCC77","4"="#117733","5"="#88CCEE")
-
-s513_map <- ggplot(Europe) +
-  geom_sf(fill = "grey95", colour = "grey70") +
-  geom_sf(data = s513_map_df, aes(colour = region, shape = region), size = 3) +
-  geom_text_repel(data = s513_map_df %>% mutate(lon = sf::st_coordinates(geometry)[,1], lat = sf::st_coordinates(geometry)[,2]),
-                  aes(x = lon, y = lat, label = site_name), size = 2.8, bg.color = "white", bg.r = 0.2, max.overlaps = 30) +
-  scale_colour_manual(values = reg_cols, name = "Objective region (PAM k=2)") +
-  scale_shape_manual(values = c("1"=16,"2"=17,"3"=15,"4"=18,"5"=8), name = "Objective region (PAM k=2)") +
-  coord_sf(xlim = c(-10,30), ylim = c(35,53), expand = FALSE) +
-  facet_wrap(~ Phase, ncol = 1) +
-  theme_minimal() +
-  theme(axis.text = element_blank(), axis.title = element_blank(),
-        panel.grid = element_blank(), strip.text = element_text(face="bold")) +
-  annotation_scale(width_hint = 0.3, height = unit(0.12,"cm"))
-ggsave(here::here("figures/s513-region-map.png"), plot = s513_map, width = 8, height = 6, dpi = 300, bg = "white")
-knitr::include_graphics(here::here("figures/s513-region-map.png"))
-```
-
-### Interpretation
-
-PAM on geodesic distances finds `k=2` as the parsimonious objective region — West versus Central — which in practice separates the Dordogne bloc tradition from the Swabian ivory tradition. For Aur-P1 the mean silhouette is `r s513_best_sil_pam_p1` at best `k=` `r s513_best_k_pam_p1` (PAM geodesic), versus flat `k-means` silhouette within `r round(abs(s513_sil_tab$mean_sil[s513_sil_tab$Phase=="Aur-P1" & s513_sil_tab$Method=="PAM geodesic" & s513_sil_tab$k==2] - s513_sil_tab$mean_sil[s513_sil_tab$Phase=="Aur-P1" & s513_sil_tab$Method=="k-means flat" & s513_sil_tab$k==2]),3)`; agreement between the two geography clusterings at `k=2` is `ARI=` `r round(s513_ari_pam_km_p1_k2,2)` (Aur-P1) and `r round(s513_ari_pam_km_p2_k2,2)` (Aur-P2), so the flat version changes `R2` by `<0.02` and does not alter the conclusion. `k=4,5` in Aur-P2 (`n=9`) leaves singleton regions and is flagged unstable — not interpreted, shown only for completeness.
-
-Signs do not form Vanhaeren-style regional provinces. For Aur-P1 the geography-first region explains `R2=` `r s513_reg_p1_k2$R2` (`F=` `r s513_reg_p1_k2$F`, `p=` `r s513_reg_p1_k2$p`, betadisper `p=` `r s513_bd_p1_k2`) at `k=2`. At `k=3` the objective region explains `R2=` `r s513_ad(s513_perm_p1_k3$region,1)$R2` (`p=` `r s513_ad(s513_perm_p1_k3$region,1)$p`), no stronger. In the marginal model `J ~ region + group` (by margin), region is `R2=` `r s513_marg_reg_p1$R2` (`p=` `r s513_marg_reg_p1$p`) and `group` is `R2=` `r s513_marg_grp_p1$R2` (`p=` `r s513_marg_grp_p1$p`) for Aur-P1, so group is not subsumed by geography — consistent with S9.3–S9.4 where broad sites remain richer at equal coverage and saturating effort. Louvain sign clusters align weakly with objective regions (`ARI=` `r round(s513_ari_louv_reg_p1,2)` Aur-P1, `r round(s513_ari_louv_reg_p2,2)` Aur-P2), and manual restricted/broad aligns only moderately (`ARI=` `r round(s513_ari_manual_reg_p1,2)` / `r round(s513_ari_manual_reg_p2,2)`), confirming sign-driven groups are richness-driven, not region-driven, as in `S5.1`.
-
-Aur-P2 results are indicative. With `n=9` the PAM `k=2` region explains `R2=` `r s513_reg_p2_k2$R2` (`p=` `r s513_reg_p2_k2$p`, betadisper `p=` `r s513_bd_p2_k2`), marginal `region|group R2=` `r s513_marg_reg_p2$R2` (`p=` `r s513_marg_reg_p2$p`) and `group|region R2=` `r s513_marg_grp_p2$R2` (`p=` `r s513_marg_grp_p2$p`), all with low power. Per Anderson & Walsh 2013, small unbalanced PERMANOVA (`6` vs `3` groups in `S9.7` terms) uses permutations with caution; per Boemke et al. 2023, the Aur-P1 geography signal coincides with research intensity (German ivory — 225/346 objects — versus French limestone blocs) rather than a past cultural groups.
-
 # S7. Network Calibration {#sec-s7}
 
 Calibration checks ask whether modularity, degree, and significance survive nulls, sampling noise, multiple testing, and network size. They do not test group existence itself.
@@ -2057,6 +1749,318 @@ The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A r
 - **Modularity.** The Q ratio is `r n2(val(norm_results, "Mod_ratio", "Aur-P1"))` for Aur-P1 and `r n2(val(norm_results, "Mod_ratio", "Aur-P2"))` for Aur-P2, i.e. observed modularity exceeds the size-matched random expectation by about `r round(100 * (val(norm_results, "Mod_ratio", "Aur-P1") - 1))`% in Aur-P1 and `r round(100 * (val(norm_results, "Mod_ratio", "Aur-P2") - 1))`% in Aur-P2. Both phases therefore show modular structure that is not a mere size artefact. Aur-P1's larger excess means its community structure is stronger than Aur-P2's even after the `r nrow(aurp1_artifact_data)`-versus-`r nrow(aurp2_artifact_data)` site asymmetry is removed, so the phase difference in modularity is not a sample-size artefact; the Aur-P2 excess (`r n2(val(norm_results, "Mod_ratio", "Aur-P2"))`x) is modest and, with only `r nrow(aurp2_artifact_data)` sites, should be read cautiously.
 
 In short, size normalisation removes the mean-degree confound and confirms that the modularity-based claim of stronger community structure in Aur-P1 survives net of network size, whereas neither phase's mean degree can be used as evidence of intrinsically higher connectivity.
+
+# S8. Space, Time, and Regional Drivers {#sec-s8}
+
+Geography, time, and regions test alternative drivers of sign dissimilarity. They do not test threshold or group existence.
+
+## S8.1 Multiple Regression on Distance Matrices {#sec-s8-1}
+
+The Mantel tests establish that geographic distance is not significantly correlated with sign dissimilarity in either phase, but a non-significant result cannot by itself identify which alternative process — if any — generated the pattern. To split the variance of sign dissimilarity among the candidate drivers that are actually measured in the data, we fit a multiple regression on distance matrices (MRM; @Lichstein_2007) in which the response is the Jaccard dissimilarity of sign presence/absence and the three predictors are, for every pair of sites, their geographic distance, their absolute temporal distance (|ΔMedianBP|), and their absolute difference in object count (a proxy for sampling effort). Each predictor is entered as a distance matrix so that all three are placed on a common pairwise footing. We fit the model separately for Aur-P1 and Aur-P2 to mirror the phase-specific Mantel tests, and we report the coefficient, permutation p-value, and 95% bootstrap confidence interval for each driver.
+
+```{r}
+#| label: s5-10-mrm
+#| warning: false
+
+mrm_phase <- function(art, uniq, nperm = 10000, B = 500) {
+  sites <- uniq   # rows are assumed aligned with the rows of art
+  Y   <- as.dist(vegan::vegdist(art, method = "jaccard", binary = TRUE))
+  pts <- sites %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+  geo <- sf::st_distance(pts) %>% as.dist()
+  temp <- dist(sites$MedianBP)
+  obj  <- dist(sites$nobjects)
+  fit <- MRM(Y ~ geo + temp + obj, nperm = nperm)
+  set.seed(7)
+  boot_one <- function() {
+    idx <- sample(nrow(art), replace = TRUE)
+    Yb  <- as.dist(vegan::vegdist(art[idx, ], method = "jaccard", binary = TRUE))
+    pb  <- sites[idx, , drop = FALSE] %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+    gb  <- sf::st_distance(pb) %>% as.dist()
+    tb  <- dist(sites$MedianBP[idx])
+    ob  <- dist(sites$nobjects[idx])
+    res <- tryCatch(MRM(Yb ~ gb + tb + ob, nperm = 10)$coef,
+                    error = function(e) NULL)
+    if (is.null(res) || !("Y" %in% colnames(res))) return(NULL)
+    if (any(is.na(res[, "Y"]))) return(NULL)
+    res[, "Y"]
+  }
+  boots <- replicate(B, boot_one(), simplify = FALSE)
+  boots <- boots[!sapply(boots, is.null)]
+  boots <- do.call(cbind, boots)
+  list(coef   = fit$coef,
+       r2     = fit$r.squared,
+       geo_ci = quantile(boots["geo", ], c(0.025, 0.975)),
+       temp_ci= quantile(boots["temp", ], c(0.025, 0.975)),
+       obj_ci = quantile(boots["obj", ],  c(0.025, 0.975)))
+}
+
+mrm_p1 <- mrm_phase(aurp1_artifact_data, aurp1_unique_data)
+mrm_p2 <- mrm_phase(aurp2_artifact_data, aurp2_unique_data)
+
+mrm_p1_r2 <- mrm_p1$r.squared
+mrm_p2_r2 <- mrm_p2$r.squared
+
+mrm_p1_geo <- mrm_p1$coef["geo","Y"]; mrm_p1_geo_p <- mrm_p1$coef["geo","pval"]
+mrm_p1_geo_lo <- mrm_p1$geo_ci[1]; mrm_p1_geo_hi <- mrm_p1$geo_ci[2]
+mrm_p1_temp <- mrm_p1$coef["temp","Y"]; mrm_p1_temp_p <- mrm_p1$coef["temp","pval"]
+mrm_p1_temp_lo <- mrm_p1$temp_ci[1]; mrm_p1_temp_hi <- mrm_p1$temp_ci[2]
+mrm_p1_obj <- mrm_p1$coef["obj","Y"]; mrm_p1_obj_p <- mrm_p1$coef["obj","pval"]
+mrm_p1_obj_lo <- mrm_p1$obj_ci[1]; mrm_p1_obj_hi <- mrm_p1$obj_ci[2]
+
+mrm_p2_geo <- mrm_p2$coef["geo","Y"]; mrm_p2_geo_p <- mrm_p2$coef["geo","pval"]
+mrm_p2_temp <- mrm_p2$coef["temp","Y"]; mrm_p2_temp_p <- mrm_p2$coef["temp","pval"]
+mrm_p2_obj <- mrm_p2$coef["obj","Y"]; mrm_p2_obj_p <- mrm_p2$coef["obj","pval"]
+mrm_p2_geo_lo <- mrm_p2$geo_ci[1]; mrm_p2_geo_hi <- mrm_p2$geo_ci[2]
+mrm_p2_temp_lo <- mrm_p2$temp_ci[1]; mrm_p2_temp_hi <- mrm_p2$temp_ci[2]
+mrm_p2_obj_lo <- mrm_p2$obj_ci[1]; mrm_p2_obj_hi <- mrm_p2$obj_ci[2]
+```
+
+For Aur-P1 the MRM explains `r n2(mrm_p1_r2)` of the variance in sign dissimilarity; none of the three drivers is significant (geographic: β = `r n3(mrm_p1_geo)`, 95% CI [`r n3(mrm_p1_geo_lo)`, `r n3(mrm_p1_geo_hi)`], p = `r n3(mrm_p1_geo_p)`; temporal: β = `r n3(mrm_p1_temp)`, 95% CI [`r n3(mrm_p1_temp_lo)`, `r n3(mrm_p1_temp_hi)`], p = `r n3(mrm_p1_temp_p)`; object count: β = `r n3(mrm_p1_obj)`, 95% CI [`r n3(mrm_p1_obj_lo)`, `r n3(mrm_p1_obj_hi)`], p = `r n3(mrm_p1_obj_p)`). Aur-P2 shows the same pattern (R² = `r n2(mrm_p2_r2)`; geographic p = `r n3(mrm_p2_geo_p)`, temporal p = `r n3(mrm_p2_temp_p)`, object-count p = `r n3(mrm_p2_obj_p)`). Because no candidate driver reaches significance, the non-significant Mantel result does not identify any particular alternative process: it is consistent with several possibilities — including non-utilitarian mobility, aggregation, or independent invention — but demonstrates none of them. With only `r nrow(aurp2_artifact_data)` sites, the Aur-P2 MRM is underpowered, so its non-significant coefficients should be read as indicative rather than conclusive; the substantive point is that the data contain no statistical evidence favouring one driver over another.
+
+## S8.2 Time-Lag Check {#sec-s8-2}
+
+### Rationale
+
+The main text reports a temporal Mantel test in which sign dissimilarity is correlated with temporal distance (|ΔMedianBP|); that test is weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) yet explains little variation, and it cannot demonstrate whether substantial change in sign types did or did not occur through time. A single global Mantel R is also indirect: it asks whether time and composition co-vary on average, not whether sites *further apart in time* have *more dissimilar* repertoires. To test temporal turnover more directly we ask three specific questions:
+
+1. **Does sign dissimilarity increase with temporal lag?** We bin all site pairs by their absolute temporal separation (|ΔMedianBP|) and ask whether mean Jaccard dissimilarity of sign presence/absence rises as the lag grows — the signature of gradual compositional change through time.
+2. **Is any time signal driven by the between-phase gap or by gradual within-phase change?** Because the two-phase scheme pools spans of several millennia, most temporal variance in a pooled sample is the ~5 ka gap between Aur-P1 and Aur-P2. We therefore separate within-phase pairs (gradual change) from between-phase pairs (the phase boundary) and test the lag–dissimilarity trend in each.
+3. **How should a flat or null trend be interpreted?** We state explicitly whether a non-significant result establishes absence of change, or merely a lack of evidence, given the small sample and time-averaging.
+
+```{r}
+#| label: s5-12-time-lag
+#| warning: false
+
+# Site-level time-lag check, computed once in functions.R (time_lag_pairs).
+tl <- time_lag_pairs(signbase_full_clean)
+n_sites_ts       <- tl$n_sites
+n_p1_ts          <- tl$n_p1
+n_p2_ts          <- tl$n_p2
+n_pairs_ts       <- tl$n_pairs
+ts_rho_all       <- tl$rho_all
+ts_p_all         <- tl$p_all
+ts_rho_within    <- tl$rho_within
+ts_p_within      <- tl$p_within
+mean_jac_within  <- tl$mean_jac_within
+mean_jac_between <- tl$mean_jac_between
+mean_lag_within  <- tl$mean_lag_within
+mean_lag_between <- tl$mean_lag_between
+ts_bin_tab       <- tl$bin_tab
+ts_jac_short     <- tl$jac_short
+ts_last_bin      <- tl$last_bin
+ts_last_n        <- tl$last_n
+```
+
+### Analysis
+
+We aggregate the cleaned object-level data to **site level**: for each of the `r n_sites_ts` sites we record the presence/absence of every sign type (any object at the site carrying the sign counts as present) and a single calibrated age taken as the median `MedianBP` (years BP) across the site's objects. Pairwise Jaccard dissimilarity of the binary sign vectors and the absolute temporal lag |ΔMedianBP| (converted to ka) are computed for all `r n_pairs_ts` unordered site pairs. The lag–dissimilarity trend is tested with Spearman rank correlation, overall and restricted to within-phase pairs, and summarised in temporal-lag bins.
+
+```{r}
+n_p1_ts          <- tl$n_p1
+n_p2_ts          <- tl$n_p2
+n_pairs_ts       <- tl$n_pairs
+ts_rho_all       <- tl$rho_all
+ts_p_all         <- tl$p_all
+ts_rho_within    <- tl$rho_within
+ts_p_within      <- tl$p_within
+mean_jac_within  <- tl$mean_jac_within
+mean_jac_between <- tl$mean_jac_between
+mean_lag_within  <- tl$mean_lag_within
+mean_lag_between <- tl$mean_lag_between
+ts_bin_tab       <- tl$bin_tab
+ts_jac_short     <- tl$jac_short
+ts_last_bin      <- tl$last_bin
+ts_last_n        <- tl$last_n
+```
+
+```{r}
+#| label: tbl-ts-lag
+#| tbl-cap: "Mean Jaccard dissimilarity of geometric-sign repertoires by temporal-lag class (absolute |ΔMedianBP| between site pairs, in ka). Each row pools all site pairs whose temporal separation falls in the bin; Pairs is the number of site pairs; Mean Jaccard dissimilarity is the average over those pairs."
+#| tbl-cap-location: bottom
+
+kable(ts_bin_tab, digits = 3)
+```
+
+### Interpretation
+
+**Question 1 — does sign dissimilarity increase with temporal lag?** No. Across all `r n_pairs_ts` site pairs the Spearman correlation between temporal lag (|ΔMedianBP|, ka) and Jaccard sign dissimilarity is `r ts_rho_all` (p = `r ts_p_all`) — essentially zero and non-significant — so dissimilarity does not rise as sites become more separated in time. The binned means are flat and non-monotonic (@tbl-ts-lag): mean dissimilarity is `r ts_jac_short` at the shortest lags (0–2 ka) and shows no orderly increase at longer lags; the highest-lag bin (`r ts_last_bin`, only `r ts_last_n` pairs) is too sparsely sampled to support any trend. As a more direct test of temporal turnover than the single global temporal Mantel, this analysis finds no evidence that sign repertoires became more dissimilar with time.
+
+**Question 2 — is any time signal driven by the between-phase gap or by gradual within-phase change?** The time signal is absent in both components. Within-phase pairs (mean lag `r mean_lag_within` ka) give ρ = `r ts_rho_within` (p = `r ts_p_within`), again flat. The between-phase gap dominates the temporal variance in the pooled sample — between-phase pairs have a mean lag of `r mean_lag_between` ka, roughly double the within-phase mean — yet between-phase pairs are if anything slightly *less* dissimilar (mean Jaccard `r mean_jac_between`) than within-phase pairs (mean Jaccard `r mean_jac_within`). The ~5 ka phase boundary therefore does not impose a temporal-turnover signal: sites in different phases are no more dissimilar in sign repertoire than sites within the same phase. This also clarifies the main-text temporal Mantel, which was weakly but nominally significant (R ≈ 0.06, p ≈ 0.004) only because it pairs 438 objects that largely share a site `MedianBP`, inflating the effective sample; at the site level, where each age is measured once, no monotonic time trend remains.
+
+**Question 3 — how should a flat trend be interpreted?** A null result here cannot establish that substantial change did *not* occur. The test is underpowered — only `r n_sites_ts` sites (`r n_p1_ts` in Aur-P1, `r n_p2_ts` in Aur-P2) yielding `r n_pairs_ts` pairs — each phase spans several millennia and each site is collapsed to a single `MedianBP` with large calibrated errors (time-averaging), and genuine change could be non-monotonic (signs appearing and later disappearing) or additive (later sites retaining earlier repertoires while adding new ones), either of which would leave Jaccard dissimilarity nearly constant. The lag analysis therefore shows only that the data contain *no strong evidence* of time-structured change in sign repertoires; it does **not** demonstrate the absence of change. This is consistent with the corrected temporal-Mantel wording in the main text and with the S5.10 multiple regression, both of which conclude that temporal distance explains little of the variation in sign composition and cannot establish whether substantial change did or did not occur.
+
+## S8.3 Objective Regional Grouping {#sec-s8-3}
+
+### Rationale
+
+If Aurignacian signs were regionally structured in the Vanhaeren 14-group sense, a geography-first partition should explain Jaccard variation. We run the discovery with `PAM` (k-medoids) on geodesic kilometres (`sf::st_distance`) as primary and report `k-means` on flat `cbind(lon, lat)` as a one-line sensitivity. We test `k=2..5` (k=4,5 in Aur-P2, `n=9`, inevitably leaves singleton regions and is flagged unstable). For context the `country` row is retained as sensitivity only.
+
+```{r s513-compute}
+#| cache: true
+#| warning: false
+#| message: false
+# Source country-free helpers (also available via functions.R)
+# PAM on geodesic (primary) and k-means on flat lon/lat (sensitivity) for k=2..5
+
+library(cluster)
+
+# Site-level data already built at top of S1 (aurp1_unique_data, aurp2_unique_data, aurp1_artifact_data, aurp2_artifact_data)
+k_range <- 2:5
+
+# Primary: PAM on geodesic distances
+s513_pam_p1 <- objective_region_pam(aurp1_unique_data, k_range = k_range, seed = 42)
+s513_pam_p2 <- objective_region_pam(aurp2_unique_data, k_range = k_range, seed = 42)
+
+# Sensitivity: k-means on flat lon/lat
+s513_km_p1 <- objective_region_kmeans(aurp1_unique_data, k_range = k_range, seed = 42)
+s513_km_p2 <- objective_region_kmeans(aurp2_unique_data, k_range = k_range, seed = 42)
+
+# Best k by mean silhouette (within PAM)
+s513_best_k_pam_p1 <- as.integer(names(which.max(sapply(s513_pam_p1, function(x) x$mean_sil))))
+s513_best_k_pam_p2 <- as.integer(names(which.max(sapply(s513_pam_p2, function(x) x$mean_sil))))
+s513_best_sil_pam_p1 <- round(max(sapply(s513_pam_p1, function(x) x$mean_sil), na.rm = TRUE), 3)
+s513_best_sil_pam_p2 <- round(max(sapply(s513_pam_p2, function(x) x$mean_sil), na.rm = TRUE), 3)
+
+# Choose k=2 as primary interpretive partition (Core vs Extended), with k=3 reported if silhouette peaks there;
+# keep k=2 primary per plan regardless of silhouette tie, but record best-k for table
+s513_primary_k <- 2
+s513_pam_p1_k2 <- s513_pam_p1[["2"]]$assignment
+s513_pam_p2_k2 <- s513_pam_p2[["2"]]$assignment
+s513_pam_p1_k3 <- s513_pam_p1[["3"]]$assignment
+s513_pam_p2_k3 <- s513_pam_p2[["3"]]$assignment
+
+# ARI PAM vs k-means at k=2 (agreement between the two geography clusterings)
+s513_ari_pam_km_p1_k2 <- mclust::adjustedRandIndex(s513_pam_p1_k2, s513_km_p1[["2"]]$assignment)
+s513_ari_pam_km_p2_k2 <- mclust::adjustedRandIndex(s513_pam_p2_k2, s513_km_p2[["2"]]$assignment)
+
+# PERMANOVA of signs across objective regions (primary k=2) and marginal with manual group
+# adonis_region_marginal uses Jaccard sqrt.dist=TRUE and bg country row
+s513_perm_p1_k2 <- adonis_region_marginal(aurp1_artifact_data, aurp1_unique_data, s513_pam_p1_k2, seed = 500)
+s513_perm_p2_k2 <- adonis_region_marginal(aurp2_artifact_data, aurp2_unique_data, s513_pam_p2_k2, seed = 500)
+s513_perm_p1_k3 <- adonis_region_marginal(aurp1_artifact_data, aurp1_unique_data, s513_pam_p1_k3, seed = 500)
+s513_perm_p2_k3 <- adonis_region_marginal(aurp2_artifact_data, aurp2_unique_data, s513_pam_p2_k3, seed = 500)
+
+# Helper to extract adonis2 stats safely
+s513_ad <- function(fit, term = 1) {
+  if (is.null(fit)) return(list(R2 = NA_real_, F = NA_real_, p = NA_real_))
+  df <- as.data.frame(fit)
+  list(R2 = round(df$R2[term], 3), F = round(df$F[term], 3), p = round(df$`Pr(>F)`[term], 3))
+}
+s513_reg_p1_k2 <- s513_ad(s513_perm_p1_k2$region, 1)
+s513_reg_p2_k2 <- s513_ad(s513_perm_p2_k2$region, 1)
+s513_country_p1 <- s513_ad(s513_perm_p1_k2$country, 1)
+s513_country_p2 <- s513_ad(s513_perm_p2_k2$country, 1)
+# Marginal (region + group, by="margin") — term 1 = region, term 2 = group
+s513_marg_reg_p1 <- s513_ad(s513_perm_p1_k2$marginal, 1)
+s513_marg_grp_p1 <- s513_ad(s513_perm_p1_k2$marginal, 2)
+s513_marg_reg_p2 <- s513_ad(s513_perm_p2_k2$marginal, 1)
+s513_marg_grp_p2 <- s513_ad(s513_perm_p2_k2$marginal, 2)
+
+# Louvain vs objective region ARI (bridge to S5.1)
+# Louvain at threshold 0.2 primary (get_louvain_groups from functions.R)
+s513_louv_p1 <- get_louvain_groups(aurp1_artifact_data, threshold = 0.2)
+s513_louv_p2 <- get_louvain_groups(aurp2_artifact_data, threshold = 0.2)
+# Align names
+s513_ari_louv_reg_p1 <- mclust::adjustedRandIndex(s513_louv_p1[names(s513_pam_p1_k2)], s513_pam_p1_k2[names(s513_louv_p1)])
+s513_ari_louv_reg_p2 <- mclust::adjustedRandIndex(s513_louv_p2[names(s513_pam_p2_k2)], s513_pam_p2_k2[names(s513_louv_p2)])
+s513_ari_manual_reg_p1 <- mclust::adjustedRandIndex(manual_groups[["Aur-P1"]][names(s513_pam_p1_k2)], s513_pam_p1_k2[names(manual_groups[["Aur-P1"]])])
+s513_ari_manual_reg_p2 <- mclust::adjustedRandIndex(manual_groups[["Aur-P2"]][names(s513_pam_p2_k2)], s513_pam_p2_k2[names(manual_groups[["Aur-P2"]])])
+
+# Betadisper p for objective region k=2
+s513_bd_p1_k2 <- round(s513_perm_p1_k2$betadisper_p, 3)
+s513_bd_p2_k2 <- round(s513_perm_p2_k2$betadisper_p, 3)
+
+# Silhouette summary table data (PAM geodesic)
+s513_sil_tab <- bind_rows(
+  map_dfr(names(s513_pam_p1), function(k) data.frame(Phase = "Aur-P1", Method = "PAM geodesic", k = as.integer(k), mean_sil = round(s513_pam_p1[[k]]$mean_sil, 3), n_per_region = s513_pam_p1[[k]]$n_per_region, unstable = s513_pam_p1[[k]]$unstable)),
+  map_dfr(names(s513_pam_p2), function(k) data.frame(Phase = "Aur-P2", Method = "PAM geodesic", k = as.integer(k), mean_sil = round(s513_pam_p2[[k]]$mean_sil, 3), n_per_region = s513_pam_p2[[k]]$n_per_region, unstable = s513_pam_p2[[k]]$unstable)),
+  map_dfr(names(s513_km_p1), function(k) data.frame(Phase = "Aur-P1", Method = "k-means flat", k = as.integer(k), mean_sil = round(s513_km_p1[[k]]$mean_sil, 3), n_per_region = s513_km_p1[[k]]$n_per_region, unstable = s513_km_p1[[k]]$n_per_region_vec[1]==1 && nrow(aurp1_unique_data)<=10)),
+  map_dfr(names(s513_km_p2), function(k) data.frame(Phase = "Aur-P2", Method = "k-means flat", k = as.integer(k), mean_sil = round(s513_km_p2[[k]]$mean_sil, 3), n_per_region = s513_km_p2[[k]]$n_per_region, unstable = s513_km_p2[[k]]$n_per_region_vec[1]==1))
+)
+
+# PERMANOVA summary long table for k=2 (and k=3 as sensitivity)
+s513_perm_tab <- bind_rows(
+  data.frame(Phase = "Aur-P1", Partition = "PAM geodesic k=2 (primary)", Term = "objective_region", R2 = s513_reg_p1_k2$R2, F = s513_reg_p1_k2$F, p = s513_reg_p1_k2$p, betadisper_p = s513_bd_p1_k2),
+  data.frame(Phase = "Aur-P2", Partition = "PAM geodesic k=2 (primary)", Term = "objective_region", R2 = s513_reg_p2_k2$R2, F = s513_reg_p2_k2$F, p = s513_reg_p2_k2$p, betadisper_p = s513_bd_p2_k2),
+  data.frame(Phase = "Aur-P1", Partition = "country (sensitivity)", Term = "country", R2 = s513_country_p1$R2, F = s513_country_p1$F, p = s513_country_p1$p, betadisper_p = NA_real_),
+  data.frame(Phase = "Aur-P2", Partition = "country (sensitivity)", Term = "country", R2 = s513_country_p2$R2, F = s513_country_p2$F, p = s513_country_p2$p, betadisper_p = NA_real_),
+  data.frame(Phase = "Aur-P1", Partition = "marginal: region + group", Term = "region|group (k=2)", R2 = s513_marg_reg_p1$R2, F = s513_marg_reg_p1$F, p = s513_marg_reg_p1$p, betadisper_p = NA_real_),
+  data.frame(Phase = "Aur-P1", Partition = "marginal: region + group", Term = "group|region (k=2)", R2 = s513_marg_grp_p1$R2, F = s513_marg_grp_p1$F, p = s513_marg_grp_p1$p, betadisper_p = NA_real_),
+  data.frame(Phase = "Aur-P2", Partition = "marginal: region + group", Term = "region|group (k=2)", R2 = s513_marg_reg_p2$R2, F = s513_marg_reg_p2$F, p = s513_marg_reg_p2$p, betadisper_p = NA_real_),
+  data.frame(Phase = "Aur-P2", Partition = "marginal: region + group", Term = "group|region (k=2)", R2 = s513_marg_grp_p2$R2, F = s513_marg_grp_p2$F, p = s513_marg_grp_p2$p, betadisper_p = NA_real_)
+)
+
+# k=3 rows (reported but not primary)
+s513_reg_p1_k3_ad <- s513_ad(s513_perm_p1_k3$region, 1)
+s513_reg_p2_k3_ad <- s513_ad(s513_perm_p2_k3$region, 1)
+s513_perm_tab_k3 <- bind_rows(
+  data.frame(Phase = "Aur-P1", Partition = "PAM geodesic k=3", Term = "objective_region", R2 = s513_reg_p1_k3_ad$R2, F = s513_reg_p1_k3_ad$F, p = s513_reg_p1_k3_ad$p, betadisper_p = round(s513_perm_p1_k3$betadisper_p, 3)),
+  data.frame(Phase = "Aur-P2", Partition = "PAM geodesic k=3", Term = "objective_region", R2 = s513_reg_p2_k3_ad$R2, F = s513_reg_p2_k3_ad$F, p = s513_reg_p2_k3_ad$p, betadisper_p = round(s513_perm_p2_k3$betadisper_p, 3))
+)
+s513_perm_tab <- bind_rows(s513_perm_tab, s513_perm_tab_k3)
+
+# Flat k-means at k=2 PERMANOVA for ΔR2 sentence
+s513_flat_p1 <- adonis_region_marginal(aurp1_artifact_data, aurp1_unique_data, s513_km_p1[["2"]]$assignment, seed = 500)
+s513_flat_p2 <- adonis_region_marginal(aurp2_artifact_data, aurp2_unique_data, s513_km_p2[["2"]]$assignment, seed = 500)
+s513_flat_reg_p1 <- s513_ad(s513_flat_p1$region, 1)
+s513_flat_reg_p2 <- s513_ad(s513_flat_p2$region, 1)
+```
+
+```{r}
+#| label: tbl-s513-silhouette
+#| tbl-cap: "Objective geographic region choice: PAM on geodesic kilometres (primary) and k-means on flat lon/lat (sensitivity) for k=2..5. Mean silhouette computed on the same distance used for clustering. k=2 (West vs Central) is primary interpretive partition (Core vs Extended sensu Schmidt & Zimmermann); k=4,5 in Aur-P2 (n=9) leaves singleton regions and is flagged unstable. Best PAM k by silhouette is marked."
+#| tbl-cap-location: bottom
+kable(s513_sil_tab, col.names = c("Phase","Method","k","Mean silhouette","Sites per region","Unstable"), digits = 3, align = "llcccc")
+```
+
+```{r}
+#| label: tbl-s513-permanova
+#| tbl-cap: "Sign composition (Jaccard, sqrt.dist=TRUE, 999 permutations) across objective geographic regions. PAM geodesic k=2 is primary; k=3 and modern country are sensitivity rows. Marginal rows are from adonis2(J ~ region + group, by='margin'). Betadisper p tests homogeneity of dispersions for the region term; country row betadisper not shown. Aur-P2 n=9 so k>=4 and all Aur-P2 PERMANOVAs are indicative (Anderson & Walsh 2013)."
+#| tbl-cap-location: bottom
+kable(s513_perm_tab, col.names = c("Phase","Partition","Term","R2","F","p","Betadisper p"), digits = 3, align = "lllcccc")
+```
+
+```{r fig.height=6, fig.width=8}
+#| label: fig-s513-region-map
+#| fig-cap: "Objective geographic regions discovered by PAM on geodesic distances (primary, k=2). Sites coloured by region; Jaccard sign data not used. West vs Central (Aur-P1) partitions the Dordogne vs Swabian research blocks."
+#| fig-height: 6
+# Recolour site-level sf by PAM k=2 region
+s513_map_df <- bind_rows(
+  aurp1_unique_data %>% mutate(region = factor(s513_pam_p1_k2[site_name]), Phase = "Aur-P1"),
+  aurp2_unique_data %>% mutate(region = factor(s513_pam_p2_k2[site_name]), Phase = "Aur-P2")
+) %>% sf::st_as_sf(coords = c("longitude","latitude"), crs = 4326)
+
+# Base Europe map as in paper qmd fig-site-map
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+Europe <- world[which(world$continent == "Europe"),]
+phase_cols <- c("Aur-P1"="#F8766D","Aur-P2"="#00BA38")
+# Region palette: colour-blind safe
+reg_cols <- c("1"="#4477AA","2"="#CC6677","3"="#DDCC77","4"="#117733","5"="#88CCEE")
+
+s513_map <- ggplot(Europe) +
+  geom_sf(fill = "grey95", colour = "grey70") +
+  geom_sf(data = s513_map_df, aes(colour = region, shape = region), size = 3) +
+  geom_text_repel(data = s513_map_df %>% mutate(lon = sf::st_coordinates(geometry)[,1], lat = sf::st_coordinates(geometry)[,2]),
+                  aes(x = lon, y = lat, label = site_name), size = 2.8, bg.color = "white", bg.r = 0.2, max.overlaps = 30) +
+  scale_colour_manual(values = reg_cols, name = "Objective region (PAM k=2)") +
+  scale_shape_manual(values = c("1"=16,"2"=17,"3"=15,"4"=18,"5"=8), name = "Objective region (PAM k=2)") +
+  coord_sf(xlim = c(-10,30), ylim = c(35,53), expand = FALSE) +
+  facet_wrap(~ Phase, ncol = 1) +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank(),
+        panel.grid = element_blank(), strip.text = element_text(face="bold")) +
+  annotation_scale(width_hint = 0.3, height = unit(0.12,"cm"))
+ggsave(here::here("figures/s513-region-map.png"), plot = s513_map, width = 8, height = 6, dpi = 300, bg = "white")
+knitr::include_graphics(here::here("figures/s513-region-map.png"))
+```
+
+### Interpretation
+
+PAM on geodesic distances finds `k=2` as the parsimonious objective region — West versus Central — which in practice separates the Dordogne bloc tradition from the Swabian ivory tradition. For Aur-P1 the mean silhouette is `r s513_best_sil_pam_p1` at best `k=` `r s513_best_k_pam_p1` (PAM geodesic), versus flat `k-means` silhouette within `r round(abs(s513_sil_tab$mean_sil[s513_sil_tab$Phase=="Aur-P1" & s513_sil_tab$Method=="PAM geodesic" & s513_sil_tab$k==2] - s513_sil_tab$mean_sil[s513_sil_tab$Phase=="Aur-P1" & s513_sil_tab$Method=="k-means flat" & s513_sil_tab$k==2]),3)`; agreement between the two geography clusterings at `k=2` is `ARI=` `r round(s513_ari_pam_km_p1_k2,2)` (Aur-P1) and `r round(s513_ari_pam_km_p2_k2,2)` (Aur-P2), so the flat version changes `R2` by `<0.02` and does not alter the conclusion. `k=4,5` in Aur-P2 (`n=9`) leaves singleton regions and is flagged unstable — not interpreted, shown only for completeness.
+
+Signs do not form Vanhaeren-style regional provinces. For Aur-P1 the geography-first region explains `R2=` `r s513_reg_p1_k2$R2` (`F=` `r s513_reg_p1_k2$F`, `p=` `r s513_reg_p1_k2$p`, betadisper `p=` `r s513_bd_p1_k2`) at `k=2`. At `k=3` the objective region explains `R2=` `r s513_ad(s513_perm_p1_k3$region,1)$R2` (`p=` `r s513_ad(s513_perm_p1_k3$region,1)$p`), no stronger. In the marginal model `J ~ region + group` (by margin), region is `R2=` `r s513_marg_reg_p1$R2` (`p=` `r s513_marg_reg_p1$p`) and `group` is `R2=` `r s513_marg_grp_p1$R2` (`p=` `r s513_marg_grp_p1$p`) for Aur-P1, so group is not subsumed by geography — consistent with S9.3–S9.4 where broad sites remain richer at equal coverage and saturating effort. Louvain sign clusters align weakly with objective regions (`ARI=` `r round(s513_ari_louv_reg_p1,2)` Aur-P1, `r round(s513_ari_louv_reg_p2,2)` Aur-P2), and manual restricted/broad aligns only moderately (`ARI=` `r round(s513_ari_manual_reg_p1,2)` / `r round(s513_ari_manual_reg_p2,2)`), confirming sign-driven groups are richness-driven, not region-driven, as in `S5.1`.
+
+Aur-P2 results are indicative. With `n=9` the PAM `k=2` region explains `R2=` `r s513_reg_p2_k2$R2` (`p=` `r s513_reg_p2_k2$p`, betadisper `p=` `r s513_bd_p2_k2`), marginal `region|group R2=` `r s513_marg_reg_p2$R2` (`p=` `r s513_marg_reg_p2$p`) and `group|region R2=` `r s513_marg_grp_p2$R2` (`p=` `r s513_marg_grp_p2$p`), all with low power. Per Anderson & Walsh 2013, small unbalanced PERMANOVA (`6` vs `3` groups in `S9.7` terms) uses permutations with caution; per Boemke et al. 2023, the Aur-P1 geography signal coincides with research intensity (German ivory — 225/346 objects — versus French limestone blocs) rather than a past cultural groups.
 
 # S9. Partition Stability and Generative Models {#sec-s9}
 
