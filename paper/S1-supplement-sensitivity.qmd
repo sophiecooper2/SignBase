@@ -1332,335 +1332,6 @@ The PerMANOVA comparison provides the most direct test of whether the main-text 
 
 This section asks whether the manual restricted/broad grouping is consistent with structure recovered by data-driven methods, using Louvain community detection, bootstrap consensus, and stochastic block models. The ARI values show the manual assignment closely reproduces a data-driven structure in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2) and, in Aur-P2, the broad-range sites in particular (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)` at threshold 0.2, driven by Louvain's exact recovery of the broad-range community). The PerMANOVA comparison shows the manual grouping is conservative rather than liberal: the algorithmically derived partitions consistently explain more variance than the manual ones, so the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) are a lower bound on the strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "Algorithm_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only nine sites and its PerMANOVA results must be read with that limitation in mind. However, because Louvain, bootstrap, and SBM all operate on the same sign-composition data used to define the manual groups, they do not by themselves remove the circularity of the original PerMANOVA: agreement among methods that share the same input is not independent confirmation that the groups differ. Genuine independent validation — holding out data from the definition of the groups — is provided separately in @sec-s6-6.
 
-## S5.3 Null-Benchmarked Modularity Across Thresholds {#sec-s5-9}
-
-Modularity values in the range 0.3-0.5 are often described as "high" without formal benchmarking. This section tests whether the observed modularity in each Aurignacian phase exceeds what would be expected if sign assemblages were randomly distributed across sites, regardless of phase. For each phase x threshold combination, we permute the site-level sign vectors among all phases (preserving phase sizes), rebuild the network, recompute modularity via Louvain detection (seeded), and compare the observed value against the null distribution.
-
-```{r}
-#| label: tbl-null-modularity
-#| tbl-cap: "Observed modularity and null-model p-values for each Aurignacian phase at three Jaccard similarity thresholds."
-#| tbl-cap-location: bottom
-#| cache: true
-
-run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
-  # Build observed network for this phase
-  obs_data <- switch(phase_name,
-    "Aur-P1" = aurp1_unique_data,
-    "Aur-P2" = aurp2_unique_data
-  )
-  obs_art <- extract_artifact(obs_data)
-  obs_jac <- as.matrix(vegan::vegdist(as.matrix(obs_art), "jaccard", binary = TRUE))
-  obs_adj <- 1 - obs_jac
-  obs_adj[obs_adj < threshold] <- 0
-  diag(obs_adj) <- 0
-  obs_g <- igraph::graph_from_adjacency_matrix(obs_adj, mode = "undirected",
-                                                weighted = TRUE, diag = FALSE)
-  set.seed(42)
-  obs_mod <- igraph::modularity(igraph::cluster_louvain(obs_g))
-  n_target <- nrow(obs_art)
-
-  # Pool all sites across phases
-  pooled <- signbase_full_clean %>%
-    dplyr::select(site_name, obline:star) %>%
-    distinct(site_name, .keep_all = TRUE)
-  pooled_art <- pooled %>%
-    column_to_rownames("site_name")
-  pooled_art <- pooled_art[, colSums(pooled_art) > 0, drop = FALSE]
-  keep_cols <- names(pooled_art)
-
-  null_mods <- numeric(n_perm)
-  for (i in seq_len(n_perm)) {
-    set.seed(i)
-    perm_idx <- sample(seq_len(nrow(pooled)), n_target, replace = FALSE)
-    perm_art <- pooled_art[perm_idx, , drop = FALSE]
-    rownames(perm_art) <- rownames(pooled_art)[perm_idx]
-    result <- tryCatch({
-      perm_jac <- as.matrix(vegan::vegdist(perm_art, "jaccard", binary = TRUE))
-      perm_adj <- 1 - perm_jac
-      perm_adj[is.na(perm_adj)] <- 0
-      perm_adj[perm_adj < threshold] <- 0
-      diag(perm_adj) <- 0
-      perm_g <- igraph::graph_from_adjacency_matrix(perm_adj, mode = "undirected",
-                                                     weighted = TRUE, diag = FALSE)
-      if (igraph::vcount(perm_g) >= 3 && igraph::ecount(perm_g) > 0) {
-        igraph::modularity(igraph::cluster_louvain(perm_g))
-      } else {
-        0
-      }
-    }, error = function(e) 0)
-    null_mods[i] <- result
-  }
-
-  p_val <- mean(null_mods >= obs_mod)
-  tibble(
-    Phase = phase_name,
-    Threshold = threshold,
-    Observed = round(obs_mod, 3),
-    Null_mean = round(mean(null_mods), 3),
-    Null_sd = round(sd(null_mods), 3),
-    p = p_val
-  )
-}
-
-null_results <- expand_grid(
-  phase = c("Aur-P1", "Aur-P2"),
-  threshold = c(0.1, 0.2, 0.3)
-) %>%
-  pmap_dfr(function(phase, threshold) run_null_modularity(phase, threshold))
-
-null_display <- null_results
-
-kable(null_display,
-      col.names = c("Phase", "Threshold", "Observed Q", "Null mean Q", "Null SD", "p"),
-      digits = 3,
-      align = "lccccc")
-```
-
-The p-values indicate whether the observed community structure is significantly stronger than expected by chance. A p < 0.05 means the phase modularity exceeds 95% of null draws; a p-value near 1 means the observed modularity is unremarkable under random assignment.
-
-**Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, Aur-P1's observed modularity of `r n3(val(null_results, "Observed", "Aur-P1", 0.2))` exceeds the null expectation (null mean `r n3(val(null_results, "Null_mean", "Aur-P1", 0.2))`) and is statistically significant (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`), as it is at threshold 0.3 (`r n3(val(null_results, "Observed", "Aur-P1", 0.3))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.3))`); at the permissive 0.1 threshold, the Aur-P1 value (`r n3(val(null_results, "Observed", "Aur-P1", 0.1))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.1))`) does not reach significance. Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))` at threshold 0.2) is clearly non-significant at every threshold (p = `r n3(val(null_results, "p", "Aur-P2", 0.1))` to `r n3(val(null_results, "p", "Aur-P2", 0.3))`), consistent with the very small number of sites in this phase. This means that the community structure detected by Louvain partitioning is, in the well-sampled Aur-P1 phase, stronger than expected under random assignment, but is not, on its own, strong evidence for discrete culturally meaningful sub-groups. The main-text seriation and PerMANOVA results , which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) , remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix that exceeds chance in Aur-P1, but not in the small Aur-P2 sample.
-
-## S5.4 Assemblage Richness / Sample-Size Confound {#sec-s5-10}
-
-Node degree in a presence/absence network could be driven by sign-type richness rather than shared-sign connectivity: sites with more sign types have more opportunities for co-occurrence. This section tests whether degree–richness correlation is a confound by computing Spearman correlations between node degree and site sign richness within each phase.
-
-```{r}
-#| label: tbl-richness-confound
-#| tbl-cap: "Spearman correlations between node degree and site sign richness (number of distinct sign types) within each Aurignacian phase, at the baseline threshold of 0.2."
-#| tbl-cap-location: bottom
-
-compute_phase_dr <- function(df) {
-  arts <- df %>% column_to_rownames("site_name") %>%
-    dplyr::select(obline:star)
-  arts <- arts[, colSums(arts) > 0, drop = FALSE]
-  rich <- rowSums(arts > 0)
-
-  jac_dist <- as.matrix(vegdist(arts, "jaccard", binary = TRUE))
-  adj_j <- 1 - jac_dist
-  adj_j[adj_j < 0.2] <- 0
-  diag(adj_j) <- 0
-  g_j <- graph_from_adjacency_matrix(adj_j, mode = "undirected", weighted = TRUE, diag = FALSE)
-  deg_j <- igraph::degree(g_j)
-
-  common <- intersect(names(deg_j), names(rich))
-
-  if (length(common) < 3) return(tibble(n_sites = length(common), rho = NA_real_, p = NA_real_))
-  j_cor <- suppressWarnings(cor.test(deg_j[common], rich[common], method = "spearman"))
-  tibble(
-    n_sites = length(common),
-    rho = round(j_cor$estimate, 3),
-    p = round(j_cor$p.value, 3)
-  )
-}
-
-richness_results <- bind_rows(
-  compute_phase_dr(aurp1_unique_data) %>% mutate(Phase = "Aur-P1"),
-  compute_phase_dr(aurp2_unique_data) %>% mutate(Phase = "Aur-P2")
-) %>% dplyr::select(Phase, everything())
-
-kable(richness_results,
-      col.names = c("Phase", "Sites", "ρ", "p"),
-      digits = 3,
-      align = "lcccc")
-```
-
-If degree is primarily driven by richness, the correlations will be strong and significant ($\rho > 0.7$, $p < 0.05$). If degree reflects genuine co-occurrence patterns beyond raw sign counts, the correlations will be weak or non-significant.
-
-**Implications for the main text.** Neither phase shows a significant correlation between node degree and sign-type richness (Aur-P1: ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`; Aur-P2: ρ = `r n3(val(richness_results, "rho", "Aur-P2"))`, p = `r n3(val(richness_results, "p", "Aur-P2"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in Aur-P1 (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) compared to Aur-P2 (`r n2(val(sens_stats, "mean_degree", "Aur-P2", 0.2))`) is not simply an artefact of the Aur-P1 phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree , but the Aur-P1 correlation is slightly negative (ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`) and the Aur-P2 correlation, while positive, is far from significant given the small sample. The main-text conclusion that Aur-P1 represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
-
-## S5.7 Bootstrap Confidence Intervals {#sec-s5-13}
-
-Point estimates of network statistics are sensitive to individual sites and to object sampling within sites. Resampling sites with replacement creates duplicate nodes (similarity 1, distance 0) and inflates mean degree and narrows intervals [@Roberts_2021; @Clarke_Rothery_Raybould_2002]. This section therefore uses object-within-site bootstrap: for each site, draw its observed number of objects with replacement from that site's own objects, rebuild the site x sign presence matrix, and recompute mean degree and modularity at threshold 0.2. Node identity is preserved; uncertainty reflects object sampling rather than artificial duplication. We report the observed statistic and a percentile interval around it.
-
-```{r}
-#| label: tbl-bootstrap-ci
-#| tbl-cap: "Bootstrap 95% percentile intervals for mean degree and modularity at threshold = 0.2, based on 999 object-within-site resamples per phase. Observed is the statistic on the full data; interval is the 2.5% and 97.5% quantiles of the bootstrap distribution. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
-#| tbl-cap-location: bottom
-#| cache: true
-
-boot_results <- bind_rows(
-  {
-    b1 <- bootstrap_network_stats(aurp1_artifact_data, signbase_full_clean, "Aur-P1", n_boot = 999, threshold = 0.2, seed = 42)
-    tibble(Phase = "Aur-P1",
-           md_point = round(b1$observed_md, 2),
-           md_lower = round(b1$md_lower, 2),
-           md_upper = round(b1$md_upper, 2),
-           mod_point = round(b1$observed_mod, 3),
-           mod_lower = round(b1$mod_lower, 3),
-           mod_upper = round(b1$mod_upper, 3))
-  },
-  {
-    b2 <- bootstrap_network_stats(aurp2_artifact_data, signbase_full_clean, "Aur-P2", n_boot = 999, threshold = 0.2, seed = 42)
-    tibble(Phase = "Aur-P2",
-           md_point = round(b2$observed_md, 2),
-           md_lower = round(b2$md_lower, 2),
-           md_upper = round(b2$md_upper, 2),
-           mod_point = round(b2$observed_mod, 3),
-           mod_lower = round(b2$mod_lower, 3),
-           mod_upper = round(b2$mod_upper, 3))
-  }
-)
-
-kable(boot_results,
-      col.names = c("Phase", "Mean degree (observed)", "2.5%", "97.5%", "Q (observed)", "2.5%", "97.5%"),
-      digits = 3,
-      align = "lcccccc")
-```
-
-```{r}
-# S5.7 prose helpers: CI lookups and mean-degree CI overlap flag
-s57_phase <- function(ph) list(
-  md_low   = val(boot_results, "md_lower", ph),
-  md_hi    = val(boot_results, "md_upper", ph),
-  md_pt    = val(boot_results, "md_point", ph),
-  mod_low  = val(boot_results, "mod_lower", ph),
-  mod_hi   = val(boot_results, "mod_upper", ph),
-  mod_pt   = val(boot_results, "mod_point", ph)
-)
-s57_p <- s57_phase("Aur-P1")
-s57_v <- s57_phase("Aur-P2")
-s57_md_overlap <- !(s57_p$md_low > s57_v$md_hi || s57_v$md_low > s57_p$md_hi)
-s57_md_sentence <- if (s57_md_overlap) {
-  paste0("Because the intervals overlap, the bootstrap does not formally separate the two phases ",
-         "by the strict non-overlap criterion; the Aur-P1–Aur-P2 contrast is supported at the ",
-         "point-estimate level (Aur-P1 ", n2(s57_p$md_pt), " vs Aur-P2 ", n2(s57_v$md_pt),
-         ") but is not statistically decisive.")
-} else {
-  paste0("Because the intervals do not overlap, the bootstrap confirms that the Aur-P1–Aur-P2 ",
-         "connectivity contrast is not driven by a handful of influential sites.")
-}
-```
-
-The intervals quantify uncertainty due to object sampling within sites: a narrow interval means the observed statistic is stable when objects are resampled within sites, while a wide interval signals sensitivity to which objects were recovered. Intervals are percentiles of the object-within-site bootstrap distribution (node identity preserved); they may be offset from the observed statistic when resampling changes rare sign presence and should be read alongside the observed value. Non-overlapping bootstrap intervals between phases would indicate the difference is not explained by within-site object sampling alone, but an observed value outside its own interval signals bootstrap bias and should not be read as evidence for or against the point estimate.
-
-**Implications for the main text.** The object-within-site bootstrap CIs show which main-text comparisons are robust to object sampling. For mean degree, the Aur-P1 observed `r n2(s57_p$md_pt)` with CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and Aur-P2 observed `r n2(s57_v$md_pt)` with CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` The observed mean degree lies outside its bootstrap CI for both phases (Aur-P1 `r n2(s57_p$md_pt)` vs. [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`]; Aur-P2 `r n2(s57_v$md_pt)` vs. [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`]), reflecting the tendency for resampling to miss rare signs at large sites and to duplicate the single object carrying a rare sign at small sites. For modularity, CIs are narrow and do not overlap (Aur-P1 observed `r n3(s57_p$mod_pt)` CI [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`] vs. Aur-P2 observed `r n3(s57_v$mod_pt)` CI [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]); the point-estimate difference (`r n3(s57_p$mod_pt)` vs. `r n3(s57_v$mod_pt)`) is stable to within-site object resampling, but absolute values remain sensitive to threshold and small-P2 sample (`r nrow(aurp2_artifact_data)` sites) (see S5.3).
-
-## S5.8 Multiple‑Testing Correction for Mantel Results {#sec-s5-14}
-
-The Mantel tests reported in @tbl-geodesic-mantel and the main text evaluate 4 hypotheses (2 phases × 2 distance measures). Without correction, the effective Type I error rate is inflated. Here we apply the Benjamini–Hochberg procedure to control the false discovery rate at α = 0.05.
-
-```{r}
-#| label: tbl-mantel-bh
-#| tbl-cap: "Mantel test p-values before and after Benjamini–Hochberg correction for multiple testing across 2 phases × 2 distance measures (4 tests total). Results with adjusted p < 0.05 are highlighted."
-#| tbl-cap-location: bottom
-
-# Rerun all Mantel tests and collect results
-mantel_all <- bind_rows(
-  data.frame(Phase = "Aur-P1", run_mantel_comp(aurp1_unique_data)),
-  data.frame(Phase = "Aur-P2", run_mantel_comp(aurp2_unique_data))
-)
-
-# Build vector of 4 raw p-values: Euclidean x2 then Geodesic x2
-raw_p <- c(mantel_all$Euclidean_p, mantel_all$Geodesic_p)
-test_labels <- c(
-  paste0("Euclidean – ", mantel_all$Phase),
-  paste0("Geodesic – ", mantel_all$Phase)
-)
-r_vals <- c(mantel_all$Euclidean_R, mantel_all$Geodesic_R)
-
-# Benjamini-Hochberg correction
-adj_p <- p.adjust(raw_p, method = "BH")
-
-mantel_bh <- tibble(
-  Test = test_labels,
-  R = round(r_vals, 3),
-  `Raw p` = raw_p,
-  `BH-adjusted p` = round(adj_p, 3),
-  Significant = ifelse(adj_p < 0.05, "Yes", "No")
-)
-
-kable(mantel_bh,
-      col.names = c("Test", "R", "Raw p", "BH-adjusted p", "Significant"),
-      digits = 3,
-      align = "lcccc")
-```
-
-```{r}
-# S5.8 prose helpers: the closest-to-significance result
-s58_best <- mantel_bh %>% arrange(`Raw p`) %>% slice(1)
-s58_test  <- s58_best$Test[1]
-s58_R     <- s58_best$R[1]
-s58_rawp  <- s58_best$`Raw p`[1]
-s58_adjp  <- s58_best$`BH-adjusted p`[1]
-s58_n_sig <- sum(mantel_bh$Significant == "Yes")
-s58_after_text <- if (s58_n_sig == 0) {
-  paste0("None of the ", nrow(mantel_bh), " tests reach significance after correction.")
-} else {
-  cat("SBM results not available. Install `blockmodels` package (`renv::install(\"blockmodels\")`) and re-render to fit models.")
-}
-```
-
-Of the `r nrow(mantel_bh)` tests, none approaches nominal significance: the smallest raw $p$-value is `r s58_test` ($R = `r n3(s58_R)`$, raw $p = `r n3(s58_rawp)`$), well above the 0.05 threshold. After Benjamini–Hochberg correction this adjusts to $p = `r n3(s58_adjp)`$. `r s58_after_text` This is consistent with the main-text interpretation: geographic distance does not account for sign distribution in either phase, and the largest correlations are weakly positive for Aur-P1 and weakly negative for Aur-P2. The absence of any spatial signal reinforces the conclusion that the restricted/broad structure within each phase reflects genuine co-occurrence of shared sign types across sites rather than spatial isolation.
-
-## S5.9 Network-Size Normalised Comparison {#sec-s5-15}
-
-```{r}
-# S5.9 prose helper: site counts and percentage surplus
-s59_pct_more <- round(100 * (nrow(aurp1_artifact_data) - nrow(aurp2_artifact_data)) / nrow(aurp2_artifact_data))
-```
-
-Modularity and mean degree are not invariant to the number of nodes: larger networks tend to have higher modularity even under random assignment. Aur-P1 (`r nrow(aurp1_artifact_data)` sites) has `r s59_pct_more`% more nodes than Aur-P2 (`r nrow(aurp2_artifact_data)` sites). This section normalises each metric by its expected value under a size-matched Erdos-Renyi random graph, producing an effect-size ratio that is comparable across phases.
-
-```{r}
-#| label: tbl-size-normalised
-#| tbl-cap: "Network metrics normalised by size-matched Erdos-Renyi expectation. Ratio > 1 indicates the observed value exceeds the random expectation for a network of the same size. ER mean and SD are based on 100 random graphs per phase."
-#| tbl-cap-location: bottom
-
-compute_normalised_metrics <- function(art, n_rand = 100) {
-  jac <- as.matrix(vegan::vegdist(art, "jaccard", binary = TRUE))
-  adj <- 1 - jac
-  adj[adj < 0.2] <- 0
-  diag(adj) <- 0
-  n <- nrow(adj)
-  p <- sum(adj > 0) / (n * (n - 1))
-  set.seed(42)
-  g_obs <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
-                                                weighted = TRUE, diag = FALSE)
-  obs_md <- mean(igraph::degree(g_obs))
-  set.seed(42)
-  obs_mod <- igraph::modularity(igraph::cluster_louvain(g_obs))
-
-  er_md <- numeric(n_rand)
-  er_mod <- numeric(n_rand)
-  for (i in seq_len(n_rand)) {
-    g_er <- igraph::sample_gnp(n, p, directed = FALSE)
-    er_md[i] <- mean(igraph::degree(g_er))
-    set.seed(i)
-    er_mod[i] <- igraph::modularity(igraph::cluster_louvain(g_er))
-  }
-
-  tibble(
-    Sites = n,
-    Obs_md = round(obs_md, 2),
-    ER_md = round(mean(er_md), 2),
-    MD_ratio = round(obs_md / mean(er_md), 2),
-    Obs_mod = round(obs_mod, 3),
-    ER_mod = round(mean(er_mod), 3),
-    Mod_ratio = round(obs_mod / max(mean(er_mod), 0.001), 2)
-  )
-}
-
-norm_results <- bind_rows(
-  compute_normalised_metrics(aurp1_artifact_data) %>% mutate(Phase = "Aur-P1"),
-  compute_normalised_metrics(aurp2_artifact_data) %>% mutate(Phase = "Aur-P2")
-) %>% dplyr::select(Phase, everything())
-
-kable(norm_results,
-      col.names = c("Phase", "Sites", "Obs. md", "ER md", "MD ratio",
-                     "Obs. Q", "ER Q", "Q ratio"),
-      digits = 2,
-      align = "lcccccccc")
-```
-
-The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A ratio of 1.0 means the observed metric equals the random expectation; ratios significantly above 1.0 indicate genuine structure beyond what node count alone produces.
-
-**Implications for the main text.** The size-normalised results address a potential confound in the main-text phase comparison: because mean degree and modularity both scale with the number of nodes, the `r nrow(aurp1_artifact_data)`-site Aur-P1 network and the `r nrow(aurp2_artifact_data)`-site Aur-P2 network are not directly comparable on those raw measures. Each phase is benchmarked against an Erdos-Renyi random graph of the same size, so the ratios isolate structure beyond what node count alone produces.
-
-- **Mean degree.** The MD ratio is `r n2(val(norm_results, "MD_ratio", "Aur-P1"))` for Aur-P1 and `r n2(val(norm_results, "MD_ratio", "Aur-P2"))` for Aur-P2. Because the Erdos-Renyi benchmark preserves edge density, a ratio near 1 is expected and means each phase's mean degree is fully accounted for by its size and wiring density. The raw gap (Aur-P1 `r n2(val(norm_results, "Obs_md", "Aur-P1"))` vs Aur-P2 `r n2(val(norm_results, "Obs_md", "Aur-P2"))`) therefore reflects the `r s59_pct_more`% larger site sample in Aur-P1, not higher intrinsic connectivity. After size normalisation there is no evidence that Aur-P1 is more "connected" by degree, which is why the main text reports raw degree only descriptively and bases inference on the permutation tests.
-- **Modularity.** The Q ratio is `r n2(val(norm_results, "Mod_ratio", "Aur-P1"))` for Aur-P1 and `r n2(val(norm_results, "Mod_ratio", "Aur-P2"))` for Aur-P2, i.e. observed modularity exceeds the size-matched random expectation by about `r round(100 * (val(norm_results, "Mod_ratio", "Aur-P1") - 1))`% in Aur-P1 and `r round(100 * (val(norm_results, "Mod_ratio", "Aur-P2") - 1))`% in Aur-P2. Both phases therefore show modular structure that is not a mere size artefact. Aur-P1's larger excess means its community structure is stronger than Aur-P2's even after the `r nrow(aurp1_artifact_data)`-versus-`r nrow(aurp2_artifact_data)` site asymmetry is removed, so the phase difference in modularity is not a sample-size artefact; the Aur-P2 excess (`r n2(val(norm_results, "Mod_ratio", "Aur-P2"))`x) is modest and, with only `r nrow(aurp2_artifact_data)` sites, should be read cautiously.
-
-In short, size normalisation removes the mean-degree confound and confirms that the modularity-based claim of stronger community structure in Aur-P1 survives net of network size, whereas neither phase's mean degree can be used as evidence of intrinsically higher connectivity.
-
 ## S5.10 Multiple Regression on Distance Matrices (Drivers of Sign Dissimilarity) {#sec-s5-16}
 
 The Mantel tests establish that geographic distance is not significantly correlated with sign dissimilarity in either phase, but a non-significant result cannot by itself identify which alternative process — if any — generated the pattern. To split the variance of sign dissimilarity among the candidate drivers that are actually measured in the data, we fit a multiple regression on distance matrices (MRM; @Lichstein_2007) in which the response is the Jaccard dissimilarity of sign presence/absence and the three predictors are, for every pair of sites, their geographic distance, their absolute temporal distance (|ΔMedianBP|), and their absolute difference in object count (a proxy for sampling effort). Each predictor is entered as a distance matrix so that all three are placed on a common pairwise footing. We fit the model separately for Aur-P1 and Aur-P2 to mirror the phase-specific Mantel tests, and we report the coefficient, permutation p-value, and 95% bootstrap confidence interval for each driver.
@@ -2053,6 +1724,339 @@ PAM on geodesic distances finds `k=2` as the parsimonious objective region — W
 Signs do not form Vanhaeren-style regional provinces. For Aur-P1 the geography-first region explains `R2=` `r s513_reg_p1_k2$R2` (`F=` `r s513_reg_p1_k2$F`, `p=` `r s513_reg_p1_k2$p`, betadisper `p=` `r s513_bd_p1_k2`) at `k=2`. At `k=3` the objective region explains `R2=` `r s513_ad(s513_perm_p1_k3$region,1)$R2` (`p=` `r s513_ad(s513_perm_p1_k3$region,1)$p`), no stronger. In the marginal model `J ~ region + group` (by margin), region is `R2=` `r s513_marg_reg_p1$R2` (`p=` `r s513_marg_reg_p1$p`) and `group` is `R2=` `r s513_marg_grp_p1$R2` (`p=` `r s513_marg_grp_p1$p`) for Aur-P1, so group is not subsumed by geography — consistent with S9.3–S9.4 where broad sites remain richer at equal coverage and saturating effort. Louvain sign clusters align weakly with objective regions (`ARI=` `r round(s513_ari_louv_reg_p1,2)` Aur-P1, `r round(s513_ari_louv_reg_p2,2)` Aur-P2), and manual restricted/broad aligns only moderately (`ARI=` `r round(s513_ari_manual_reg_p1,2)` / `r round(s513_ari_manual_reg_p2,2)`), confirming sign-driven groups are richness-driven, not region-driven, as in `S5.1`.
 
 Aur-P2 results are indicative. With `n=9` the PAM `k=2` region explains `R2=` `r s513_reg_p2_k2$R2` (`p=` `r s513_reg_p2_k2$p`, betadisper `p=` `r s513_bd_p2_k2`), marginal `region|group R2=` `r s513_marg_reg_p2$R2` (`p=` `r s513_marg_reg_p2$p`) and `group|region R2=` `r s513_marg_grp_p2$R2` (`p=` `r s513_marg_grp_p2$p`), all with low power. Per Anderson & Walsh 2013, small unbalanced PERMANOVA (`6` vs `3` groups in `S9.7` terms) uses permutations with caution; per Boemke et al. 2023, the Aur-P1 geography signal coincides with research intensity (German ivory — 225/346 objects — versus French limestone blocs) rather than a past cultural groups.
+
+# S7. Network Calibration {#sec-s7}
+
+Calibration checks ask whether modularity, degree, and significance survive nulls, sampling noise, multiple testing, and network size. They do not test group existence itself.
+
+## S7.1 Null-Benchmarked Modularity {#sec-s7-1}
+
+Modularity values in the range 0.3-0.5 are often described as "high" without formal benchmarking. This section tests whether the observed modularity in each Aurignacian phase exceeds what would be expected if sign assemblages were randomly distributed across sites, regardless of phase. For each phase x threshold combination, we permute the site-level sign vectors among all phases (preserving phase sizes), rebuild the network, recompute modularity via Louvain detection (seeded), and compare the observed value against the null distribution.
+
+```{r}
+#| label: tbl-null-modularity
+#| tbl-cap: "Observed modularity and null-model p-values for each Aurignacian phase at three Jaccard similarity thresholds."
+#| tbl-cap-location: bottom
+#| cache: true
+
+run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
+  # Build observed network for this phase
+  obs_data <- switch(phase_name,
+    "Aur-P1" = aurp1_unique_data,
+    "Aur-P2" = aurp2_unique_data
+  )
+  obs_art <- extract_artifact(obs_data)
+  obs_jac <- as.matrix(vegan::vegdist(as.matrix(obs_art), "jaccard", binary = TRUE))
+  obs_adj <- 1 - obs_jac
+  obs_adj[obs_adj < threshold] <- 0
+  diag(obs_adj) <- 0
+  obs_g <- igraph::graph_from_adjacency_matrix(obs_adj, mode = "undirected",
+                                                weighted = TRUE, diag = FALSE)
+  set.seed(42)
+  obs_mod <- igraph::modularity(igraph::cluster_louvain(obs_g))
+  n_target <- nrow(obs_art)
+
+  # Pool all sites across phases
+  pooled <- signbase_full_clean %>%
+    dplyr::select(site_name, obline:star) %>%
+    distinct(site_name, .keep_all = TRUE)
+  pooled_art <- pooled %>%
+    column_to_rownames("site_name")
+  pooled_art <- pooled_art[, colSums(pooled_art) > 0, drop = FALSE]
+  keep_cols <- names(pooled_art)
+
+  null_mods <- numeric(n_perm)
+  for (i in seq_len(n_perm)) {
+    set.seed(i)
+    perm_idx <- sample(seq_len(nrow(pooled)), n_target, replace = FALSE)
+    perm_art <- pooled_art[perm_idx, , drop = FALSE]
+    rownames(perm_art) <- rownames(pooled_art)[perm_idx]
+    result <- tryCatch({
+      perm_jac <- as.matrix(vegan::vegdist(perm_art, "jaccard", binary = TRUE))
+      perm_adj <- 1 - perm_jac
+      perm_adj[is.na(perm_adj)] <- 0
+      perm_adj[perm_adj < threshold] <- 0
+      diag(perm_adj) <- 0
+      perm_g <- igraph::graph_from_adjacency_matrix(perm_adj, mode = "undirected",
+                                                     weighted = TRUE, diag = FALSE)
+      if (igraph::vcount(perm_g) >= 3 && igraph::ecount(perm_g) > 0) {
+        igraph::modularity(igraph::cluster_louvain(perm_g))
+      } else {
+        0
+      }
+    }, error = function(e) 0)
+    null_mods[i] <- result
+  }
+
+  p_val <- mean(null_mods >= obs_mod)
+  tibble(
+    Phase = phase_name,
+    Threshold = threshold,
+    Observed = round(obs_mod, 3),
+    Null_mean = round(mean(null_mods), 3),
+    Null_sd = round(sd(null_mods), 3),
+    p = p_val
+  )
+}
+
+null_results <- expand_grid(
+  phase = c("Aur-P1", "Aur-P2"),
+  threshold = c(0.1, 0.2, 0.3)
+) %>%
+  pmap_dfr(function(phase, threshold) run_null_modularity(phase, threshold))
+
+null_display <- null_results
+
+kable(null_display,
+      col.names = c("Phase", "Threshold", "Observed Q", "Null mean Q", "Null SD", "p"),
+      digits = 3,
+      align = "lccccc")
+```
+
+The p-values indicate whether the observed community structure is significantly stronger than expected by chance. A p < 0.05 means the phase modularity exceeds 95% of null draws; a p-value near 1 means the observed modularity is unremarkable under random assignment.
+
+**Implications for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, Aur-P1's observed modularity of `r n3(val(null_results, "Observed", "Aur-P1", 0.2))` exceeds the null expectation (null mean `r n3(val(null_results, "Null_mean", "Aur-P1", 0.2))`) and is statistically significant (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`), as it is at threshold 0.3 (`r n3(val(null_results, "Observed", "Aur-P1", 0.3))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.3))`); at the permissive 0.1 threshold, the Aur-P1 value (`r n3(val(null_results, "Observed", "Aur-P1", 0.1))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.1))`) does not reach significance. Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))` at threshold 0.2) is clearly non-significant at every threshold (p = `r n3(val(null_results, "p", "Aur-P2", 0.1))` to `r n3(val(null_results, "p", "Aur-P2", 0.3))`), consistent with the very small number of sites in this phase. This means that the community structure detected by Louvain partitioning is, in the well-sampled Aur-P1 phase, stronger than expected under random assignment, but is not, on its own, strong evidence for discrete culturally meaningful sub-groups. The main-text seriation and PerMANOVA results , which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition) , remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix that exceeds chance in Aur-P1, but not in the small Aur-P2 sample.
+
+## S7.2 Richness and Degree Confound {#sec-s7-2}
+
+Node degree in a presence/absence network could be driven by sign-type richness rather than shared-sign connectivity: sites with more sign types have more opportunities for co-occurrence. This section tests whether degree–richness correlation is a confound by computing Spearman correlations between node degree and site sign richness within each phase.
+
+```{r}
+#| label: tbl-richness-confound
+#| tbl-cap: "Spearman correlations between node degree and site sign richness (number of distinct sign types) within each Aurignacian phase, at the baseline threshold of 0.2."
+#| tbl-cap-location: bottom
+
+compute_phase_dr <- function(df) {
+  arts <- df %>% column_to_rownames("site_name") %>%
+    dplyr::select(obline:star)
+  arts <- arts[, colSums(arts) > 0, drop = FALSE]
+  rich <- rowSums(arts > 0)
+
+  jac_dist <- as.matrix(vegdist(arts, "jaccard", binary = TRUE))
+  adj_j <- 1 - jac_dist
+  adj_j[adj_j < 0.2] <- 0
+  diag(adj_j) <- 0
+  g_j <- graph_from_adjacency_matrix(adj_j, mode = "undirected", weighted = TRUE, diag = FALSE)
+  deg_j <- igraph::degree(g_j)
+
+  common <- intersect(names(deg_j), names(rich))
+
+  if (length(common) < 3) return(tibble(n_sites = length(common), rho = NA_real_, p = NA_real_))
+  j_cor <- suppressWarnings(cor.test(deg_j[common], rich[common], method = "spearman"))
+  tibble(
+    n_sites = length(common),
+    rho = round(j_cor$estimate, 3),
+    p = round(j_cor$p.value, 3)
+  )
+}
+
+richness_results <- bind_rows(
+  compute_phase_dr(aurp1_unique_data) %>% mutate(Phase = "Aur-P1"),
+  compute_phase_dr(aurp2_unique_data) %>% mutate(Phase = "Aur-P2")
+) %>% dplyr::select(Phase, everything())
+
+kable(richness_results,
+      col.names = c("Phase", "Sites", "ρ", "p"),
+      digits = 3,
+      align = "lcccc")
+```
+
+If degree is primarily driven by richness, the correlations will be strong and significant ($\rho > 0.7$, $p < 0.05$). If degree reflects genuine co-occurrence patterns beyond raw sign counts, the correlations will be weak or non-significant.
+
+**Implications for the main text.** Neither phase shows a significant correlation between node degree and sign-type richness (Aur-P1: ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`; Aur-P2: ρ = `r n3(val(richness_results, "rho", "Aur-P2"))`, p = `r n3(val(richness_results, "p", "Aur-P2"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in Aur-P1 (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) compared to Aur-P2 (`r n2(val(sens_stats, "mean_degree", "Aur-P2", 0.2))`) is not simply an artefact of the Aur-P1 phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree , but the Aur-P1 correlation is slightly negative (ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`) and the Aur-P2 correlation, while positive, is far from significant given the small sample. The main-text conclusion that Aur-P1 represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
+
+## S7.3 Bootstrap Confidence Intervals {#sec-s7-3}
+
+Point estimates of network statistics are sensitive to individual sites and to object sampling within sites. Resampling sites with replacement creates duplicate nodes (similarity 1, distance 0) and inflates mean degree and narrows intervals [@Roberts_2021; @Clarke_Rothery_Raybould_2002]. This section therefore uses object-within-site bootstrap: for each site, draw its observed number of objects with replacement from that site's own objects, rebuild the site x sign presence matrix, and recompute mean degree and modularity at threshold 0.2. Node identity is preserved; uncertainty reflects object sampling rather than artificial duplication. We report the observed statistic and a percentile interval around it.
+
+```{r}
+#| label: tbl-bootstrap-ci
+#| tbl-cap: "Bootstrap 95% percentile intervals for mean degree and modularity at threshold = 0.2, based on 999 object-within-site resamples per phase. Observed is the statistic on the full data; interval is the 2.5% and 97.5% quantiles of the bootstrap distribution. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
+#| tbl-cap-location: bottom
+#| cache: true
+
+boot_results <- bind_rows(
+  {
+    b1 <- bootstrap_network_stats(aurp1_artifact_data, signbase_full_clean, "Aur-P1", n_boot = 999, threshold = 0.2, seed = 42)
+    tibble(Phase = "Aur-P1",
+           md_point = round(b1$observed_md, 2),
+           md_lower = round(b1$md_lower, 2),
+           md_upper = round(b1$md_upper, 2),
+           mod_point = round(b1$observed_mod, 3),
+           mod_lower = round(b1$mod_lower, 3),
+           mod_upper = round(b1$mod_upper, 3))
+  },
+  {
+    b2 <- bootstrap_network_stats(aurp2_artifact_data, signbase_full_clean, "Aur-P2", n_boot = 999, threshold = 0.2, seed = 42)
+    tibble(Phase = "Aur-P2",
+           md_point = round(b2$observed_md, 2),
+           md_lower = round(b2$md_lower, 2),
+           md_upper = round(b2$md_upper, 2),
+           mod_point = round(b2$observed_mod, 3),
+           mod_lower = round(b2$mod_lower, 3),
+           mod_upper = round(b2$mod_upper, 3))
+  }
+)
+
+kable(boot_results,
+      col.names = c("Phase", "Mean degree (observed)", "2.5%", "97.5%", "Q (observed)", "2.5%", "97.5%"),
+      digits = 3,
+      align = "lcccccc")
+```
+
+```{r}
+# S5.7 prose helpers: CI lookups and mean-degree CI overlap flag
+s57_phase <- function(ph) list(
+  md_low   = val(boot_results, "md_lower", ph),
+  md_hi    = val(boot_results, "md_upper", ph),
+  md_pt    = val(boot_results, "md_point", ph),
+  mod_low  = val(boot_results, "mod_lower", ph),
+  mod_hi   = val(boot_results, "mod_upper", ph),
+  mod_pt   = val(boot_results, "mod_point", ph)
+)
+s57_p <- s57_phase("Aur-P1")
+s57_v <- s57_phase("Aur-P2")
+s57_md_overlap <- !(s57_p$md_low > s57_v$md_hi || s57_v$md_low > s57_p$md_hi)
+s57_md_sentence <- if (s57_md_overlap) {
+  paste0("Because the intervals overlap, the bootstrap does not formally separate the two phases ",
+         "by the strict non-overlap criterion; the Aur-P1–Aur-P2 contrast is supported at the ",
+         "point-estimate level (Aur-P1 ", n2(s57_p$md_pt), " vs Aur-P2 ", n2(s57_v$md_pt),
+         ") but is not statistically decisive.")
+} else {
+  paste0("Because the intervals do not overlap, the bootstrap confirms that the Aur-P1–Aur-P2 ",
+         "connectivity contrast is not driven by a handful of influential sites.")
+}
+```
+
+The intervals quantify uncertainty due to object sampling within sites: a narrow interval means the observed statistic is stable when objects are resampled within sites, while a wide interval signals sensitivity to which objects were recovered. Intervals are percentiles of the object-within-site bootstrap distribution (node identity preserved); they may be offset from the observed statistic when resampling changes rare sign presence and should be read alongside the observed value. Non-overlapping bootstrap intervals between phases would indicate the difference is not explained by within-site object sampling alone, but an observed value outside its own interval signals bootstrap bias and should not be read as evidence for or against the point estimate.
+
+**Implications for the main text.** The object-within-site bootstrap CIs show which main-text comparisons are robust to object sampling. For mean degree, the Aur-P1 observed `r n2(s57_p$md_pt)` with CI [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`] and Aur-P2 observed `r n2(s57_v$md_pt)` with CI [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`] `r ifelse(s57_md_overlap, "overlap", "do not overlap")`. `r s57_md_sentence` The observed mean degree lies outside its bootstrap CI for both phases (Aur-P1 `r n2(s57_p$md_pt)` vs. [`r n2(s57_p$md_low)`, `r n2(s57_p$md_hi)`]; Aur-P2 `r n2(s57_v$md_pt)` vs. [`r n2(s57_v$md_low)`, `r n2(s57_v$md_hi)`]), reflecting the tendency for resampling to miss rare signs at large sites and to duplicate the single object carrying a rare sign at small sites. For modularity, CIs are narrow and do not overlap (Aur-P1 observed `r n3(s57_p$mod_pt)` CI [`r n3(s57_p$mod_low)`, `r n3(s57_p$mod_hi)`] vs. Aur-P2 observed `r n3(s57_v$mod_pt)` CI [`r n3(s57_v$mod_low)`, `r n3(s57_v$mod_hi)`]); the point-estimate difference (`r n3(s57_p$mod_pt)` vs. `r n3(s57_v$mod_pt)`) is stable to within-site object resampling, but absolute values remain sensitive to threshold and small-P2 sample (`r nrow(aurp2_artifact_data)` sites) (see S5.3).
+
+## S7.4 Multiple-Testing Correction {#sec-s7-4}
+
+The Mantel tests reported in @tbl-geodesic-mantel and the main text evaluate 4 hypotheses (2 phases × 2 distance measures). Without correction, the effective Type I error rate is inflated. Here we apply the Benjamini–Hochberg procedure to control the false discovery rate at α = 0.05.
+
+```{r}
+#| label: tbl-mantel-bh
+#| tbl-cap: "Mantel test p-values before and after Benjamini–Hochberg correction for multiple testing across 2 phases × 2 distance measures (4 tests total). Results with adjusted p < 0.05 are highlighted."
+#| tbl-cap-location: bottom
+
+# Rerun all Mantel tests and collect results
+mantel_all <- bind_rows(
+  data.frame(Phase = "Aur-P1", run_mantel_comp(aurp1_unique_data)),
+  data.frame(Phase = "Aur-P2", run_mantel_comp(aurp2_unique_data))
+)
+
+# Build vector of 4 raw p-values: Euclidean x2 then Geodesic x2
+raw_p <- c(mantel_all$Euclidean_p, mantel_all$Geodesic_p)
+test_labels <- c(
+  paste0("Euclidean – ", mantel_all$Phase),
+  paste0("Geodesic – ", mantel_all$Phase)
+)
+r_vals <- c(mantel_all$Euclidean_R, mantel_all$Geodesic_R)
+
+# Benjamini-Hochberg correction
+adj_p <- p.adjust(raw_p, method = "BH")
+
+mantel_bh <- tibble(
+  Test = test_labels,
+  R = round(r_vals, 3),
+  `Raw p` = raw_p,
+  `BH-adjusted p` = round(adj_p, 3),
+  Significant = ifelse(adj_p < 0.05, "Yes", "No")
+)
+
+kable(mantel_bh,
+      col.names = c("Test", "R", "Raw p", "BH-adjusted p", "Significant"),
+      digits = 3,
+      align = "lcccc")
+```
+
+```{r}
+# S5.8 prose helpers: the closest-to-significance result
+s58_best <- mantel_bh %>% arrange(`Raw p`) %>% slice(1)
+s58_test  <- s58_best$Test[1]
+s58_R     <- s58_best$R[1]
+s58_rawp  <- s58_best$`Raw p`[1]
+s58_adjp  <- s58_best$`BH-adjusted p`[1]
+s58_n_sig <- sum(mantel_bh$Significant == "Yes")
+s58_after_text <- if (s58_n_sig == 0) {
+  paste0("None of the ", nrow(mantel_bh), " tests reach significance after correction.")
+} else {
+  cat("SBM results not available. Install `blockmodels` package (`renv::install(\"blockmodels\")`) and re-render to fit models.")
+}
+```
+
+Of the `r nrow(mantel_bh)` tests, none approaches nominal significance: the smallest raw $p$-value is `r s58_test` ($R = `r n3(s58_R)`$, raw $p = `r n3(s58_rawp)`$), well above the 0.05 threshold. After Benjamini–Hochberg correction this adjusts to $p = `r n3(s58_adjp)`$. `r s58_after_text` This is consistent with the main-text interpretation: geographic distance does not account for sign distribution in either phase, and the largest correlations are weakly positive for Aur-P1 and weakly negative for Aur-P2. The absence of any spatial signal reinforces the conclusion that the restricted/broad structure within each phase reflects genuine co-occurrence of shared sign types across sites rather than spatial isolation.
+
+## S7.5 Size-Normalised Comparison {#sec-s7-5}
+
+```{r}
+# S5.9 prose helper: site counts and percentage surplus
+s59_pct_more <- round(100 * (nrow(aurp1_artifact_data) - nrow(aurp2_artifact_data)) / nrow(aurp2_artifact_data))
+```
+
+Modularity and mean degree are not invariant to the number of nodes: larger networks tend to have higher modularity even under random assignment. Aur-P1 (`r nrow(aurp1_artifact_data)` sites) has `r s59_pct_more`% more nodes than Aur-P2 (`r nrow(aurp2_artifact_data)` sites). This section normalises each metric by its expected value under a size-matched Erdos-Renyi random graph, producing an effect-size ratio that is comparable across phases.
+
+```{r}
+#| label: tbl-size-normalised
+#| tbl-cap: "Network metrics normalised by size-matched Erdos-Renyi expectation. Ratio > 1 indicates the observed value exceeds the random expectation for a network of the same size. ER mean and SD are based on 100 random graphs per phase."
+#| tbl-cap-location: bottom
+
+compute_normalised_metrics <- function(art, n_rand = 100) {
+  jac <- as.matrix(vegan::vegdist(art, "jaccard", binary = TRUE))
+  adj <- 1 - jac
+  adj[adj < 0.2] <- 0
+  diag(adj) <- 0
+  n <- nrow(adj)
+  p <- sum(adj > 0) / (n * (n - 1))
+  set.seed(42)
+  g_obs <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
+                                                weighted = TRUE, diag = FALSE)
+  obs_md <- mean(igraph::degree(g_obs))
+  set.seed(42)
+  obs_mod <- igraph::modularity(igraph::cluster_louvain(g_obs))
+
+  er_md <- numeric(n_rand)
+  er_mod <- numeric(n_rand)
+  for (i in seq_len(n_rand)) {
+    g_er <- igraph::sample_gnp(n, p, directed = FALSE)
+    er_md[i] <- mean(igraph::degree(g_er))
+    set.seed(i)
+    er_mod[i] <- igraph::modularity(igraph::cluster_louvain(g_er))
+  }
+
+  tibble(
+    Sites = n,
+    Obs_md = round(obs_md, 2),
+    ER_md = round(mean(er_md), 2),
+    MD_ratio = round(obs_md / mean(er_md), 2),
+    Obs_mod = round(obs_mod, 3),
+    ER_mod = round(mean(er_mod), 3),
+    Mod_ratio = round(obs_mod / max(mean(er_mod), 0.001), 2)
+  )
+}
+
+norm_results <- bind_rows(
+  compute_normalised_metrics(aurp1_artifact_data) %>% mutate(Phase = "Aur-P1"),
+  compute_normalised_metrics(aurp2_artifact_data) %>% mutate(Phase = "Aur-P2")
+) %>% dplyr::select(Phase, everything())
+
+kable(norm_results,
+      col.names = c("Phase", "Sites", "Obs. md", "ER md", "MD ratio",
+                     "Obs. Q", "ER Q", "Q ratio"),
+      digits = 2,
+      align = "lcccccccc")
+```
+
+The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A ratio of 1.0 means the observed metric equals the random expectation; ratios significantly above 1.0 indicate genuine structure beyond what node count alone produces.
+
+**Implications for the main text.** The size-normalised results address a potential confound in the main-text phase comparison: because mean degree and modularity both scale with the number of nodes, the `r nrow(aurp1_artifact_data)`-site Aur-P1 network and the `r nrow(aurp2_artifact_data)`-site Aur-P2 network are not directly comparable on those raw measures. Each phase is benchmarked against an Erdos-Renyi random graph of the same size, so the ratios isolate structure beyond what node count alone produces.
+
+- **Mean degree.** The MD ratio is `r n2(val(norm_results, "MD_ratio", "Aur-P1"))` for Aur-P1 and `r n2(val(norm_results, "MD_ratio", "Aur-P2"))` for Aur-P2. Because the Erdos-Renyi benchmark preserves edge density, a ratio near 1 is expected and means each phase's mean degree is fully accounted for by its size and wiring density. The raw gap (Aur-P1 `r n2(val(norm_results, "Obs_md", "Aur-P1"))` vs Aur-P2 `r n2(val(norm_results, "Obs_md", "Aur-P2"))`) therefore reflects the `r s59_pct_more`% larger site sample in Aur-P1, not higher intrinsic connectivity. After size normalisation there is no evidence that Aur-P1 is more "connected" by degree, which is why the main text reports raw degree only descriptively and bases inference on the permutation tests.
+- **Modularity.** The Q ratio is `r n2(val(norm_results, "Mod_ratio", "Aur-P1"))` for Aur-P1 and `r n2(val(norm_results, "Mod_ratio", "Aur-P2"))` for Aur-P2, i.e. observed modularity exceeds the size-matched random expectation by about `r round(100 * (val(norm_results, "Mod_ratio", "Aur-P1") - 1))`% in Aur-P1 and `r round(100 * (val(norm_results, "Mod_ratio", "Aur-P2") - 1))`% in Aur-P2. Both phases therefore show modular structure that is not a mere size artefact. Aur-P1's larger excess means its community structure is stronger than Aur-P2's even after the `r nrow(aurp1_artifact_data)`-versus-`r nrow(aurp2_artifact_data)` site asymmetry is removed, so the phase difference in modularity is not a sample-size artefact; the Aur-P2 excess (`r n2(val(norm_results, "Mod_ratio", "Aur-P2"))`x) is modest and, with only `r nrow(aurp2_artifact_data)` sites, should be read cautiously.
+
+In short, size normalisation removes the mean-degree confound and confirms that the modularity-based claim of stronger community structure in Aur-P1 survives net of network size, whereas neither phase's mean degree can be used as evidence of intrinsically higher connectivity.
 
 # S9. Partition Stability and Generative Models {#sec-s9}
 
@@ -2814,7 +2818,7 @@ kable(cross_algorithm_agreement,
 
 **Implications.** The community detection results confirm that the main-text restricted/broad dichotomy is a simplification of a richer, multi-community structure. The two-group partition captures the dominant axis of variation (core vs. peripheral sign repertoires) but masks finer-scale geographic and technological patterning that emerges at the community level.
 
-# S7. Object-Type Sensitivity: Figurine Exclusion {#sec-s7}
+# S12.8 Figurine Exclusion (merged into S12 in Commit 12) {#sec-s12-fig}
 
 
 ```{r}
