@@ -9,6 +9,7 @@ paper/PEER_REVIEWS.md
 paper/CLAUDE.md
 paper/paper.knit.md
 paper/paper_files/
+paper/*_cache/
 
 # Open ScholarPeer working files (may contain confidential paper content)
 .brain/
