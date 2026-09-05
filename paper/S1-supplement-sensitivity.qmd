@@ -2592,11 +2592,11 @@ s97_adon_sp2 <- round(adon_s_p2$`Pr(>F)`[1], 3)
 
 **Answer:** the restricted/broad pattern is carried by the nestedness component — rich versus poor repertoires — rather than by compositional turnover between the groups. This is consistent with S9.3 and the free-slope S9.4: the groups differ in how much they contain at comparable effort, not in turnover-independent composition. The division should accordingly be read as a richness axis whose separation from sampling effort is not demonstrated for small-object sites.
 
-# S6.7 Characterization of Detected Communities {#sec-s6-7}
+# S11. Community Description {#sec-s11}
 
-The PerMANOVA results in S5.5 and bootstrap consensus in S6.1–S6.3 show that the algorithmically detected communities are statistically significant and internally coherent. This section provides a detailed characterization of those communities: their site membership, geographic distribution, and sign-type composition.
+The PerMANOVA results in S6.5 and bootstrap consensus in S9.2 show that the algorithmically detected communities are statistically significant and internally coherent. This section provides a detailed characterization of those communities: their site membership, geographic distribution, and sign-type composition.
 
-## S6.7.1 Community Membership by Algorithm and Phase {#sec-s6-7-1}
+## S11.1 Community Membership {#sec-s11-1}
 
 We extract the community assignments for each of the four algorithms at the main-analysis threshold (Jaccard ≥ 0.2) and report the full site-by-site membership, with the manual restricted (1) / broad (2) group as reference. A reviewer can then read across any row to see where Louvain, Infomap, Leiden, and Walktrap place the same site.
 
@@ -2686,7 +2686,7 @@ knitr::include_graphics(here::here("figures/comembership-heatmap.png"))
 
 Stable sites keep the same within-column neighbours across all five columns; shifting sites change neighbours from column to column. In Aur-P1 the two large Louvain, Infomap, and Walktrap blocks track the manual restricted and broad groups, with Les Cottés and Trou al'Wesse splitting off as singletons while Leiden collapses the restricted and broad sites into one block. In Aur-P2 Infomap and Leiden collapse all nine sites into a single block, while Louvain and Walktrap split the restricted sites into two smaller blocks (Gargas, Les Rois, Mladeč, and Vindija Cave versus La Viña and Sirgenstein Cave) around the intact broad-range block of Trou Magrite, Bockstein-Törle, and Hohle Fels. The bootstrap consensus co-clustering matrices in @fig-bootstrap-consensus quantify which of these co-memberships survive resampling.
 
-## S6.7.2 Community Composition and Sign-Type Profiles {#sec-s6-7-2}
+## S11.2 Sign-Type Profiles {#sec-s11-2}
 
 For each community, we summarize the sign-type composition to understand what distinguishes one community from another.
 
@@ -2753,7 +2753,7 @@ kable(community_signs_wide %>%
       align = "lccc" %>% paste0(strrep("c", ncol(community_signs_wide) - 4), collapse = ""))
 ```
 
-## S6.7.3 Geographic Distribution of Communities {#sec-s6-7-3}
+## S11.3 Geographic Distribution {#sec-s11-3}
 
 We map the communities to visualize their geographic structure. Community IDs are colored consistently within each phase.
 
@@ -2811,7 +2811,7 @@ ggsave(filename = here::here("figures/community-maps.png"),
 knitr::include_graphics(here::here("figures/community-maps.png"))
 ```
 
-## S6.7.4 Cross-Algorithm Community Comparison {#sec-s6-7-4}
+## S11.4 Cross-Algorithm Comparison {#sec-s11-4}
 
 We examine how consistently sites are assigned to communities across the four algorithms, focusing on the main-analysis threshold of 0.2.
 
@@ -2879,15 +2879,15 @@ kable(cross_algorithm_agreement,
       align = "llcccccc")
 ```
 
-## S6.7.5 Interpretation {#sec-s6-7-5}
+## S11.5 Interpretation {#sec-s11-5}
 
-**Community structure in Aur-P1.** The Louvain algorithm identifies 4 communities in Aur-P1 (Table S6.7.1). The largest communities (Community 1 with `r sum(louvain_comms_p1 == 1)` sites and Community 2 with `r sum(louvain_comms_p1 == 2)` sites) coincide almost exactly with the manual restricted and broad groups, with Les Cottés and Trou al'Wesse splitting off as singleton communities, suggesting the partition captures the core restricted and broad sign repertoires. The geographic map (@fig-community-maps, Aur-P1 facet) shows that Community 2 spans the broadest geographic range, while the smaller communities are more spatially clustered.
+**Community structure in Aur-P1.** The Louvain algorithm identifies 4 communities in Aur-P1 (@tbl-community-membership). The largest communities (Community 1 with `r sum(louvain_comms_p1 == 1)` sites and Community 2 with `r sum(louvain_comms_p1 == 2)` sites) coincide almost exactly with the manual restricted and broad groups, with Les Cottés and Trou al'Wesse splitting off as singleton communities, suggesting the partition captures the core restricted and broad sign repertoires. The geographic map (@fig-community-maps, Aur-P1 facet) shows that Community 2 spans the broadest geographic range, while the smaller communities are more spatially clustered.
 
-**Community structure in Aur-P2.** Aur-P2 resolves into 3 Louvain communities (Table S6.7.1). With only `r nrow(aurp2_artifact_data)` sites total, the communities are small (1–3 sites each), and the PerMANOVA significance (S5.5) likely reflects strong pairwise similarities among a few sites rather than robust multi-site clusters. The geographic map (@fig-community-maps, Aur-P2 facet) shows limited spatial coherence, consistent with the non-significant null-benchmarked modularity (S5.3).
+**Community structure in Aur-P2.** Aur-P2 resolves into 3 Louvain communities (@tbl-community-membership). With only `r nrow(aurp2_artifact_data)` sites total, the communities are small (1–3 sites each), and the PerMANOVA significance (S6.5) likely reflects strong pairwise similarities among a few sites rather than robust multi-site clusters. The geographic map (@fig-community-maps, Aur-P2 facet) shows limited spatial coherence, consistent with the non-significant null-benchmarked modularity (S7.1).
 
-**Cross-algorithm consistency.** Table S6.7.4 shows that Louvain and Walktrap produce nearly identical partitions (agreement > 0.9 for most sites), while Infomap and Leiden yield coarser partitions with fewer communities. Sites that are assigned consistently across all four algorithms represent the strongest signal; those that vary indicate boundary uncertainty.
+**Cross-algorithm consistency.** @tbl-cross-algorithm-agreement shows that Louvain and Walktrap produce nearly identical partitions (agreement > 0.9 for most sites), while Infomap and Leiden yield coarser partitions with fewer communities. Sites that are assigned consistently across all four algorithms represent the strongest signal; those that vary indicate boundary uncertainty.
 
-**Sign-type differentiation.** Table S6.7.2 reveals that communities differ primarily in the frequency of `obline`, `dashline`, and `zigzag` signs, which are the most widespread sign types. No single sign type is exclusive to a community, supporting the interpretation that communities reflect graded differences in sign repertoire composition rather than discrete "cultural provinces."
+**Sign-type differentiation.** @tbl-community-composition reveals that communities differ primarily in the frequency of `obline`, `dashline`, and `zigzag` signs, which are the most widespread sign types. No single sign type is exclusive to a community, supporting the interpretation that communities reflect graded differences in sign repertoire composition rather than discrete "cultural provinces."
 
 **Implications.** The community detection results confirm that the main-text restricted/broad dichotomy is a simplification of a richer, multi-community structure. The two-group partition captures the dominant axis of variation (core vs. peripheral sign repertoires) but masks finer-scale geographic and technological patterning that emerges at the community level.
 
