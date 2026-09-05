@@ -40,13 +40,6 @@ bibliography: references.bib
 csl: "../templates/elsevier-vancouver.csl"
 ---
 
-# S1. Sensitivity Analysis: Network Similarity Threshold {#sec-s1}
-
-## Rationale
-
-In the main analysis, edges in the site-to-site networks are drawn only when two sites share a Jaccard similarity of ≥ 0.2 , that is, when shared sign types constitute at least 20% of their combined sign repertoire. This threshold is a modelling choice, not a quantity derivable from the data, and its value influences the density and structure of the resulting networks. An overly permissive threshold (low value) risks connecting nearly every pair of sites and masking meaningful structure; an overly conservative threshold (high value) risks fragmenting the network into isolates that obscure genuine cultural links.
-
-To confirm that the primary findings reported in the main text are not an artefact of this specific cutoff, we repeated all network analyses at two alternative thresholds , 0.1 (permissive) and 0.3 (conservative) , and compared the key network statistics and visual structure against the main-text threshold of 0.2.
 
 ```{r setup}
 library(tidyverse)
@@ -184,40 +177,13 @@ site_phase_comparison <- variant_results$midpoint$sites %>%
   )
 ```
 
-```{r}
-#| label: tbl-date-variant-comparison
-#| tbl-cap: "Site phase assignments under three date variants. The midpoint variant is used in the main analysis. Sites with 'Yes' in the Changes column have different phase assignments across variants."
-#| tbl-cap-location: bottom
-
-changing_sites <- site_phase_comparison %>%
-  filter(changes == "Yes") %>%
-  dplyr::select(Site = site_name,
-                `MedianBP (older)` = MedianBP_older,
-                `Phase (older)` = Phase_older,
-                `MedianBP (midpoint)` = MedianBP_midpoint,
-                `Phase (midpoint)` = Phase_midpoint,
-                `MedianBP (younger)` = MedianBP_younger,
-                `Phase (younger)` = Phase_younger,
-                Changes = changes) %>%
-  arrange(Site)
-
-kable(changing_sites,
-      col.names = c("Site", "MedianBP (older)", "Phase (older)",
-                    "MedianBP (midpoint)", "Phase (midpoint)",
-                    "MedianBP (younger)", "Phase (younger)", "Changes"),
-      digits = 0,
-      align = "lrclrclc")
-```
-
-**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms that single-end calibration systematically biases sites toward the older phase.
-
-# S0. Site rejection {#sec-s0}
+# S1. Sample Foundation and Site Retention {#sec-s0}
 
 ## Rationale
 
 This section expands on the site rejection details notes in the main text. 
 
-## S0.1 Counts
+## S1.1 Counts
 
 The raw extract contains `r n_raw_signed_objects` signed objects (objects with at least one presence in `line:star` after dropping `other`/`rectangle`, as in `clean_signbase()`) at `r n_raw_signed_sites` sites. After removing the eight sites listed in the main text as examples of low quality data, `r nrow(after_eight)` signed objects at `r n_distinct(after_eight$site_name)` sites remain. A further `r n_dropped_sites` sites carrying `r n_dropped_objects` signed objects are lost at the data cleaning step and do not enter phase assignment. The retained analysed sample is therefore `r n_retained_objects` objects at `r n_retained_sites` unique geographic sites (the `r n_retained_sites` sites are later split into site-phase units in the next chunk).
 
@@ -248,10 +214,12 @@ kable(dropped_tbl,
       align = "lclcl")
 ```
 
-## S0.2 Interpretation
+## S1.2 Interpretation
 
-Because the `r n_dropped_objects` objects include the seventh-largest assemblage (Grotte de Goyet, `r goyet_plain_objects` objects) and ten of the `r n_plain_sites` plain-range sites date to `38–30` ka, the small Aur-P2 sample is disproportionately affected — in the retained sample Aur-P2 rests on only 9 sites (see next chunk). All network, Mantel and PerMANOVA results in S1.1–S9 below are therefore conditional on the retained sample of `r n_retained_objects` objects at `r n_retained_sites` sites. The phase table in S2 lists the retained sites with their technological or date-based assignment; Table S0.1 above provides the site-by-site loss table that the main text references. 
+Because the `r n_dropped_objects` objects include the seventh-largest assemblage (Grotte de Goyet, `r goyet_plain_objects` objects) and ten of the `r n_plain_sites` plain-range sites date to `38–30` ka, the small Aur-P2 sample is disproportionately affected — in the retained sample Aur-P2 rests on only 9 sites (see next chunk). All network, Mantel and PerMANOVA results in S2–S12 below are therefore conditional on the retained sample of `r n_retained_objects` objects at `r n_retained_sites` sites. The phase table in S2 lists the retained sites with their technological or date-based assignment; Table S1.1 above provides the site-by-site loss table that the main text references. 
 
+
+## S1.3 Analysis-ready phase data
 
 ```{r}
 # ── Two-phase (Aur-P1/Aur-P2) technology-based data, mirroring paper.qmd ─────
@@ -266,8 +234,43 @@ aurp1_unique_data <- add_manual_group(aurp1_unique_data, "Aur-P1")
 aurp2_unique_data <- add_manual_group(aurp2_unique_data, "Aur-P2")
 ```
 
+# S2. Network Threshold {#sec-s1}
 
-## S1.1 Network Statistics Across Thresholds
+## Rationale
+
+In the main analysis, edges in the site-to-site networks are drawn only when two sites share a Jaccard similarity of ≥ 0.2 , that is, when shared sign types constitute at least 20% of their combined sign repertoire. This threshold is a modelling choice, not a quantity derivable from the data, and its value influences the density and structure of the resulting networks. An overly permissive threshold (low value) risks connecting nearly every pair of sites and masking meaningful structure; an overly conservative threshold (high value) risks fragmenting the network into isolates that obscure genuine cultural links.
+
+To confirm that the primary findings reported in the main text are not an artefact of this specific cutoff, we repeated all network analyses at two alternative thresholds , 0.1 (permissive) and 0.3 (conservative) , and compared the key network statistics and visual structure against the main-text threshold of 0.2.
+
+
+```{r}
+#| label: tbl-date-variant-comparison
+#| tbl-cap: "Site phase assignments under three date variants. The midpoint variant is used in the main analysis. Sites with 'Yes' in the Changes column have different phase assignments across variants."
+#| tbl-cap-location: bottom
+
+changing_sites <- site_phase_comparison %>%
+  filter(changes == "Yes") %>%
+  dplyr::select(Site = site_name,
+                `MedianBP (older)` = MedianBP_older,
+                `Phase (older)` = Phase_older,
+                `MedianBP (midpoint)` = MedianBP_midpoint,
+                `Phase (midpoint)` = Phase_midpoint,
+                `MedianBP (younger)` = MedianBP_younger,
+                `Phase (younger)` = Phase_younger,
+                Changes = changes) %>%
+  arrange(Site)
+
+kable(changing_sites,
+      col.names = c("Site", "MedianBP (older)", "Phase (older)",
+                    "MedianBP (midpoint)", "Phase (midpoint)",
+                    "MedianBP (younger)", "Phase (younger)", "Changes"),
+      digits = 0,
+      align = "lrclrclc")
+```
+
+**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms that single-end calibration systematically biases sites toward the older phase.
+
+## S2.1 Network Statistics Across Thresholds
 
 @tbl-sens-stats reports the key network statistics for each Aurignacian phase at thresholds of 0.1, 0.2, and 0.3. Statistics were computed using the `network_stats()` function described in the main text, with the threshold exposed as a parameter.
 
@@ -323,7 +326,7 @@ pval <- function(df, col, pattern) {
 }
 ```
 
-## S1.2 Network Visualisations Across Thresholds
+## S2.2 Network Visualisations Across Thresholds
 
 @fig-sens-networks shows the site networks for each phase and each threshold. Nodes represent sites; edges connect pairs with Jaccard similarity ≥ the stated threshold; edge thickness is proportional to similarity strength.
 
@@ -352,7 +355,7 @@ ggsave(filename = here::here("figures/sensitivity-network-plot.png"),
 knitr::include_graphics(here::here("figures/sensitivity-network-plot.png"))
 ```
 
-## S1.3 Interpretation
+## S2.3 Interpretation
 
 The sensitivity analysis shows that the main findings reported in the text are **robust across the tested range of thresholds**. Several patterns hold consistently at all three values:
 
@@ -1779,7 +1782,7 @@ kable(ts_bin_tab, digits = 3)
 
 **Question 3 — how should a flat trend be interpreted?** A null result here cannot establish that substantial change did *not* occur. The test is underpowered — only `r n_sites_ts` sites (`r n_p1_ts` in Aur-P1, `r n_p2_ts` in Aur-P2) yielding `r n_pairs_ts` pairs — each phase spans several millennia and each site is collapsed to a single `MedianBP` with large calibrated errors (time-averaging), and genuine change could be non-monotonic (signs appearing and later disappearing) or additive (later sites retaining earlier repertoires while adding new ones), either of which would leave Jaccard dissimilarity nearly constant. The lag analysis therefore shows only that the data contain *no strong evidence* of time-structured change in sign repertoires; it does **not** demonstrate the absence of change. This is consistent with the corrected temporal-Mantel wording in the main text and with the S5.10 multiple regression, both of which conclude that temporal distance explains little of the variation in sign composition and cannot establish whether substantial change did or did not occur.
 
-# S5.13 Objective Regional Grouping Exploration: Geography-First, Then Ask Do Signs Differ {#sec-s5-13}
+# S5.13 Objective Regional Grouping Exploration: Geography-First, Then Ask Do Signs Differ {#sec-s5-19}
 
 ### Rationale
 
