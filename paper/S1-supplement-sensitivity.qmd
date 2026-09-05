@@ -243,33 +243,6 @@ In the main analysis, edges in the site-to-site networks are drawn only when two
 To confirm that the primary findings reported in the main text are not an artefact of this specific cutoff, we repeated all network analyses at two alternative thresholds , 0.1 (permissive) and 0.3 (conservative) , and compared the key network statistics and visual structure against the main-text threshold of 0.2.
 
 
-```{r}
-#| label: tbl-date-variant-comparison
-#| tbl-cap: "Site phase assignments under three date variants. The midpoint variant is used in the main analysis. Sites with 'Yes' in the Changes column have different phase assignments across variants."
-#| tbl-cap-location: bottom
-
-changing_sites <- site_phase_comparison %>%
-  filter(changes == "Yes") %>%
-  dplyr::select(Site = site_name,
-                `MedianBP (older)` = MedianBP_older,
-                `Phase (older)` = Phase_older,
-                `MedianBP (midpoint)` = MedianBP_midpoint,
-                `Phase (midpoint)` = Phase_midpoint,
-                `MedianBP (younger)` = MedianBP_younger,
-                `Phase (younger)` = Phase_younger,
-                Changes = changes) %>%
-  arrange(Site)
-
-kable(changing_sites,
-      col.names = c("Site", "MedianBP (older)", "Phase (older)",
-                    "MedianBP (midpoint)", "Phase (midpoint)",
-                    "MedianBP (younger)", "Phase (younger)", "Changes"),
-      digits = 0,
-      align = "lrclrclc")
-```
-
-**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms that single-end calibration systematically biases sites toward the older phase.
-
 ## S2.1 Network Statistics Across Thresholds
 
 @tbl-sens-stats reports the key network statistics for each Aurignacian phase at thresholds of 0.1, 0.2, and 0.3. Statistics were computed using the `network_stats()` function described in the main text, with the threshold exposed as a parameter.
@@ -602,7 +575,7 @@ Consistent with the main-text Mantel tests (which report no significant geograph
 
 ## S5.1 Rationale
 
-The main analysis adopts the two-phase Aur-P1/Aur-P2 framework of @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021, which merges the Proto- and Early Aurignacian into a single early phase (Aur-P1, 43–37 ka BP) and treats the Evolved/Late Aurignacian as a single late phase (Aur-P2, 37–32 ka BP), with site membership assigned on technological grounds (S8). Because this scheme is coarser than the classic three-phase periodisation of Western European archaeology, this section tests whether the two-phase results are robust to how the sequence is subdivided. We decompose the two-phase baseline into its technology-assigned components , the relict Proto-Aurignacian, the Early Aurignacian, and the Evolved Aurignacian (Aur-P2) , and additionally split the Evolved Aurignacian into Evolved and Late sub-phases following the four-phase taxonomy of @teyssandier2018entity, with the Evolved–Late boundary at 35 ka BP calibrated. All schemes are evaluated at the main-text threshold of 0.2 using Jaccard similarity.
+The main analysis adopts the two-phase Aur-P1/Aur-P2 framework of @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021, which merges the Proto- and Early Aurignacian into a single early phase (Aur-P1, 43–37 ka BP) and treats the Evolved/Late Aurignacian as a single late phase (Aur-P2, 37–32 ka BP), with site membership assigned on technological grounds (S5.5). Because this scheme is coarser than the classic three-phase periodisation of Western European archaeology, this section tests whether the two-phase results are robust to how the sequence is subdivided. We decompose the two-phase baseline into its technology-assigned components , the relict Proto-Aurignacian, the Early Aurignacian, and the Evolved Aurignacian (Aur-P2) , and additionally split the Evolved Aurignacian into Evolved and Late sub-phases following the four-phase taxonomy of @teyssandier2018entity, with the Evolved–Late boundary at 35 ka BP calibrated. All schemes are evaluated at the main-text threshold of 0.2 using Jaccard similarity.
 
 ```{r}
 #| label: tbl-two-phase-ref
@@ -648,7 +621,7 @@ kable(three_phase_tech,
 
 The two-phase, three-phase, and four-phase periodisations yield consistent conclusions about the broad structure of Aurignacian social connectivity, while clarifying which components carry the two-phase results.
 
-**Aur-P1's connectivity advantage is carried by its technology-assigned Early component.** Decomposing the two-phase baseline into its technology-assigned components shows that the Early Aurignacian (mean degree = `r n2(pval(three_phase_tech, "mean_degree", "Early"))`, `r pval(three_phase_tech, "n_edges", "Early")` edges across `r pval(three_phase_tech, "n_sites", "Early")` sites) is the most connected component, exceeding even Aur-P2 (`r n2(pval(three_phase_tech, "mean_degree", "Evolved"))`, `r pval(three_phase_tech, "n_edges", "Evolved")` edges). The relict Proto-Aurignacian , the component that survives after technology-based reassignment moved the well-sampled Swabian and Périgord sites to the Early Aurignacian (S8) , is the least connected of the three (mean degree `r n2(pval(three_phase_tech, "mean_degree", "Proto"))` across `r pval(three_phase_tech, "n_sites", "Proto")` sites and `r pval(three_phase_tech, "n_edges", "Proto")` edges). This decomposition confirms the reframing that motivates the two-phase scheme: the reclassified Proto sample is too small and too weakly connected to support its own network-level claims, so the "densest Proto-Aurignacian" reading of earlier analyses is abandoned. The merged Aur-P1 mean degree (`r n2(pval(two_phase_ref, "mean_degree", "Aur-P1"))`) is driven by the Early component, not by a spurious average of two strong phases.
+**Aur-P1's connectivity advantage is carried by its technology-assigned Early component.** Decomposing the two-phase baseline into its technology-assigned components shows that the Early Aurignacian (mean degree = `r n2(pval(three_phase_tech, "mean_degree", "Early"))`, `r pval(three_phase_tech, "n_edges", "Early")` edges across `r pval(three_phase_tech, "n_sites", "Early")` sites) is the most connected component, exceeding even Aur-P2 (`r n2(pval(three_phase_tech, "mean_degree", "Evolved"))`, `r pval(three_phase_tech, "n_edges", "Evolved")` edges). The relict Proto-Aurignacian , the component that survives after technology-based reassignment moved the well-sampled Swabian and Périgord sites to the Early Aurignacian (S5.5) , is the least connected of the three (mean degree `r n2(pval(three_phase_tech, "mean_degree", "Proto"))` across `r pval(three_phase_tech, "n_sites", "Proto")` sites and `r pval(three_phase_tech, "n_edges", "Proto")` edges). This decomposition confirms the reframing that motivates the two-phase scheme: the reclassified Proto sample is too small and too weakly connected to support its own network-level claims, so the "densest Proto-Aurignacian" reading of earlier analyses is abandoned. The merged Aur-P1 mean degree (`r n2(pval(two_phase_ref, "mean_degree", "Aur-P1"))`) is driven by the Early component, not by a spurious average of two strong phases.
 
 **The early/late contrast is not an artefact of merging.** Even without the Proto component, the Early Aurignacian alone (mean degree `r n2(pval(three_phase_tech, "mean_degree", "Early"))`) exceeds Aur-P2 (`r n2(pval(three_phase_tech, "mean_degree", "Evolved"))`), so the two-phase Aur-P1 > Aur-P2 result does not depend on the Proto/Early boundary being drawn one way or the other. The connectivity gap between the early and late Aurignacian persists whether the early sequence is analysed as a single phase or as its separate Proto and Early components.
 
@@ -689,6 +662,277 @@ kable(four_phase_df,
 ### Four-phase interpretation
 
 The four-phase Aurignacian taxonomy of @teyssandier2018entity distinguishes Proto, Early (Aurignacian I), Evolved (Aurignacian II), and Late (Aurignacian III-IV) phases. The Early–Evolved transition has been dated to 37.0–36.5 ka BP, and the Late Aurignacian is associated with the terminal phase of the technocomplex before the onset of the Gravettian. Splitting the Evolved Aurignacian (Aur-P2) at 35 ka BP into Evolved and Late sub-phases tests whether Aur-P2's connectivity is internally differentiated. The Evolved Aurignacian (37.8–35 ka BP) retains moderate connectivity with `r pval(four_phase_df, "n_edges", "Evolved")` edges and a mean degree of `r n2(pval(four_phase_df, "mean_degree", "Evolved"))` across `r pval(four_phase_df, "n_sites", "Evolved")` sites, while the Late Aurignacian (35–32 ka BP) is severely data-limited: with only `r pval(four_phase_df, "n_sites", "Late")` sites and no edges at threshold 0.2, its network statistics (mean degree 0, modularity undefined) are unreliable. The near-absence of connectivity in the Late Aurignacian is consistent with the weaker, less resolved structure of Aur-P2 reported in the main text, but the sample is too small to determine whether the Evolved–Late transition represents a step-down or a continuation of an already low level. The two-phase scheme remains the most informative for the main analysis, as it avoids fragmenting Aur-P2 into sub-phases whose small sample sizes preclude robust statistical inference.
+
+## S5.3 Date-Variant Calibration {#sec-s5-datevariant}
+
+```{r}
+#| label: tbl-date-variant-comparison
+#| tbl-cap: "Site phase assignments under three date variants. The midpoint variant is used in the main analysis. Sites with 'Yes' in the Changes column have different phase assignments across variants."
+#| tbl-cap-location: bottom
+
+changing_sites <- site_phase_comparison %>%
+  filter(changes == "Yes") %>%
+  dplyr::select(Site = site_name,
+                `MedianBP (older)` = MedianBP_older,
+                `Phase (older)` = Phase_older,
+                `MedianBP (midpoint)` = MedianBP_midpoint,
+                `Phase (midpoint)` = Phase_midpoint,
+                `MedianBP (younger)` = MedianBP_younger,
+                `Phase (younger)` = Phase_younger,
+                Changes = changes) %>%
+  arrange(Site)
+
+kable(changing_sites,
+      col.names = c("Site", "MedianBP (older)", "Phase (older)",
+                    "MedianBP (midpoint)", "Phase (midpoint)",
+                    "MedianBP (younger)", "Phase (younger)", "Changes"),
+      digits = 0,
+      align = "lrclrclc")
+```
+
+**Date-variant sensitivity results.** The three date variants produce different phase assignments for several sites (Table above). Using the older end of each date range (the method used in the main analysis to preserve the report-based Aur-P1 20 / Aur-P2 9 partition matching frozen `manual_groups`) assigns more sites to Aur-P1, while the younger end assigns more to Aur-P2; the midpoint variant gives intermediate assignments. Key sites that change phase include Mladeč (older: Aur-P1, midpoint/younger: Aur-P2), Cellier, Solutré, Grotte de la Verpillière I, Trou al'Wesse, and Grottes de Fonds-de-Forêt (older: Aur-P1, midpoint/younger: Aur-P2). This confirms that single-end calibration systematically biases sites toward the older phase.
+
+## S5.4 Phase-Boundary Sensitivity {#sec-s5-boundary}
+
+### Rationale
+
+The two-phase periodisation uses a single calibrated MedianBP threshold of 37799 separating Aur-P1 (43.0–37.8 ka) from Aur-P2 (37.8–32.0 ka). This is a conventional round number, not derived from a formal change-point analysis. Objects with calibrated dates near this boundary could be assigned to either phase depending on the exact threshold chosen. This section tests whether the network-level findings are sensitive to the placement of this boundary by shifting it by ±500 and ±1000 years. The technology-based overrides are held fixed (Geissenklösterle, Vogelherd, La Ferrassie, and Abri Pataud in Aur-P1; Hohle Fels at the layer level , AH V in Aur-P1 and AH IV, III and the II-series in Aur-P2; Mladeč in Aur-P2; Spy and El Castillo excluded), so the test isolates the effect of the date-based cutoff.
+
+```{r}
+#| label: tbl-boundary-proximity
+#| tbl-cap: "Number of objects and sites within ±500 and ±1000 calibrated years of the single periodisation boundary at 37799 BP separating Aur-P1 from Aur-P2."
+#| tbl-cap-location: bottom
+
+p2_500  <- signbase_full_clean %>% filter(MedianBP >= 37299, MedianBP <= 38299)
+p2_1000 <- signbase_full_clean %>% filter(MedianBP >= 36799, MedianBP <= 38799)
+
+boundary_proximity <- tibble(
+  Boundary = c("Aur-P1/Aur-P2 (37799 BP)", "Aur-P1/Aur-P2 (37799 BP)"),
+  Window = c("±500 years", "±1000 years"),
+  Objects = c(nrow(p2_500), nrow(p2_1000)),
+  Sites = c(n_distinct(p2_500$site_name), n_distinct(p2_1000$site_name))
+)
+
+kable(boundary_proximity,
+      col.names = c("Boundary", "Window", "Objects", "Sites"),
+      digits = 0)
+```
+
+```{r}
+#| label: tbl-boundary-shifts
+#| tbl-cap: "Network statistics at the baseline threshold of 0.2 under shifts of the single Aur-P1/Aur-P2 boundary. Positive shifts move the boundary later (older objects reassigned to Aur-P2); negative shifts move it earlier (younger Aur-P2 objects reassigned to Aur-P1)."
+#| tbl-cap-location: bottom
+
+# Helper: rebuild phase data for a given P1/P2 boundary and compute network stats
+compute_phase2_stats <- function(p2_boundary) {
+  signed_clean <- signbase_full_clean %>%
+    mutate(assigned_phase2 = case_when(
+      site_name == "Hohle Fels" & layer %in% c("IV", "IIIa", "IIIb", "Iid", "Iida", "Iie") ~ "Aur-P2",
+      site_name == "Hohle Fels" & layer %in% c("Va", "Vaa", "Vab", "Vb") ~ "Aur-P1",
+      site_name == "Hohle Fels" & layer == "IIIa-V" ~ NA_character_,
+      site_name %in% c("Geissenklösterle", "Vogelherd", "La Ferrassie",
+                       "Abri Pataud", "Gatzarria") ~ "Aur-P1",
+      site_name == "Mladeč" ~ "Aur-P2",
+      MedianBP > p2_boundary ~ "Aur-P1",
+      MedianBP > 31999       ~ "Aur-P2")) %>%
+    filter(!is.na(assigned_phase2))
+
+  map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
+    phase_df <- signed_clean %>% filter(assigned_phase2 == ph)
+    # Skip if fewer than 2 sites
+    if (n_distinct(phase_df$site_name) < 2) return(NULL)
+    phase_obj <- phase_df %>% group_by(site_name) %>% summarise(nobjects = n())
+    phase_unique <- phase_df %>%
+      group_by(site_name) %>%
+      mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
+      summarize(across(where(is.numeric), sum)) %>%
+      left_join(lat_long_df) %>%
+      left_join(phase_obj) %>%
+      mutate(time_period = ph)
+    phase_artifact <- extract_artifact(phase_unique)
+    ns <- network_stats(phase_artifact, threshold = 0.2)
+    data.frame(
+      Phase = ph, n_sites = ns$n_sites, n_edges = ns$n_edges,
+      density = ns$density, mean_degree = ns$mean_degree,
+      modularity = ns$modularity, n_communities = ns$n_communities,
+      stringsAsFactors = FALSE
+    )
+  })
+}
+
+# Baseline
+baseline <- compute_phase2_stats(37799)
+baseline$Shift <- "Baseline"
+
+# Independent shifts of the single P1/P2 boundary
+boundary_shifts <- map_dfr(c(-1000, -500, 500, 1000), function(s) {
+  res <- compute_phase2_stats(37799 + s)
+  res$Shift <- paste0("P1/P2 ", ifelse(s > 0, "+", ""), s)
+  res
+})
+boundary_shifts_all <- bind_rows(baseline, boundary_shifts)
+
+kable(boundary_shifts_all %>%
+        dplyr::select(Shift, Phase, n_sites, n_edges, mean_degree, modularity) %>%
+        arrange(Shift, Phase),
+      col.names = c("Shift", "Phase", "Sites", "Edges", "Mean degree", "Modularity"),
+      digits = 3)
+```
+
+```{r}
+# S5.5 prose helpers
+s55_order_ok <- boundary_shifts_all %>%
+  filter(Shift != "Baseline") %>%
+  dplyr::select(Shift, Phase, mean_degree) %>%
+  pivot_wider(names_from = Phase, values_from = mean_degree) %>%
+  summarise(n_ok = sum(`Aur-P1` > `Aur-P2`, na.rm = TRUE)) %>%
+  pull(n_ok)
+s55_p1_md   <- boundary_shifts_all$mean_degree[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
+s55_p2_md   <- boundary_shifts_all$mean_degree[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
+s55_p1_mod  <- boundary_shifts_all$modularity[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
+s55_p2_mod  <- boundary_shifts_all$modularity[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
+s55_p1_sites <- boundary_shifts_all$n_sites[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
+s55_p2_sites <- boundary_shifts_all$n_sites[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
+
+n0 <- function(x) formatC(as.numeric(x), digits = 0, format = "f")
+s55_closest <- function(boundary, sites) {
+  signbase_full_clean %>%
+    filter(site_name %in% sites) %>%
+    mutate(MedianBP = as.numeric(MedianBP)) %>%
+    mutate(dist = abs(MedianBP - boundary)) %>%
+    group_by(site_name) %>%
+    slice_min(dist, n = 1, with_ties = FALSE) %>%
+    ungroup() %>%
+    dplyr::select(site_name, MedianBP, dist)
+}
+s55_vindija  <- s55_closest(37799, "Vindija Cave")
+s55_blanchard <- s55_closest(37799, "Blanchard")
+s55_hohle    <- s55_closest(37799, "Hohle Fels")
+```
+
+### Diagnostic interpretation
+
+`r boundary_proximity$Objects[boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±1000 years"]` sites fall within ±1000 calibrated years of the boundary at 37799 BP, and `r boundary_proximity$Objects[boundary_proximity$Window == "±500 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±500 years"]` sites within ±500 years. The sites closest to the boundary are Hohle Fels (MedianBP `r n0(s55_hohle$MedianBP[s55_hohle$site_name == "Hohle Fels"])`, just `r n0(s55_hohle$dist[s55_hohle$site_name == "Hohle Fels"])` years below the threshold) and Vindija Cave (`r n0(s55_vindija$MedianBP[s55_vindija$site_name == "Vindija Cave"])`, `r n0(s55_vindija$dist[s55_vindija$site_name == "Vindija Cave"])` years below), while the closest site above the threshold is Blanchard (`r n0(s55_blanchard$MedianBP[s55_blanchard$site_name == "Blanchard"])`, `r n0(s55_blanchard$dist[s55_blanchard$site_name == "Blanchard"])` years above). Because only an upward shift can transfer sites into Aur-P2, and only a downward shift into Aur-P1, the reassignments are asymmetric: a downward shift of 500 years moves Vindija Cave from Aur-P2 to Aur-P1 (the only Aur-P2 site within reach), while an upward shift of 500 years moves Blanchard into Aur-P2 and an upward shift of 1000 years additionally moves Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt. Hohle Fels lies just below the boundary, but its near-boundary objects belong to AH IV, which the technology-based override fixes in Aur-P2 (its Aur-P1 horizon, AH V, is well above the boundary), so it does not change phase under any shift. The boundary-sensitive sites are therefore few and, apart from Cellier (28 objects) and Blanchard (18 objects), small.
+
+### Independent-shift interpretation
+
+The independent-shift analysis shifts the single P1/P2 boundary while holding the technology-based overrides fixed. Across the four shifts tested, the Aur-P1 mean degree ranges from `r range_str(s55_p1_md, 2)` and Aur-P2 from `r range_str(s55_p2_md, 2)`. The Aur-P1 > Aur-P2 connectivity ordering is preserved in all `r s55_order_ok` shifts: a downward shift adds Vindija Cave to Aur-P1, raising its mean degree to `r n2(max(s55_p1_md))` (82 edges) while shrinking Aur-P2 to `r min(s55_p2_sites)` sites (mean degree `r n2(min(s55_p2_md))`); an upward shift transfers sites the other way, with Aur-P1 at `r min(s55_p1_sites)` sites after the ±1000 year shift yet still averaging `r n2(min(s55_p1_md))`, above Aur-P2's `r n2(max(s55_p2_md))`. Modularity is stable: Aur-P1 ranges from `r n3(min(s55_p1_mod))` to `r n3(max(s55_p1_mod))` across shifts (baseline `r n3(boundary_shifts_all$modularity[boundary_shifts_all$Shift == "Baseline" & boundary_shifts_all$Phase == "Aur-P1"])`) and Aur-P2 from `r n3(min(s55_p2_mod))` to `r n3(max(s55_p2_mod))` (baseline `r n3(boundary_shifts_all$modularity[boundary_shifts_all$Shift == "Baseline" & boundary_shifts_all$Phase == "Aur-P2"])`), indicating that the community structure in both phases is not sensitive to boundary placement.
+
+### Conclusion
+
+The two-phase results are robust to the placement of the single periodisation boundary. Shifting it by ±1000 calibrated years moves at most five sites between phases (Vindija Cave into Aur-P1; Blanchard, Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt into Aur-P2), and in every scenario Aur-P1 retains both more sites and a higher mean degree than Aur-P2. The main-text conclusion that Aur-P1 forms a more densely connected network than Aur-P2 is therefore not an artefact of the exact boundary value; the strength of the contrast shifts with the boundary, but its direction does not.
+
+## S5.5 Technological Versus Date-Based Assignment {#sec-s5-reclass}
+
+### Rationale
+
+The main analysis assigns each site to a phase (Aur-P1/Aur-P2) using specialist technological attributions from the published literature, supplemented by calibrated radiocarbon dates, as detailed in the "Site Phase Assignments" supplementary item. Recent specialist reassessments demonstrate that radiocarbon dates alone are insufficient for phase attribution, and that the archaeological content of layers should take precedence:
+
+- **Abri Pataud**: The lithic technology in levels 14–9 (carinated scraper bladelet cores, dual reduction systems) is diagnostic of the Early Aurignacian (Aur-P1), not the Proto-Aurignacian, despite basal dates of ~41,200–39,500 cal BP that fall within the Proto-Aurignacian range [@Chiotti_2005; @Higham_Abri_Pataud_2011]. The site is classified as Aurignacian I (Early) in the Périgord sequence.
+- **La Ferrassie**: The Aurignacian at La Ferrassie begins in Layer 7, directly overlying the Châtelperronian (Layer 6). [@Talamo_La_Ferrassie_2020] classify this as Early Aurignacian (Aur-P1) based on carinated scrapers and wide Aurignacian blades. No split-base bone points (Proto-Aurignacian diagnostic) were found [@Delporte_1984_Ferrassie; @Talamo_La_Ferrassie_2020]. Layer 7b has mixed Early/Recent Aurignacian components.
+- **Mladeč**: The ~20 lithic artifacts include only one carinated end scraper. The 40 bone points with massive bases ("Mladeč-type") lack split bases and occur stratigraphically above split-based points at other Central European sites, placing them in the Evolved Aurignacian (Aur-P2) [@Oliva_2006]. Direct dates of ~31 ka ¹⁴C BP (~35–36 cal BP) are too young for Proto-Aurignacian [@Wild_et_al_2005].
+- **Vogelherd**: Riek's 1931 excavation removed 500 m³ in 12 weeks with no screening, using large horizontal spits that did not follow geological horizons. Documented mixing includes 38 refit connections between Aurignacian layers IV and V, Neolithic burials disturbing the southwestern area, and ~2–3% of tools in the Aurignacian layers potentially deriving from other periods [@Schurch_Conard_2026_reassess].
+
+Because these attributions are important for the two-phase framework, this section tests the sensitivity of the network results to (A) reverting to the purely date-based assignment used in earlier analyses , each object assigned to a phase by its calibrated date alone , and (B) excluding Vogelherd entirely, given its documented stratigraphic mixing.
+
+```{r}
+# ── Shared sensitivity summary (also used by S12 figurine section) ──────────
+# Computed here so S5.5 can use excl$s8_novog before the S12 setup chunk runs.
+excl <- sensitivity_summary(signbase_full_clean, aurp1_artifact_data, aurp2_artifact_data)
+# ── Analysis A: revert to purely date-based assignment ─────────────────────
+# Reassign each object purely by its calibrated date (technology overrides
+# removed); the Spy/El Castillo exclusions from the baseline are retained.
+signbase_date <- signbase_full_clean %>%
+  mutate(time_period2 = time_period_date,
+         phase2 = ifelse(time_period_date %in% c("proto_aurignacian", "early_aurignacian"),
+                         "Aur-P1", "Aur-P2"))
+
+lat_long_date <- signbase_date %>%
+  dplyr::select(site_name, longitude, latitude) %>%
+  distinct(site_name, .keep_all = TRUE)
+
+aurp1_date <- make_phase2_data("Aur-P1", signbase_date, lat_long_date)
+aurp2_date <- make_phase2_data("Aur-P2", signbase_date, lat_long_date)
+
+date_stats <- bind_rows(
+  network_stats(extract_artifact(aurp1_date), threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
+  network_stats(extract_artifact(aurp2_date), threshold = 0.2) %>% mutate(Phase = "Aur-P2")
+) %>%
+  mutate(Condition = "Date-based") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree,
+                transitivity, modularity)
+
+# ── Analysis B: exclude Vogelherd entirely ─────────────────────────────────
+# s8_novog is precomputed by sensitivity_summary() in the s7-setup chunk
+no_vog_stats <- excl$s8_novog
+```
+
+### Results
+
+```{r}
+#| label: tbl-reclass-comparison
+#| tbl-cap: "Network statistics under three conditions: baseline (technology-based assignment), date-based (each object assigned purely by calibrated radiocarbon date, with the Spy/El Castillo exclusions retained), and exclude Vogelherd (technology-based baseline with the site of Vogelherd removed entirely). Threshold = 0.2, Jaccard similarity."
+#| tbl-cap-location: bottom
+
+baseline_reclass <- bind_rows(
+  network_stats(aurp1_artifact_data, threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
+  network_stats(aurp2_artifact_data, threshold = 0.2) %>% mutate(Phase = "Aur-P2")
+) %>%
+  mutate(Condition = "Baseline (technology-based)") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
+
+all_reclass <- bind_rows(baseline_reclass, date_stats, no_vog_stats)
+
+kable(all_reclass,
+      col.names = c("Phase", "Condition", "Sites", "Edges", "Density",
+                    "Mean degree", "Transitivity", "Modularity"),
+      digits = 3,
+      align = "lllcccccc")
+```
+
+```{r}
+# ── Inline helpers for prose ────────────────────────────────────────────────
+s8_md <- function(ph, cond) round(all_reclass$mean_degree[all_reclass$Phase == ph & all_reclass$Condition == cond], 2)
+s8_ns <- function(ph, cond) all_reclass$n_sites[all_reclass$Phase == ph & all_reclass$Condition == cond]
+s8_ne <- function(ph, cond) all_reclass$n_edges[all_reclass$Phase == ph & all_reclass$Condition == cond]
+s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph & all_reclass$Condition == cond], 3)
+```
+
+### Effects by condition
+
+**Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 because its calibrated median using the older-end of the date range (40,091 cal BP) falls in the Proto-Aurignacian range, which is folded into Aur-P1; the midpoint variant used in the main analysis gives 37,831 cal BP (Early Aurignacian, Aur-P1), and the younger-end gives 35,571 cal BP (Early Aurignacian, Aur-P1) [@Wild_et_al_2005]. Hohle Fels and Vogelherd are split across the phases by object date: `r excl$hf_p1` of `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels"))` Hohle Fels objects and `r excl$vog_p1_date` of `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` Vogelherd objects remain in Aur-P1, and `r excl$hf_p2` and `r excl$vog_p2_date` objects , those calibrated to ~32 ka BP or younger , move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 , now missing Mladeč but containing `r excl$young_total` young-dated objects from Hohle Fels and Vogelherd , has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
+
+**Vogelherd exclusion (Analysis B).** Removing Vogelherd's `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` objects from the technology-based baseline reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges. Mean degree falls from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")` (`r paste0("−", excl$md_pct, "%")`), and modularity from `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Vogelherd")`. Aur-P2 is unaffected (`r s8_md("Aur-P2", "Exclude Vogelherd")`, `r s8_ne("Aur-P2", "Exclude Vogelherd")` edges, `r s8_ns("Aur-P2", "Exclude Vogelherd")` sites).
+
+### Phase-ordering robustness
+
+The most consequential finding is that **the Aur-P1 > Aur-P2 connectivity ordering is preserved under every condition**:
+
+```{r}
+#| label: tbl-s8-ordering
+#| tbl-cap: "Mean degree by phase under each reassignment condition. The Aur-P1 > Aur-P2 ordering is preserved under every condition."
+#| tbl-cap-location: bottom
+
+s8_ordering <- all_reclass %>%
+  dplyr::select(Phase, Condition, mean_degree) %>%
+  pivot_wider(id_cols = Condition, names_from = Phase, values_from = mean_degree) %>%
+  mutate(Ordering = ifelse(`Aur-P1` > `Aur-P2`, "Aur-P1 > Aur-P2", "Aur-P2 > Aur-P1")) %>%
+  dplyr::select(Condition, `Aur-P1`, `Aur-P2`, Ordering)
+
+kable(s8_ordering,
+      col.names = c("Condition", "Aur-P1 mean degree", "Aur-P2 mean degree", "Ordering"),
+      digits = 2)
+```
+
+Under the date-based assignment Aur-P1's mean degree rises (from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Date-based")`) and Aur-P2's falls (from `r s8_md("Aur-P2", "Baseline (technology-based)")` to `r s8_md("Aur-P2", "Date-based")`), so the contrast is not an artefact of the technological reassignment , the naive date-based assignment, if anything, strengthens it. Excluding Vogelherd weakens but does not remove the contrast (`r s8_md("Aur-P1", "Exclude Vogelherd")` vs `r s8_md("Aur-P2", "Exclude Vogelherd")`).
+
+### Interpretation
+
+The robustness of the Aur-P1 > Aur-P2 connectivity contrast to both the assignment criterion and to the removal of the largest site strengthens the main-text conclusion that the early phase supports a larger, more hub-centred sign-sharing network. The date-based alternative is a useful worst case: it fragments long-occupied sites across phases and moves Mladeč into Aur-P1 (via the older-end calibrated median of 40,091 cal BP), yet Aur-P1 remains the more connected phase.
+
+The observed between-phase modularity values are, however, assignment-sensitive: they reverse under the date-based assignment (Aur-P1 `r s8_mo("Aur-P1", "Date-based")` < Aur-P2 `r s8_mo("Aur-P2", "Date-based")`, versus `r s8_mo("Aur-P1", "Baseline (technology-based)")` > `r s8_mo("Aur-P2", "Baseline (technology-based)")` at baseline). This reinforces the main text's caution about between-phase comparisons: the pairwise permutation test on the technology-based baseline finds no significant difference in modularity (or any other network statistic) between the phases, and S5.7 shows that the modularity confidence intervals overlap substantially (Aur-P2 rests on only 9 sites). We therefore recommend reading the between-phase contrast primarily as a difference in network scale rather than as a robust ordering of modularity values across alternative assignments.
+
+Excluding Vogelherd leaves the ordering intact, consistent with S7's finding that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) , the restricted/broad dichotomy recovered by seriation, Louvain community detection, and bootstrap consensus (S5, S6) , is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here. The stochastic block model (S6.3) does not recover this dichotomy (single block selected under both emission models), consistent with the small size and sparsity of the sign-sharing networks falling below the detectability limit for block structure.
 
 # S6. Automated Group Recovery as a Circularity Check {#sec-s6}
 
@@ -1238,136 +1482,6 @@ kable(richness_results,
 If degree is primarily driven by richness, the correlations will be strong and significant ($\rho > 0.7$, $p < 0.05$). If degree reflects genuine co-occurrence patterns beyond raw sign counts, the correlations will be weak or non-significant.
 
 **Implications for the main text.** Neither phase shows a significant correlation between node degree and sign-type richness (Aur-P1: ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`; Aur-P2: ρ = `r n3(val(richness_results, "rho", "Aur-P2"))`, p = `r n3(val(richness_results, "p", "Aur-P2"))`). This is a critical finding for the main-text interpretation: the higher mean degree observed in Aur-P1 (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) compared to Aur-P2 (`r n2(val(sens_stats, "mean_degree", "Aur-P2", 0.2))`) is not simply an artefact of the Aur-P1 phase containing sites with richer sign assemblages. If richer assemblages mechanically produced more edges, we would expect a strong positive correlation between richness and degree , but the Aur-P1 correlation is slightly negative (ρ = `r n3(val(richness_results, "rho", "Aur-P1"))`, p = `r n3(val(richness_results, "p", "Aur-P1"))`) and the Aur-P2 correlation, while positive, is far from significant given the small sample. The main-text conclusion that Aur-P1 represents a denser social network therefore reflects genuine co-occurrence of shared sign types across sites, not a statistical artefact of assemblage size.
-
-## S5.5 Phase-Boundary Sensitivity {#sec-s5-11}
-
-### Rationale
-
-The two-phase periodisation uses a single calibrated MedianBP threshold of 37799 separating Aur-P1 (43.0–37.8 ka) from Aur-P2 (37.8–32.0 ka). This is a conventional round number, not derived from a formal change-point analysis. Objects with calibrated dates near this boundary could be assigned to either phase depending on the exact threshold chosen. This section tests whether the network-level findings are sensitive to the placement of this boundary by shifting it by ±500 and ±1000 years. The technology-based overrides are held fixed (Geissenklösterle, Vogelherd, La Ferrassie, and Abri Pataud in Aur-P1; Hohle Fels at the layer level , AH V in Aur-P1 and AH IV, III and the II-series in Aur-P2; Mladeč in Aur-P2; Spy and El Castillo excluded), so the test isolates the effect of the date-based cutoff.
-
-```{r}
-#| label: tbl-boundary-proximity
-#| tbl-cap: "Number of objects and sites within ±500 and ±1000 calibrated years of the single periodisation boundary at 37799 BP separating Aur-P1 from Aur-P2."
-#| tbl-cap-location: bottom
-
-p2_500  <- signbase_full_clean %>% filter(MedianBP >= 37299, MedianBP <= 38299)
-p2_1000 <- signbase_full_clean %>% filter(MedianBP >= 36799, MedianBP <= 38799)
-
-boundary_proximity <- tibble(
-  Boundary = c("Aur-P1/Aur-P2 (37799 BP)", "Aur-P1/Aur-P2 (37799 BP)"),
-  Window = c("±500 years", "±1000 years"),
-  Objects = c(nrow(p2_500), nrow(p2_1000)),
-  Sites = c(n_distinct(p2_500$site_name), n_distinct(p2_1000$site_name))
-)
-
-kable(boundary_proximity,
-      col.names = c("Boundary", "Window", "Objects", "Sites"),
-      digits = 0)
-```
-
-```{r}
-#| label: tbl-boundary-shifts
-#| tbl-cap: "Network statistics at the baseline threshold of 0.2 under shifts of the single Aur-P1/Aur-P2 boundary. Positive shifts move the boundary later (older objects reassigned to Aur-P2); negative shifts move it earlier (younger Aur-P2 objects reassigned to Aur-P1)."
-#| tbl-cap-location: bottom
-
-# Helper: rebuild phase data for a given P1/P2 boundary and compute network stats
-compute_phase2_stats <- function(p2_boundary) {
-  signed_clean <- signbase_full_clean %>%
-    mutate(assigned_phase2 = case_when(
-      site_name == "Hohle Fels" & layer %in% c("IV", "IIIa", "IIIb", "Iid", "Iida", "Iie") ~ "Aur-P2",
-      site_name == "Hohle Fels" & layer %in% c("Va", "Vaa", "Vab", "Vb") ~ "Aur-P1",
-      site_name == "Hohle Fels" & layer == "IIIa-V" ~ NA_character_,
-      site_name %in% c("Geissenklösterle", "Vogelherd", "La Ferrassie",
-                       "Abri Pataud", "Gatzarria") ~ "Aur-P1",
-      site_name == "Mladeč" ~ "Aur-P2",
-      MedianBP > p2_boundary ~ "Aur-P1",
-      MedianBP > 31999       ~ "Aur-P2")) %>%
-    filter(!is.na(assigned_phase2))
-
-  map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
-    phase_df <- signed_clean %>% filter(assigned_phase2 == ph)
-    # Skip if fewer than 2 sites
-    if (n_distinct(phase_df$site_name) < 2) return(NULL)
-    phase_obj <- phase_df %>% group_by(site_name) %>% summarise(nobjects = n())
-    phase_unique <- phase_df %>%
-      group_by(site_name) %>%
-      mutate(longitude = as.character(longitude), latitude = as.character(latitude)) %>%
-      summarize(across(where(is.numeric), sum)) %>%
-      left_join(lat_long_df) %>%
-      left_join(phase_obj) %>%
-      mutate(time_period = ph)
-    phase_artifact <- extract_artifact(phase_unique)
-    ns <- network_stats(phase_artifact, threshold = 0.2)
-    data.frame(
-      Phase = ph, n_sites = ns$n_sites, n_edges = ns$n_edges,
-      density = ns$density, mean_degree = ns$mean_degree,
-      modularity = ns$modularity, n_communities = ns$n_communities,
-      stringsAsFactors = FALSE
-    )
-  })
-}
-
-# Baseline
-baseline <- compute_phase2_stats(37799)
-baseline$Shift <- "Baseline"
-
-# Independent shifts of the single P1/P2 boundary
-boundary_shifts <- map_dfr(c(-1000, -500, 500, 1000), function(s) {
-  res <- compute_phase2_stats(37799 + s)
-  res$Shift <- paste0("P1/P2 ", ifelse(s > 0, "+", ""), s)
-  res
-})
-boundary_shifts_all <- bind_rows(baseline, boundary_shifts)
-
-kable(boundary_shifts_all %>%
-        dplyr::select(Shift, Phase, n_sites, n_edges, mean_degree, modularity) %>%
-        arrange(Shift, Phase),
-      col.names = c("Shift", "Phase", "Sites", "Edges", "Mean degree", "Modularity"),
-      digits = 3)
-```
-
-```{r}
-# S5.5 prose helpers
-s55_order_ok <- boundary_shifts_all %>%
-  filter(Shift != "Baseline") %>%
-  dplyr::select(Shift, Phase, mean_degree) %>%
-  pivot_wider(names_from = Phase, values_from = mean_degree) %>%
-  summarise(n_ok = sum(`Aur-P1` > `Aur-P2`, na.rm = TRUE)) %>%
-  pull(n_ok)
-s55_p1_md   <- boundary_shifts_all$mean_degree[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
-s55_p2_md   <- boundary_shifts_all$mean_degree[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
-s55_p1_mod  <- boundary_shifts_all$modularity[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
-s55_p2_mod  <- boundary_shifts_all$modularity[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
-s55_p1_sites <- boundary_shifts_all$n_sites[boundary_shifts_all$Phase == "Aur-P1" & boundary_shifts_all$Shift != "Baseline"]
-s55_p2_sites <- boundary_shifts_all$n_sites[boundary_shifts_all$Phase == "Aur-P2" & boundary_shifts_all$Shift != "Baseline"]
-
-n0 <- function(x) formatC(as.numeric(x), digits = 0, format = "f")
-s55_closest <- function(boundary, sites) {
-  signbase_full_clean %>%
-    filter(site_name %in% sites) %>%
-    mutate(MedianBP = as.numeric(MedianBP)) %>%
-    mutate(dist = abs(MedianBP - boundary)) %>%
-    group_by(site_name) %>%
-    slice_min(dist, n = 1, with_ties = FALSE) %>%
-    ungroup() %>%
-    dplyr::select(site_name, MedianBP, dist)
-}
-s55_vindija  <- s55_closest(37799, "Vindija Cave")
-s55_blanchard <- s55_closest(37799, "Blanchard")
-s55_hohle    <- s55_closest(37799, "Hohle Fels")
-```
-
-### Diagnostic interpretation
-
-`r boundary_proximity$Objects[boundary_proximity$Window == "±1000 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±1000 years"]` sites fall within ±1000 calibrated years of the boundary at 37799 BP, and `r boundary_proximity$Objects[boundary_proximity$Window == "±500 years"]` objects from `r boundary_proximity$Sites[boundary_proximity$Window == "±500 years"]` sites within ±500 years. The sites closest to the boundary are Hohle Fels (MedianBP `r n0(s55_hohle$MedianBP[s55_hohle$site_name == "Hohle Fels"])`, just `r n0(s55_hohle$dist[s55_hohle$site_name == "Hohle Fels"])` years below the threshold) and Vindija Cave (`r n0(s55_vindija$MedianBP[s55_vindija$site_name == "Vindija Cave"])`, `r n0(s55_vindija$dist[s55_vindija$site_name == "Vindija Cave"])` years below), while the closest site above the threshold is Blanchard (`r n0(s55_blanchard$MedianBP[s55_blanchard$site_name == "Blanchard"])`, `r n0(s55_blanchard$dist[s55_blanchard$site_name == "Blanchard"])` years above). Because only an upward shift can transfer sites into Aur-P2, and only a downward shift into Aur-P1, the reassignments are asymmetric: a downward shift of 500 years moves Vindija Cave from Aur-P2 to Aur-P1 (the only Aur-P2 site within reach), while an upward shift of 500 years moves Blanchard into Aur-P2 and an upward shift of 1000 years additionally moves Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt. Hohle Fels lies just below the boundary, but its near-boundary objects belong to AH IV, which the technology-based override fixes in Aur-P2 (its Aur-P1 horizon, AH V, is well above the boundary), so it does not change phase under any shift. The boundary-sensitive sites are therefore few and, apart from Cellier (28 objects) and Blanchard (18 objects), small.
-
-### Independent-shift interpretation
-
-The independent-shift analysis shifts the single P1/P2 boundary while holding the technology-based overrides fixed. Across the four shifts tested, the Aur-P1 mean degree ranges from `r range_str(s55_p1_md, 2)` and Aur-P2 from `r range_str(s55_p2_md, 2)`. The Aur-P1 > Aur-P2 connectivity ordering is preserved in all `r s55_order_ok` shifts: a downward shift adds Vindija Cave to Aur-P1, raising its mean degree to `r n2(max(s55_p1_md))` (82 edges) while shrinking Aur-P2 to `r min(s55_p2_sites)` sites (mean degree `r n2(min(s55_p2_md))`); an upward shift transfers sites the other way, with Aur-P1 at `r min(s55_p1_sites)` sites after the ±1000 year shift yet still averaging `r n2(min(s55_p1_md))`, above Aur-P2's `r n2(max(s55_p2_md))`. Modularity is stable: Aur-P1 ranges from `r n3(min(s55_p1_mod))` to `r n3(max(s55_p1_mod))` across shifts (baseline `r n3(boundary_shifts_all$modularity[boundary_shifts_all$Shift == "Baseline" & boundary_shifts_all$Phase == "Aur-P1"])`) and Aur-P2 from `r n3(min(s55_p2_mod))` to `r n3(max(s55_p2_mod))` (baseline `r n3(boundary_shifts_all$modularity[boundary_shifts_all$Shift == "Baseline" & boundary_shifts_all$Phase == "Aur-P2"])`), indicating that the community structure in both phases is not sensitive to boundary placement.
-
-### Conclusion
-
-The two-phase results are robust to the placement of the single periodisation boundary. Shifting it by ±1000 calibrated years moves at most five sites between phases (Vindija Cave into Aur-P1; Blanchard, Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt into Aur-P2), and in every scenario Aur-P1 retains both more sites and a higher mean degree than Aur-P2. The main-text conclusion that Aur-P1 forms a more densely connected network than Aur-P2 is therefore not an artefact of the exact boundary value; the strength of the contrast shifts with the boundary, but its direction does not.
 
 ## S5.7 Bootstrap Confidence Intervals {#sec-s5-13}
 
@@ -2923,115 +3037,6 @@ kable(s7_md_summary,
 **The figurine effect is small and Vogelherd-specific.** Removing Vogelherd figurines alone (`r s7_pct("Exclude Vogelherd figurines")` in Aur-P1) produces the same effect as removing all `r s7_fig_total` figurines globally (`r s7_pct("Exclude all figurines")`). Figurines at Hohle Fels (`r s7_fig_count("Hohle Fels")`), Geissenklösterle (`r s7_fig_count("Geissenklösterle")`), Hohlenstein-Stadel (`r s7_fig_count("Hohlenstein-Stadel")`), and La Ferrassie (`r s7_fig_count("La Ferrassie")`) do not alter network structure. This indicates that although Vogelherd's figurine assemblage is unusually rich , `r s7_fig_count("Vogelherd")` of `r s7_fig_total` figurines , and contributes disproportionately to sign-type counts, its `r s7_vog_summary$objects_after[s7_vog_summary$Phase == "Aur-P1"]` remaining non-figurine objects still carry a sufficiently diverse sign repertoire to maintain network connectivity.
 
 **Conclusion.** The main-text findings are robust to figurine exclusion. The Aur-P1 > Aur-P2 connectivity contrast, the two-group community structure, and the site membership of both phases are all preserved when figurines are removed. The concentration of figurines at Vogelherd does not bias the seriation or network results, and the broader-range group's connectivity within Aur-P1 is supported by non-figurine sign types. We note that modularity decreases slightly when figurines are excluded (Aur-P1: `r s7_mo("Aur-P1")` → `r s7_mo("Aur-P1","Exclude all figurines")`), suggesting that figurines contribute modestly to community cohesion , consistent with @Bentz_Dutkiewicz_2026 argument that figurines carry high-information sign sequences, but the communities themselves are defined by shared sign types across all object types.
-
-# S8. Site Reclassification Sensitivity Analysis {#sec-s8}
-
-## S8.1 Rationale
-
-The main analysis assigns each site to a phase (Aur-P1/Aur-P2) using specialist technological attributions from the published literature, supplemented by calibrated radiocarbon dates, as detailed in the "Site Phase Assignments" supplementary item. Recent specialist reassessments demonstrate that radiocarbon dates alone are insufficient for phase attribution, and that the archaeological content of layers should take precedence:
-
-- **Abri Pataud**: The lithic technology in levels 14–9 (carinated scraper bladelet cores, dual reduction systems) is diagnostic of the Early Aurignacian (Aur-P1), not the Proto-Aurignacian, despite basal dates of ~41,200–39,500 cal BP that fall within the Proto-Aurignacian range [@Chiotti_2005; @Higham_Abri_Pataud_2011]. The site is classified as Aurignacian I (Early) in the Périgord sequence.
-- **La Ferrassie**: The Aurignacian at La Ferrassie begins in Layer 7, directly overlying the Châtelperronian (Layer 6). [@Talamo_La_Ferrassie_2020] classify this as Early Aurignacian (Aur-P1) based on carinated scrapers and wide Aurignacian blades. No split-base bone points (Proto-Aurignacian diagnostic) were found [@Delporte_1984_Ferrassie; @Talamo_La_Ferrassie_2020]. Layer 7b has mixed Early/Recent Aurignacian components.
-- **Mladeč**: The ~20 lithic artifacts include only one carinated end scraper. The 40 bone points with massive bases ("Mladeč-type") lack split bases and occur stratigraphically above split-based points at other Central European sites, placing them in the Evolved Aurignacian (Aur-P2) [@Oliva_2006]. Direct dates of ~31 ka ¹⁴C BP (~35–36 cal BP) are too young for Proto-Aurignacian [@Wild_et_al_2005].
-- **Vogelherd**: Riek's 1931 excavation removed 500 m³ in 12 weeks with no screening, using large horizontal spits that did not follow geological horizons. Documented mixing includes 38 refit connections between Aurignacian layers IV and V, Neolithic burials disturbing the southwestern area, and ~2–3% of tools in the Aurignacian layers potentially deriving from other periods [@Schurch_Conard_2026_reassess].
-
-Because these attributions are important for the two-phase framework, this section tests the sensitivity of the network results to (A) reverting to the purely date-based assignment used in earlier analyses , each object assigned to a phase by its calibrated date alone , and (B) excluding Vogelherd entirely, given its documented stratigraphic mixing.
-
-```{r}
-# ── Analysis A: revert to purely date-based assignment ─────────────────────
-# Reassign each object purely by its calibrated date (technology overrides
-# removed); the Spy/El Castillo exclusions from the baseline are retained.
-signbase_date <- signbase_full_clean %>%
-  mutate(time_period2 = time_period_date,
-         phase2 = ifelse(time_period_date %in% c("proto_aurignacian", "early_aurignacian"),
-                         "Aur-P1", "Aur-P2"))
-
-lat_long_date <- signbase_date %>%
-  dplyr::select(site_name, longitude, latitude) %>%
-  distinct(site_name, .keep_all = TRUE)
-
-aurp1_date <- make_phase2_data("Aur-P1", signbase_date, lat_long_date)
-aurp2_date <- make_phase2_data("Aur-P2", signbase_date, lat_long_date)
-
-date_stats <- bind_rows(
-  network_stats(extract_artifact(aurp1_date), threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
-  network_stats(extract_artifact(aurp2_date), threshold = 0.2) %>% mutate(Phase = "Aur-P2")
-) %>%
-  mutate(Condition = "Date-based") %>%
-  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree,
-                transitivity, modularity)
-
-# ── Analysis B: exclude Vogelherd entirely ─────────────────────────────────
-# s8_novog is precomputed by sensitivity_summary() in the s7-setup chunk
-no_vog_stats <- excl$s8_novog
-```
-
-## S8.2 Results
-
-```{r}
-#| label: tbl-reclass-comparison
-#| tbl-cap: "Network statistics under three conditions: baseline (technology-based assignment), date-based (each object assigned purely by calibrated radiocarbon date, with the Spy/El Castillo exclusions retained), and exclude Vogelherd (technology-based baseline with the site of Vogelherd removed entirely). Threshold = 0.2, Jaccard similarity."
-#| tbl-cap-location: bottom
-
-baseline_reclass <- bind_rows(
-  network_stats(aurp1_artifact_data, threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
-  network_stats(aurp2_artifact_data, threshold = 0.2) %>% mutate(Phase = "Aur-P2")
-) %>%
-  mutate(Condition = "Baseline (technology-based)") %>%
-  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
-
-all_reclass <- bind_rows(baseline_reclass, date_stats, no_vog_stats)
-
-kable(all_reclass,
-      col.names = c("Phase", "Condition", "Sites", "Edges", "Density",
-                    "Mean degree", "Transitivity", "Modularity"),
-      digits = 3,
-      align = "lllcccccc")
-```
-
-```{r}
-# ── Inline helpers for prose ────────────────────────────────────────────────
-s8_md <- function(ph, cond) round(all_reclass$mean_degree[all_reclass$Phase == ph & all_reclass$Condition == cond], 2)
-s8_ns <- function(ph, cond) all_reclass$n_sites[all_reclass$Phase == ph & all_reclass$Condition == cond]
-s8_ne <- function(ph, cond) all_reclass$n_edges[all_reclass$Phase == ph & all_reclass$Condition == cond]
-s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph & all_reclass$Condition == cond], 3)
-```
-
-### Effects by condition
-
-**Date-based alternative (Analysis A).** Reverting to purely date-based criteria changes the membership of three sites. Mladeč moves from Aur-P2 to Aur-P1 because its calibrated median using the older-end of the date range (40,091 cal BP) falls in the Proto-Aurignacian range, which is folded into Aur-P1; the midpoint variant used in the main analysis gives 37,831 cal BP (Early Aurignacian, Aur-P1), and the younger-end gives 35,571 cal BP (Early Aurignacian, Aur-P1) [@Wild_et_al_2005]. Hohle Fels and Vogelherd are split across the phases by object date: `r excl$hf_p1` of `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels"))` Hohle Fels objects and `r excl$vog_p1_date` of `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` Vogelherd objects remain in Aur-P1, and `r excl$hf_p2` and `r excl$vog_p2_date` objects , those calibrated to ~32 ka BP or younger , move to Aur-P2. The date-based assignment therefore fragments long-occupied sites whose assemblages span the phase boundary, which is precisely the failure mode the technology-based attribution is designed to avoid. Under this assignment Aur-P1 grows to `r s8_ns("Aur-P1", "Date-based")` sites and `r s8_ne("Aur-P1", "Date-based")` edges (mean degree `r s8_md("Aur-P1", "Date-based")`), while Aur-P2 , now missing Mladeč but containing `r excl$young_total` young-dated objects from Hohle Fels and Vogelherd , has `r s8_ns("Aur-P2", "Date-based")` sites and `r s8_ne("Aur-P2", "Date-based")` edges (mean degree `r s8_md("Aur-P2", "Date-based")`).
-
-**Vogelherd exclusion (Analysis B).** Removing Vogelherd's `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` objects from the technology-based baseline reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges. Mean degree falls from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")` (`r paste0("−", excl$md_pct, "%")`), and modularity from `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Vogelherd")`. Aur-P2 is unaffected (`r s8_md("Aur-P2", "Exclude Vogelherd")`, `r s8_ne("Aur-P2", "Exclude Vogelherd")` edges, `r s8_ns("Aur-P2", "Exclude Vogelherd")` sites).
-
-## S8.3 Phase-Ordering Robustness
-
-The most consequential finding is that **the Aur-P1 > Aur-P2 connectivity ordering is preserved under every condition**:
-
-```{r}
-#| label: tbl-s8-ordering
-#| tbl-cap: "Mean degree by phase under each reassignment condition. The Aur-P1 > Aur-P2 ordering is preserved under every condition."
-#| tbl-cap-location: bottom
-
-s8_ordering <- all_reclass %>%
-  dplyr::select(Phase, Condition, mean_degree) %>%
-  pivot_wider(id_cols = Condition, names_from = Phase, values_from = mean_degree) %>%
-  mutate(Ordering = ifelse(`Aur-P1` > `Aur-P2`, "Aur-P1 > Aur-P2", "Aur-P2 > Aur-P1")) %>%
-  dplyr::select(Condition, `Aur-P1`, `Aur-P2`, Ordering)
-
-kable(s8_ordering,
-      col.names = c("Condition", "Aur-P1 mean degree", "Aur-P2 mean degree", "Ordering"),
-      digits = 2)
-```
-
-Under the date-based assignment Aur-P1's mean degree rises (from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Date-based")`) and Aur-P2's falls (from `r s8_md("Aur-P2", "Baseline (technology-based)")` to `r s8_md("Aur-P2", "Date-based")`), so the contrast is not an artefact of the technological reassignment , the naive date-based assignment, if anything, strengthens it. Excluding Vogelherd weakens but does not remove the contrast (`r s8_md("Aur-P1", "Exclude Vogelherd")` vs `r s8_md("Aur-P2", "Exclude Vogelherd")`).
-
-## S8.4 Interpretation
-
-The robustness of the Aur-P1 > Aur-P2 connectivity contrast to both the assignment criterion and to the removal of the largest site strengthens the main-text conclusion that the early phase supports a larger, more hub-centred sign-sharing network. The date-based alternative is a useful worst case: it fragments long-occupied sites across phases and moves Mladeč into Aur-P1 (via the older-end calibrated median of 40,091 cal BP), yet Aur-P1 remains the more connected phase.
-
-The observed between-phase modularity values are, however, assignment-sensitive: they reverse under the date-based assignment (Aur-P1 `r s8_mo("Aur-P1", "Date-based")` < Aur-P2 `r s8_mo("Aur-P2", "Date-based")`, versus `r s8_mo("Aur-P1", "Baseline (technology-based)")` > `r s8_mo("Aur-P2", "Baseline (technology-based)")` at baseline). This reinforces the main text's caution about between-phase comparisons: the pairwise permutation test on the technology-based baseline finds no significant difference in modularity (or any other network statistic) between the phases, and S5.7 shows that the modularity confidence intervals overlap substantially (Aur-P2 rests on only 9 sites). We therefore recommend reading the between-phase contrast primarily as a difference in network scale rather than as a robust ordering of modularity values across alternative assignments.
-
-Excluding Vogelherd leaves the ordering intact, consistent with S7's finding that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) , the restricted/broad dichotomy recovered by seriation, Louvain community detection, and bootstrap consensus (S5, S6) , is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here. The stochastic block model (S6.3) does not recover this dichotomy (single block selected under both emission models), consistent with the small size and sparsity of the sign-sharing networks falling below the detectability limit for block structure.
 
 # S12. Object Types and Sampling Intensity {#sec-s12}
 
