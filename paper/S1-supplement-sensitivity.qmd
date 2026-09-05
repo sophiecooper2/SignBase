@@ -371,6 +371,140 @@ The sensitivity analysis shows that the main findings reported in the text are *
 
 Together, these results confirm that the threshold of 0.2 used in the main analysis is a defensible and representative choice. Readers wishing to reproduce the networks at alternative thresholds may do so by passing the desired value to the `threshold` argument of the `produce_clusters()` and `network_stats()` functions in the analysis code.
 
+## S2.4 Threshold Agreement Metrics {#sec-s2-4}
+
+Below we quantify the stability of the network structures across thresholds using two metrics:
+
+- **Edge-set Jaccard similarity** to two thresholds , the fraction of edges present in the network at threshold $t$ that also appear at threshold $t'$. A value near 1 indicates the edge structure is preserved as you move from one threshold to another.
+
+- **Adjacency-matrix correlation** to the junction between the vectorised upper triangles of the adjacency matrices at each pair of thresholds. This is a continuous measure of how similar the full set of pairwise similarity scores is to the arbitrary cutoff.
+
+```{r}
+# | label: tbl-threshold-agreement
+# | tbl-cap: "Pairwise agreement between networks at adjacent thresholds. Edge‑set Jaccard measures the fraction of edges present at both thresholds out of all edges present at either threshold. Adjacency‑matrix correlation is the Pearson r between the vectorised upper‑triangular elements of the adjacency matrices at each threshold (all pairs of sites before the cutoff is applied)."
+# | tbl-cap-location: bottom
+
+edge_jaccard <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
+  build_adj <- function(mat, th, met) {
+    if (met == "jaccard") {
+      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+    } else if (met == "sorensen") {
+      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
+    } else {
+      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
+    }
+    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
+    a
+  }
+  a1 <- build_adj(mat, threshold_t, metric); a2 <- build_adj(mat, threshold_t2, metric)
+  e1 <- which(upper.tri(a1) & a1 > 0); e2 <- which(upper.tri(a2) & a2 > 0)
+  length(intersect(e1, e2)) / length(union(e1, e2))
+}
+
+adjmatrix_corr <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
+  build_adj <- function(mat, th, met) {
+    if (met == "jaccard") {
+      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+    } else if (met == "sorensen") {
+      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
+    } else {
+      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
+    }
+    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
+    a[upper.tri(a)]
+  }
+  u1 <- build_adj(mat, threshold_t, metric); u2 <- build_adj(mat, threshold_t2, metric)
+  cor(u1, u2, use = "complete.obs")
+}
+
+threshold_pairs <- list(c(0.1, 0.2), c(0.2, 0.3), c(0.1, 0.3))
+agree_table <- map_dfr(threshold_pairs, function(tp) {
+  map_dfr(names(phases), function(ph) {
+    ad <- phases[[ph]]
+    data.frame(
+      Phase = ph,
+      T1 = tp[1], T2 = tp[2],
+      Edge_Jaccard = round(edge_jaccard(ad, tp[1], tp[2]), 3),
+      AdjCor = round(adjmatrix_corr(ad, tp[1], tp[2]), 3),
+      stringsAsFactors = FALSE
+    )
+  })
+})
+
+kable(agree_table,
+      col.names = c("Phase", "Threshold 1", "Threshold 2", "Edge Jaccard", "Adj. correlation"),
+      digits = 3)
+```
+
+## S2.5 Continuous Threshold Sweep {#sec-s2-5}
+
+The main text reports statistics at three discrete thresholds (0.1, 0.2, 0.3). This section sweeps the Jaccard similarity threshold from 0.05 to 0.50 in steps of 0.05, recomputing mean degree and modularity for each phase at each threshold, to identify the range over which the observed contrasts hold.
+
+```{r}
+#| label: fig-threshold-sweep
+#| fig-cap: "Mean degree (left) and modularity (right) for each Aurignacian phase across a continuous range of Jaccard similarity thresholds. The vertical dashed line marks the baseline threshold of 0.2."
+#| fig-width: 8
+#| fig-height: 4
+
+sweep_thresholds <- seq(0.05, 0.50, by = 0.05)
+
+phase_list <- list(
+  `Aur-P1` = aurp1_artifact_data,
+  `Aur-P2` = aurp2_artifact_data
+)
+
+sweep_results <- map_dfr(sweep_thresholds, function(th) {
+  map_dfr(names(phase_list), function(pname) {
+    art <- phase_list[[pname]]
+    jac <- as.matrix(vegan::vegdist(art, "jaccard", binary = TRUE))
+    adj <- 1 - jac
+    adj[adj < th] <- 0
+    diag(adj) <- 0
+    g <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
+                                              weighted = TRUE, diag = FALSE)
+    mod_val <- if (igraph::ecount(g) > 0) {
+      set.seed(42)
+      igraph::modularity(igraph::cluster_louvain(g))
+    } else { NA_real_ }
+    deg_val <- mean(igraph::degree(g))
+    tibble(Phase = pname, Threshold = th, Mean_degree = deg_val, Modularity = mod_val)
+  })
+})
+
+p1 <- ggplot(sweep_results, aes(x = Threshold, y = Mean_degree, colour = Phase)) +
+  geom_line(linewidth = 0.8) +
+  geom_vline(xintercept = 0.2, linetype = "dashed", alpha = 0.5) +
+  labs(x = "Jaccard similarity threshold", y = "Mean degree") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p2 <- ggplot(sweep_results, aes(x = Threshold, y = Modularity, colour = Phase)) +
+  geom_line(linewidth = 0.8) +
+  geom_vline(xintercept = 0.2, linetype = "dashed", alpha = 0.5) +
+  labs(x = "Jaccard similarity threshold", y = "Modularity") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+cowplot::plot_grid(p1, p2, ncol = 2, labels = c("a", "b"))
+```
+
+```{r}
+# S5.6 prose helpers: ordering-preservation range and mean-degree ranges
+sweep_wide <- sweep_results %>%
+  dplyr::select(Phase, Threshold, Mean_degree) %>%
+  pivot_wider(names_from = Phase, values_from = Mean_degree)
+s56_ok_ths <- sweep_wide$Threshold[sweep_wide$`Aur-P1` > sweep_wide$`Aur-P2`]
+s56_ok_range <- range(s56_ok_ths)
+s56_p1_md_range <- range(sweep_results$Mean_degree[sweep_results$Phase == "Aur-P1"])
+s56_p2_md_range <- range(sweep_results$Mean_degree[sweep_results$Phase == "Aur-P2"])
+s56_p1_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P1"], na.rm = TRUE)
+s56_p2_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P2"], na.rm = TRUE)
+```
+
+The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree ordering holds. The two-phase contrast is monotonic and holds at every threshold in the swept range: Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across thresholds of 0.05–0.50, and the ordering is preserved throughout. At very low thresholds both networks are densely connected and the relative contrast compresses; at high thresholds both fragment as edges drop out, but Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses.
+
+**Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Aur-P1 > Aur-P2 mean-degree ordering is preserved across the entire informative threshold range (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`). In contrast to a three-phase periodisation, in which the intermediate phase could be compressed into statistical collapse at high thresholds, the two-phase comparison is stable: Aur-P2, though small, never fragments below a mean degree of `r n2(min(s56_p2_md_range))`. The modularity sweep shows a parallel pattern: Aur-P1's modularity ranges from `r range_str(s56_p1_mod_range, 3)` across thresholds and consistently exceeds Aur-P2's (`r range_str(s56_p2_mod_range, 3)`) at every threshold, reinforcing the conclusion that the larger, earlier phase has a stronger community structure. The baseline threshold of 0.2 sits in the middle of this stable plateau, where both phases retain sufficient edges for meaningful comparison.
+
 # S2. Sensitivity to Similarity Metric Choice (Jaccard vs. Sørensen-Dice vs. Simpson) {#sec-s2}
 
 ## S2.1 Rationale
@@ -969,71 +1103,6 @@ The PerMANOVA comparison provides the most direct test of whether the main-text 
 
 This section asks whether the manual restricted/broad grouping is consistent with structure recovered by data-driven methods, using Louvain community detection, bootstrap consensus, and stochastic block models. The ARI values show the manual assignment closely reproduces a data-driven structure in Aur-P1 (ARI = `r val(ari_table, "ARI", "Aur-P1", 0.2)` at threshold 0.2) and, in Aur-P2, the broad-range sites in particular (ARI = `r val(ari_table, "ARI", "Aur-P2", 0.2)` at threshold 0.2, driven by Louvain's exact recovery of the broad-range community). The PerMANOVA comparison shows the manual grouping is conservative rather than liberal: the algorithmically derived partitions consistently explain more variance than the manual ones, so the main-text R² values (`r n3(val(perm_compare, "Manual_R2", "Aur-P1", 0.2))` in Aur-P1 and `r n3(val(perm_compare, "Manual_R2", "Aur-P2", 0.2))` in Aur-P2) are a lower bound on the strength of the group contrast. In Aur-P2 the Louvain grouping even recovers a significant contrast (p = `r n3(val(perm_compare, "Algorithm_p", "Aur-P2", 0.3))` at threshold 0.3) where the manual two-group split is non-significant (p = `r n3(val(perm_compare, "Manual_p", "Aur-P2", 0.2))`), although this phase rests on only nine sites and its PerMANOVA results must be read with that limitation in mind. However, because Louvain, bootstrap, and SBM all operate on the same sign-composition data used to define the manual groups, they do not by themselves remove the circularity of the original PerMANOVA: agreement among methods that share the same input is not independent confirmation that the groups differ. Genuine independent validation — holding out data from the definition of the groups — is provided separately in @sec-s6-6.
 
-## S5.2 Quantitative Threshold‑Agreement Metrics {#sec-s5-8}
-
-Below we quantify the stability of the network structures across thresholds using two metrics:
-
-- **Edge-set Jaccard similarity** to two thresholds , the fraction of edges present in the network at threshold $t$ that also appear at threshold $t'$. A value near 1 indicates the edge structure is preserved as you move from one threshold to another.
-
-- **Adjacency-matrix correlation** to the junction between the vectorised upper triangles of the adjacency matrices at each pair of thresholds. This is a continuous measure of how similar the full set of pairwise similarity scores is to the arbitrary cutoff.
-
-```{r}
-# | label: tbl-threshold-agreement
-# | tbl-cap: "Pairwise agreement between networks at adjacent thresholds. Edge‑set Jaccard measures the fraction of edges present at both thresholds out of all edges present at either threshold. Adjacency‑matrix correlation is the Pearson r between the vectorised upper‑triangular elements of the adjacency matrices at each threshold (all pairs of sites before the cutoff is applied)."
-# | tbl-cap-location: bottom
-
-edge_jaccard <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
-  build_adj <- function(mat, th, met) {
-    if (met == "jaccard") {
-      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
-    } else if (met == "sorensen") {
-      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
-    } else {
-      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
-    }
-    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
-    a
-  }
-  a1 <- build_adj(mat, threshold_t, metric); a2 <- build_adj(mat, threshold_t2, metric)
-  e1 <- which(upper.tri(a1) & a1 > 0); e2 <- which(upper.tri(a2) & a2 > 0)
-  length(intersect(e1, e2)) / length(union(e1, e2))
-}
-
-adjmatrix_corr <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
-  build_adj <- function(mat, th, met) {
-    if (met == "jaccard") {
-      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
-    } else if (met == "sorensen") {
-      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
-    } else {
-      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
-    }
-    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
-    a[upper.tri(a)]
-  }
-  u1 <- build_adj(mat, threshold_t, metric); u2 <- build_adj(mat, threshold_t2, metric)
-  cor(u1, u2, use = "complete.obs")
-}
-
-threshold_pairs <- list(c(0.1, 0.2), c(0.2, 0.3), c(0.1, 0.3))
-agree_table <- map_dfr(threshold_pairs, function(tp) {
-  map_dfr(names(phases), function(ph) {
-    ad <- phases[[ph]]
-    data.frame(
-      Phase = ph,
-      T1 = tp[1], T2 = tp[2],
-      Edge_Jaccard = round(edge_jaccard(ad, tp[1], tp[2]), 3),
-      AdjCor = round(adjmatrix_corr(ad, tp[1], tp[2]), 3),
-      stringsAsFactors = FALSE
-    )
-  })
-})
-
-kable(agree_table,
-      col.names = c("Phase", "Threshold 1", "Threshold 2", "Edge Jaccard", "Adj. correlation"),
-      digits = 3)
-```
-
 ## S5.3 Null-Benchmarked Modularity Across Thresholds {#sec-s5-9}
 
 Modularity values in the range 0.3-0.5 are often described as "high" without formal benchmarking. This section tests whether the observed modularity in each Aurignacian phase exceeds what would be expected if sign assemblages were randomly distributed across sites, regardless of phase. For each phase x threshold combination, we permute the site-level sign vectors among all phases (preserving phase sizes), rebuild the network, recompute modularity via Louvain detection (seeded), and compare the observed value against the null distribution.
@@ -1299,75 +1368,6 @@ The independent-shift analysis shifts the single P1/P2 boundary while holding th
 ### Conclusion
 
 The two-phase results are robust to the placement of the single periodisation boundary. Shifting it by ±1000 calibrated years moves at most five sites between phases (Vindija Cave into Aur-P1; Blanchard, Cellier, Trou al'Wesse, and Grottes de Fonds-de-Forêt into Aur-P2), and in every scenario Aur-P1 retains both more sites and a higher mean degree than Aur-P2. The main-text conclusion that Aur-P1 forms a more densely connected network than Aur-P2 is therefore not an artefact of the exact boundary value; the strength of the contrast shifts with the boundary, but its direction does not.
-
-## S5.6 Continuous Threshold Sweep {#sec-s5-12}
-
-The main text reports statistics at three discrete thresholds (0.1, 0.2, 0.3). This section sweeps the Jaccard similarity threshold from 0.05 to 0.50 in steps of 0.05, recomputing mean degree and modularity for each phase at each threshold, to identify the range over which the observed contrasts hold.
-
-```{r}
-#| label: fig-threshold-sweep
-#| fig-cap: "Mean degree (left) and modularity (right) for each Aurignacian phase across a continuous range of Jaccard similarity thresholds. The vertical dashed line marks the baseline threshold of 0.2."
-#| fig-width: 8
-#| fig-height: 4
-
-thresholds <- seq(0.05, 0.50, by = 0.05)
-
-phase_list <- list(
-  `Aur-P1` = aurp1_artifact_data,
-  `Aur-P2` = aurp2_artifact_data
-)
-
-sweep_results <- map_dfr(thresholds, function(th) {
-  map_dfr(names(phase_list), function(pname) {
-    art <- phase_list[[pname]]
-    jac <- as.matrix(vegan::vegdist(art, "jaccard", binary = TRUE))
-    adj <- 1 - jac
-    adj[adj < th] <- 0
-    diag(adj) <- 0
-    g <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected",
-                                              weighted = TRUE, diag = FALSE)
-    mod_val <- if (igraph::ecount(g) > 0) {
-      set.seed(42)
-      igraph::modularity(igraph::cluster_louvain(g))
-    } else { NA_real_ }
-    deg_val <- mean(igraph::degree(g))
-    tibble(Phase = pname, Threshold = th, Mean_degree = deg_val, Modularity = mod_val)
-  })
-})
-
-p1 <- ggplot(sweep_results, aes(x = Threshold, y = Mean_degree, colour = Phase)) +
-  geom_line(linewidth = 0.8) +
-  geom_vline(xintercept = 0.2, linetype = "dashed", alpha = 0.5) +
-  labs(x = "Jaccard similarity threshold", y = "Mean degree") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-p2 <- ggplot(sweep_results, aes(x = Threshold, y = Modularity, colour = Phase)) +
-  geom_line(linewidth = 0.8) +
-  geom_vline(xintercept = 0.2, linetype = "dashed", alpha = 0.5) +
-  labs(x = "Jaccard similarity threshold", y = "Modularity") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-cowplot::plot_grid(p1, p2, ncol = 2, labels = c("a", "b"))
-```
-
-```{r}
-# S5.6 prose helpers: ordering-preservation range and mean-degree ranges
-sweep_wide <- sweep_results %>%
-  dplyr::select(Phase, Threshold, Mean_degree) %>%
-  pivot_wider(names_from = Phase, values_from = Mean_degree)
-s56_ok_ths <- sweep_wide$Threshold[sweep_wide$`Aur-P1` > sweep_wide$`Aur-P2`]
-s56_ok_range <- range(s56_ok_ths)
-s56_p1_md_range <- range(sweep_results$Mean_degree[sweep_results$Phase == "Aur-P1"])
-s56_p2_md_range <- range(sweep_results$Mean_degree[sweep_results$Phase == "Aur-P2"])
-s56_p1_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P1"], na.rm = TRUE)
-s56_p2_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P2"], na.rm = TRUE)
-```
-
-The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree ordering holds. The two-phase contrast is monotonic and holds at every threshold in the swept range: Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across thresholds of 0.05–0.50, and the ordering is preserved throughout. At very low thresholds both networks are densely connected and the relative contrast compresses; at high thresholds both fragment as edges drop out, but Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses.
-
-**Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Aur-P1 > Aur-P2 mean-degree ordering is preserved across the entire informative threshold range (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`). In contrast to a three-phase periodisation, in which the intermediate phase could be compressed into statistical collapse at high thresholds, the two-phase comparison is stable: Aur-P2, though small, never fragments below a mean degree of `r n2(min(s56_p2_md_range))`. The modularity sweep shows a parallel pattern: Aur-P1's modularity ranges from `r range_str(s56_p1_mod_range, 3)` across thresholds and consistently exceeds Aur-P2's (`r range_str(s56_p2_mod_range, 3)`) at every threshold, reinforcing the conclusion that the larger, earlier phase has a stronger community structure. The baseline threshold of 0.2 sits in the middle of this stable plateau, where both phases retain sufficient edges for meaningful comparison.
 
 ## S5.7 Bootstrap Confidence Intervals {#sec-s5-13}
 
