@@ -1017,7 +1017,7 @@ The robustness of the Aur-P1 > Aur-P2 connectivity contrast to both the assignme
 
 The observed between-phase modularity values are, however, assignment-sensitive: they reverse under the date-based assignment (Aur-P1 `r s8_mo("Aur-P1", "Date-based")` < Aur-P2 `r s8_mo("Aur-P2", "Date-based")`, versus `r s8_mo("Aur-P1", "Baseline (technology-based)")` > `r s8_mo("Aur-P2", "Baseline (technology-based)")` at baseline). This reinforces the main text's caution about between-phase comparisons: the pairwise permutation test on the technology-based baseline finds no significant difference in modularity (or any other network statistic) between the phases, and S5.7 shows that the modularity confidence intervals overlap substantially (Aur-P2 rests on only 9 sites). We therefore recommend reading the between-phase contrast primarily as a difference in network scale rather than as a robust ordering of modularity values across alternative assignments.
 
-Excluding Vogelherd leaves the ordering intact, consistent with S7's finding that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) , the restricted/broad dichotomy recovered by seriation, Louvain community detection, and bootstrap consensus (S5, S6) , is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here. The stochastic block model (S6.3) does not recover this dichotomy (single block selected under both emission models), consistent with the small size and sparsity of the sign-sharing networks falling below the detectability limit for block structure.
+Excluding Vogelherd leaves the ordering intact, consistent with S12.6 showing that Aur-P1's network does not depend on a single site. Finally, the within-phase two-group structure (RQ1) , the restricted/broad dichotomy recovered by seriation, Louvain community detection, and bootstrap consensus (S6, S9) , is defined within each phase's membership and is unaffected by the between-phase assignment criterion tested here. The stochastic block model (S9.3) does not recover this dichotomy (single block selected under all three emission models), consistent with the small size and sparsity of the sign-sharing networks falling below the detectability limit for block structure.
 
 # S6. Automated Group Recovery as a Circularity Check {#sec-s6}
 
@@ -2346,7 +2346,7 @@ The SBM results must be interpreted alongside the bootstrap consensus (S6.2) and
 
 ### Rationale
 
-To quantify overall agreement among the four ways of partitioning sites — the main-text manual restricted/broad groups, the bootstrap modal blocks (S6.2), and the SBM modal assignments (S6.3) under Bernoulli and Poisson emission models — we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the S5 analyses use `mclust::adjustedRandIndex`, which yields the same values). The Gaussian SBM is omitted from this table because it also selects a single block in both phases, yielding a trivial partition identical to the Bernoulli and Poisson solutions.
+To quantify overall agreement among the four ways of partitioning sites — the main-text manual restricted/broad groups, the bootstrap modal blocks (S9.2), and the SBM modal assignments (S9.3) under Bernoulli and Poisson emission models — we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the S6 analyses use `mclust::adjustedRandIndex`, which yields the same values). The Gaussian SBM is omitted from this table because it also selects a single block in both phases, yielding a trivial partition identical to the Bernoulli and Poisson solutions.
 
 ```{r}
 #| label: s6-ari
@@ -2395,7 +2395,7 @@ s6_ari_val <- function(ph, col) s6_ari_tab[[col]][s6_ari_tab$Phase == ph]
 
 ```{r}
 #| label: tbl-s6-ari
-#| tbl-cap: "Adjusted Rand Index between the main-text manual restricted/broad assignment, the bootstrap modal blocks (S6.2), and the SBM modal assignments (S6.3), by phase. "
+#| tbl-cap: "Adjusted Rand Index between the main-text manual restricted/broad assignment, the bootstrap modal blocks (S9.2), and the SBM modal assignments (S9.3), by phase. "
 #| tbl-cap-location: bottom
 
 kable(s6_ari_tab,
@@ -2413,7 +2413,7 @@ The ARI values summarise how far the three routes to the two-group partition agr
 
 ## Rationale
 
-The restricted/broad groups were defined from the same sign-composition data that the main-text PerMANOVA later tests, so its p-values cannot be read as *independent* confirmation that the groups differ. Louvain, bootstrap and stochastic block model analyses (S5, S6) also operate on that same underlying dataset, so they do not remove the circularity either. To address this directly we implement three complementary methods that break the circularity, each following a distinct validation strategy:
+The restricted/broad groups were defined from the same sign-composition data that the main-text PerMANOVA later tests, so its p-values cannot be read as *independent* confirmation that the groups differ. Louvain, bootstrap and stochastic block model analyses (S6, S9) also operate on that same underlying dataset, so they do not remove the circularity either. To address this directly we implement three complementary methods that break the circularity, each following a distinct validation strategy:
 
 - **(A) Maximally-selected achieved-significance test:** the optimal two-group split is re-derived from *randomised* data in every permutation, and the observed optimal split is compared against that null. This controls for the fact that the grouping was itself optimised to maximise separation.
 - **(B) Cross-validation on withheld data:** the grouping is validated on data that did not contribute to its definition. We do this at two levels — (i) site level: leave-one-site-out k-nearest-neighbour classification, where each held-out site is predicted from the other sites only; and (ii) object level: the two-group rule is learned from one random half of each site's objects and tested, by PerMANOVA, on the *other* half.
@@ -3457,6 +3457,18 @@ kable(s7_md_summary,
 ## S12.7 Synthesis and Limitation {#sec-s12-6}
 
 The five sampling analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (S12.2). (2) Coverage-based rarefaction shows the broad/restricted contrast persists among the sites assessable at equal coverage, but the majority of the smallest sites never reach a comparable coverage, so the method cannot vindicate them (S12.3). (3) The offset model's null group effect was a property of fixing the richness-effort exponent at 1; with the exponent estimated, the group contrast persists, so the gap is not distinguishable from a genuine group difference at saturating effort (S12.4). (4) At equal effort with `iNEXT`, the Aur-P1 vs Aur-P2 sign-type pool difference lies inside sampling variation, even when restricted to shared object types (S12.5). (5) Under fixed margins the Jaccard group separation is not distinguished from richness structure alone (Aur-P1 exceeds object-sampling expectation; Aur-P2 does not), while Simpson turnover dissimilarity shows no group separation in either phase (S10.1). Figurine exclusion (S12.6) is the exception: it leaves the Aur-P1 greater than Aur-P2 ordering intact. Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered, and the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction does not survive equal-effort standardisation.
+
+# S13. Overall Synthesis {#sec-s13}
+
+All results are conditional on the retained sample in S1. Date parsing and quality filtering remove small and poorly dated assemblages before any network is built. Aur-P2 rests on nine sites throughout, so every Aur-P2 comparison has low power and wide uncertainty.
+
+Threshold, metric, distance, and periodisation checks support the same reading. The Aur-P1 greater than Aur-P2 mean-degree ordering holds at thresholds 0.1, 0.2, and 0.3 and across the continuous sweep in S2. It holds under Jaccard, Sorensen-Dice, and Simpson in S3. It holds under geodesic and Euclidean distance in S4, where neither phase shows a geographic correlation. It holds across two, three, and four phase schemes, across date variants, across boundary shifts, and under date-based versus technological assignment in S5. Modularity ordering does not survive all of these changes. It reverses under date-based assignment, so the between-phase contrast is best read as a difference in network scale rather than a stable ordering of modularity.
+
+Group existence requires a narrower reading. Louvain recovery in S6 and bootstrap stability in S9 show that the restricted versus broad axis is coherent under resampling, most clearly in Aur-P1. Generative modelling in S9 does not recover multiple blocks under Bernoulli, Gaussian, or Poisson specifications. Withheld-data validation in S10 does not find separation beyond richness structure under the fixed-fixed null, and Simpson turnover shows no separation in either phase. The supported claim is a dominant richness axis that is recoverable from disjoint objects in well sampled sites, not discrete provinces that emerge from an unsupervised generative model.
+
+Sampling intensity qualifies small-site assignments. Downsampling, coverage, regression with estimated exponent, and equal-effort pool comparison in S12 show that large assemblages retain their grouping while sites with one or two objects flip at chance rates and never reach comparable coverage. The raw Aur-P1 versus Aur-P2 pool difference is not distinguishable from sampling variation at equal effort. Figurine exclusion is the exception and leaves the ordering intact.
+
+For the main text, report raw degree descriptively and base inference on permutation and withheld-data results. Present the restricted versus broad contrast as a recoverable gradient that is strong for well sampled sites and provisional for small ones. Present Aur-P2 community structure as indicative rather than conclusive. Present the pool contraction as not demonstrated at equal effort, with the sample-difference caveat stated.
 
 ## References cited
 
