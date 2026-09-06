@@ -718,6 +718,39 @@ strength_function <- function(artifact_data, group_data) {
   return(final_table)
 }
 
+# Distance-based redundancy analysis (dbRDA) of sign composition on geography.
+# Non-Mantel spatial check for the isolation-by-distance question: models the
+# site Jaccard dissimilarity matrix as a function of a linear geographic trend
+# surface (longitude + latitude). Unlike the Mantel test it fits an explanatory
+# model with R^2 rather than correlating two distance matrices, so it does not
+# share the Mantel non-independence problem [@Legendre_Anderson_1999].
+# The 2-df specification is identical in both phases so Aur-P2 (n = 9 sites,
+# 6 residual df) remains estimable.
+dbrda_geo <- function(artifact_data, group_data, nperm = 999, seed = 7) {
+  art <- as.data.frame(artifact_data)
+  art <- art %>% mutate(across(everything(), ~ as.numeric(. > 0)))
+  art <- art[, colSums(art) > 0, drop = FALSE]
+  sites <- rownames(art)
+  jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
+  geo <- group_data %>%
+    dplyr::filter(site_name %in% sites) %>%
+    dplyr::select(site_name, longitude, latitude) %>%
+    dplyr::mutate(longitude = as.numeric(longitude),
+                  latitude = as.numeric(latitude)) %>%
+    tibble::column_to_rownames("site_name")
+  geo <- geo[sites, , drop = FALSE]
+  set.seed(seed)
+  mod <- vegan::capscale(jac ~ longitude + latitude,
+                         data = as.data.frame(geo), sqrt.dist = TRUE)
+  aov <- vegan::anova.cca(mod, permutations = nperm)
+  rsq <- vegan::RsquareAdj(mod)
+  data.frame("dbRDA R2" = round(unname(rsq$r.squared), 3),
+             "dbRDA adjR2" = round(unname(rsq$adj.r.squared), 3),
+             "dbRDA F" = round(unname(aov$F[1]), 3),
+             "dbRDA p" = round(unname(aov$`Pr(>F)`[1]), 3),
+             check.names = FALSE)
+}
+
 # ── Permutation tests for network statistics ─────────────────────────────────
 # Build a single network statistic from a padded site x sign matrix.
 build_stat <- function(stat) {
@@ -2604,4 +2637,269 @@ sensitivity_summary <- function(signbase_full_clean,
     md_nofig_p1 = md_nofig_p1, md_novog_p1 = md_novog_p1,
     edge_pct = edge_pct, md_pct = md_pct
   )
+}
+
+# ── Design sensitivity: minimum detectable effects (S1 sec-s-power) ──────────
+# Simulation-based MDEs at 80% power for the three headline null-hypothesis
+# tests (Mantel isolation-by-distance, restricted/broad PerMANOVA, network
+# phase contrast). These are design calculations conditional on the fixed
+# sample sizes (Aur-P1 = 20 sites, Aur-P2 = 9 sites) and the observed margins
+# (site richness, sign-type frequencies, coordinates, threshold 0.2, Jaccard).
+# They contextualise reported nulls as "lack of evidence below MDE = X".
+# They are not post hoc (observed) power, which is a transformation of the
+# observed p-value and must not be reported (Hoenig & Heisey 2001).
+# Conventions for "medium" effects follow Cohen (1992): rho = 0.3, R2 = 0.13.
+
+# Linear interpolation of the effect size at which power crosses `target`.
+# Returns NA_real_ when the grid never reaches `target` (report as ">max").
+mde_interp <- function(effect, power, target = 0.8) {
+  ok <- is.finite(effect) & is.finite(power)
+  effect <- effect[ok]; power <- power[ok]
+  if (length(effect) < 2) return(NA_real_)
+  o <- order(effect)
+  effect <- effect[o]; power <- power[o]
+  if (max(power) < target) return(NA_real_)
+  if (min(power) >= target) return(min(effect))
+  unname(stats::approx(power, effect, xout = target, ties = "ordered")$y)
+}
+
+# Mantel MDE for one phase by geographic-signal injection.
+# `art_mat`: site x sign data (rownames = sites). `geo_dist`: dist object of
+# geodesic km covering the same sites (order is aligned internally).
+# Generator: Curveball-randomised base matrix (fixed-fixed null preserving
+# site richness and sign-type frequencies) with rows permuted across sites,
+# mixed with scaled geography:
+# Jsim = (1 - lambda) * Jnull + lambda * Gscaled. Lambda controls the
+# injected signal; the reported effect metric is the empirical Mantel rho.
+# The p-value is a two-sided Mantel permutation on Pearson r with B_perm
+# label shuffles, matching vegan::mantel logic without its overhead.
+power_mantel_mde <- function(art_mat, geo_dist, lambda_grid = c(0, 0.2, 0.4, 0.6, 0.8),
+                             B = 300, B_perm = 99, seed = 42) {
+  set.seed(seed)
+  mat <- (as.matrix(art_mat) > 0) + 0L
+  sites <- rownames(art_mat)
+  Gmat <- as.matrix(geo_dist)
+  if (is.null(rownames(Gmat)) || !all(sites %in% rownames(Gmat))) {
+    if (nrow(Gmat) == length(sites)) {
+      rownames(Gmat) <- sites; colnames(Gmat) <- sites
+    } else {
+      stop("geo_dist labels do not match rownames(art_mat)")
+    }
+  }
+  Gmat <- Gmat[sites, sites, drop = FALSE]
+  n <- length(sites)
+  Grng <- range(Gmat[upper.tri(Gmat)])
+  Gs <- if (diff(Grng) == 0) matrix(0, n, n) else (Gmat - Grng[1]) / diff(Grng)
+  Gvec <- Gmat[upper.tri(Gmat)]
+  Gsvec <- Gs[upper.tri(Gs)]
+  nullmod <- vegan::nullmodel(mat, "curveball")
+  out <- lapply(lambda_grid, function(lam) {
+    rhos <- numeric(B); rej <- logical(B)
+    for (b in seq_len(B)) {
+      sim <- suppressWarnings(simulate(nullmod, nsim = 1))
+      M0 <- sim[, , 1]
+      rownames(M0) <- rownames(mat); colnames(M0) <- colnames(mat)
+      # Break the site-to-richness assignment (row permutation preserves
+      # column sums and the richness multiset) so site labels are
+      # exchangeable under the null. Without this, any observed
+      # richness-geography covariance leaks into the null and the lambda = 0
+      # rejection rate drifts off 0.05. Rows are restored to sites order so
+      # the Jaccard pairs stay aligned with the geographic pairs.
+      # NOTE: rownames are reset rather than reordered by name, because
+      # indexing by the full name vector would undo the shuffle.
+      M0 <- M0[sample.int(nrow(M0)), , drop = FALSE]
+      rownames(M0) <- sites
+      Jn <- suppressWarnings(as.matrix(vegan::vegdist(M0, "jaccard", binary = TRUE)))
+      Jvec <- Jn[upper.tri(Jn)]
+      Js <- (1 - lam) * Jvec + lam * Gsvec
+      r_obs <- suppressWarnings(stats::cor(Js, Gvec, method = "pearson"))
+      if (!is.finite(r_obs)) r_obs <- 0
+      rhos[b] <- r_obs
+      rp <- numeric(B_perm)
+      for (p in seq_len(B_perm)) {
+        perm <- sample.int(n)
+        Gp <- Gmat[perm, perm, drop = FALSE]
+        rpi <- suppressWarnings(stats::cor(Js, Gp[upper.tri(Gp)], method = "pearson"))
+        rp[p] <- if (is.finite(rpi)) rpi else 0
+      }
+      pv <- (1 + sum(abs(rp) >= abs(r_obs))) / (1 + B_perm)
+      rej[b] <- pv < 0.05
+    }
+    data.frame(lambda = lam, mean_rho = mean(rhos), power = mean(rej),
+               B = B, B_perm = B_perm, stringsAsFactors = FALSE)
+  })
+  do.call(rbind, out)
+}
+
+# PerMANOVA MDE for one phase by group-signal injection.
+# `mat`: site x sign data (rownames = sites). `group`: group labels aligned
+# to rownames (e.g. 1 = restricted, 2 = broad; names matched when present).
+# Generator: Curveball-randomised base matrix with rows permuted across sites
+# (breaks the site-to-richness assignment so labels are exchangeable under
+# the null; without this the preserved richness gradient alone rejects at a
+# high rate and the power curve cannot start near 0.05), then the top
+# `n_shift` broad-associated columns (ranked by observed broad-minus-restricted
+# frequency gap) are imposed: broad rows set to 1 and restricted rows to 0
+# with probability `flip_prob`. The reported effect metric is the empirical
+# PerMANOVA R2 under the adonis2(sqrt.dist = TRUE) convention
+# (see permanova_R2/permanova_F). The p-value permutes group labels.
+power_permanova_mde <- function(mat, group, n_shift_grid = 0:4,
+                                B = 300, B_perm = 99, seed = 43, flip_prob = 0.95) {
+  set.seed(seed)
+  M <- (as.matrix(mat) > 0) + 0L
+  sites <- rownames(mat)
+  if (!is.null(names(group)) && all(sites %in% names(group))) {
+    g <- as.factor(group[sites])
+  } else {
+    g <- as.factor(group)
+    if (length(g) != nrow(M)) stop("group length must match nrow(mat)")
+  }
+  lvl <- levels(g)
+  if (length(lvl) != 2) stop("group must have exactly two levels")
+  dif <- colMeans(M[g == lvl[2], , drop = FALSE]) - colMeans(M[g == lvl[1], , drop = FALSE])
+  ord_cols <- order(dif, decreasing = TRUE)
+  nullmod <- vegan::nullmodel(M, "curveball")
+  out <- lapply(n_shift_grid, function(ns) {
+    r2s <- numeric(B); rej <- logical(B)
+    top <- if (ns > 0) colnames(M)[ord_cols[seq_len(min(ns, ncol(M)))]] else character(0)
+    for (b in seq_len(B)) {
+      sim <- suppressWarnings(simulate(nullmod, nsim = 1))
+      M0 <- sim[, , 1]
+      rownames(M0) <- rownames(M); colnames(M0) <- colnames(M)
+      # Row-permute (breaks site-to-richness assignment) then reset rownames
+      # to sites order: permanova_F/R2 match group labels positionally, so Dm
+      # rows must sit in `sites` order while carrying shuffled richness
+      # profiles. NOTE: reordering by the full name vector would undo the
+      # shuffle, so rownames are reset instead.
+      M0 <- M0[sample.int(nrow(M0)), , drop = FALSE]
+      rownames(M0) <- sites
+      if (length(top)) {
+        for (s in sites) {
+          if (g[s] == lvl[2]) {
+            draw <- stats::runif(length(top)) < flip_prob
+            M0[s, top[draw]] <- 1
+          } else {
+            draw <- stats::runif(length(top)) < flip_prob
+            M0[s, top[draw]] <- 0
+          }
+        }
+      }
+      Dm <- suppressWarnings(as.matrix(vegan::vegdist(M0, "jaccard", binary = TRUE)))
+      if (any(!is.finite(Dm))) {
+        r2s[b] <- NA_real_; rej[b] <- FALSE; next
+      }
+      Fobs <- permanova_F(Dm, g)
+      R2 <- permanova_R2(Dm, g)
+      r2s[b] <- R2
+      Fn <- replicate(B_perm, permanova_F(Dm, sample(g)))
+      Fn <- Fn[is.finite(Fn)]
+      pv <- if (!is.finite(Fobs) || !length(Fn)) 1 else (1 + sum(Fn >= Fobs)) / (1 + length(Fn))
+      rej[b] <- pv < 0.05
+    }
+    data.frame(n_shift = ns, mean_R2 = mean(r2s, na.rm = TRUE), power = mean(rej),
+               B = B, B_perm = B_perm, stringsAsFactors = FALSE)
+  })
+  do.call(rbind, out)
+}
+
+# Four network statistics from one site x sign matrix in a single graph build.
+# Mirrors build_stat()/stat_phase() (threshold, Louvain, weights NA for
+# betweenness) but returns all four stats at once to keep MDE loops cheap.
+.net4 <- function(m, threshold = 0.2) {
+  jac <- suppressWarnings(as.matrix(vegan::vegdist(m, "jaccard", binary = TRUE)))
+  jac[!is.finite(jac)] <- 1
+  adj <- 1 - jac
+  adj[adj < threshold] <- 0
+  diag(adj) <- 0
+  ig <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected", weighted = TRUE, diag = FALSE)
+  dens <- if (igraph::ecount(ig) > 0) igraph::edge_density(ig) else 0
+  mod <- tryCatch(igraph::modularity(igraph::cluster_louvain(ig)), error = function(e) NA_real_)
+  bet <- if (igraph::ecount(ig) > 0) mean(igraph::betweenness(ig, weights = NA)) else 0
+  ncomp <- if (igraph::ecount(ig) > 0) igraph::components(ig)$no else nrow(m)
+  c(density = unname(dens), modularity = unname(mod),
+    betweenness = unname(bet), components = unname(ncomp))
+}
+
+# Expected thresholded edge density of Bernoulli(q) site x sign matrices.
+# All-zero rows are given one random presence so Jaccard stays finite.
+.exp_density <- function(q, n, k, reps = 25, threshold = 0.2) {
+  ds <- replicate(reps, {
+    m <- matrix(stats::rbinom(n * k, 1, q), n, k)
+    zr <- which(rowSums(m) == 0)
+    for (r in zr) m[r, sample.int(k, 1)] <- 1
+    .net4(m, threshold = threshold)[["density"]]
+  })
+  mean(ds)
+}
+
+# Calibrate the Bernoulli presence probability whose expected density hits target.
+.cal_q <- function(target, n, k, threshold = 0.2, lo = 0.05, hi = 0.9, iters = 10) {
+  target <- min(max(target, 0.005), 0.99)
+  for (i in seq_len(iters)) {
+    mid <- (lo + hi) / 2
+    d <- .exp_density(mid, n, k, threshold = threshold)
+    if (d < target) lo <- mid else hi <- mid
+  }
+  (lo + hi) / 2
+}
+
+# Network phase-contrast MDE parameterised directly in delta-density.
+# Baseline is the observed Aur-P1 edge density d0 (thresholded Jaccard graph
+# at the main-text threshold). For each `delta` in `delta_grid`, group 1
+# (n1 = nrow(art_p1)) is simulated at d0 and group 2 (n2 = nrow(art_p2)) at
+# max(d0 - delta, 0.02) via calibrated Bernoulli presence probabilities, and
+# the group difference in each of the four stats is tested by pooling rows
+# and re-splitting n1/n2 (the pair_diff() design) with B_perm shuffles.
+power_network_mde <- function(art_p1, art_p2, delta_grid = c(0, 0.05, 0.10, 0.15, 0.20, 0.30),
+                              B = 200, B_perm = 149, seed = 44, threshold = 0.2) {
+  set.seed(seed)
+  d0 <- network_stats(art_p1, threshold = threshold, round_stats = FALSE)$density
+  n1 <- nrow(art_p1); n2 <- nrow(art_p2)
+  k <- length(Reduce(union, list(colnames(art_p1), colnames(art_p2))))
+  if (!is.finite(k) || k < 2) k <- max(ncol(art_p1), ncol(art_p2))
+  q1 <- .cal_q(d0, n1, k, threshold = threshold)
+  gen <- function(n, q) {
+    m <- matrix(stats::rbinom(n * k, 1, q), n, k)
+    zr <- which(rowSums(m) == 0)
+    for (r in zr) m[r, sample.int(k, 1)] <- 1
+    m
+  }
+  stats <- c("density", "modularity", "betweenness", "components")
+  rows <- lapply(delta_grid, function(dl) {
+    target2 <- max(d0 - dl, 0.02)
+    q2 <- .cal_q(target2, n2, k, threshold = threshold)
+    rej <- matrix(FALSE, B, length(stats), dimnames = list(NULL, stats))
+    md1 <- numeric(B); md2 <- numeric(B)
+    for (b in seq_len(B)) {
+      A <- gen(n1, q1); C <- gen(n2, q2)
+      oA <- .net4(A, threshold); oC <- .net4(C, threshold)
+      md1[b] <- oA[["density"]]; md2[b] <- oC[["density"]]
+      d_obs <- oA - oC
+      P <- rbind(A, C)
+      cnt <- setNames(rep(1, length(stats)), stats)
+      ge <- setNames(rep(0, length(stats)), stats)
+      for (p in seq_len(B_perm)) {
+        idx <- sample.int(n1 + n2, n1)
+        sA <- .net4(P[idx, , drop = FALSE], threshold)
+        sC <- .net4(P[-idx, , drop = FALSE], threshold)
+        dn <- sA - sC
+        for (st in stats) {
+          if (is.finite(d_obs[[st]]) && is.finite(dn[[st]])) {
+            cnt[[st]] <- cnt[[st]] + 1
+            if (abs(dn[[st]]) >= abs(d_obs[[st]])) ge[[st]] <- ge[[st]] + 1
+          }
+        }
+      }
+      for (st in stats) rej[b, st] <- (ge[[st]] / cnt[[st]]) < 0.05
+    }
+    data.frame(delta = dl, target_density = target2, q2 = q2,
+               mean_d1 = mean(md1), mean_d2 = mean(md2),
+               power_density = mean(rej[, "density"]),
+               power_modularity = mean(rej[, "modularity"]),
+               power_betweenness = mean(rej[, "betweenness"]),
+               power_components = mean(rej[, "components"]),
+               B = B, B_perm = B_perm, stringsAsFactors = FALSE)
+  })
+  tab <- do.call(rbind, rows)
+  list(baseline_density = unname(d0), n1 = n1, n2 = n2, k = k, q1 = q1, table = tab)
 }

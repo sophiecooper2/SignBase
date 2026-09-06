@@ -676,6 +676,38 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
 
 **Question 2 — how uncertain is the global R, and what does this say about power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the @sec-s4 geodesic results. The 95% interval from object-within-site bootstrap is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 (spans zero; observed `r n3(mb_p1_obs)`) and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2 (narrowly negative, does not span zero; observed `r n3(mb_p2_obs)`); permutation p = `r n3(mg_p2_p)` shows no isolation-by-distance, and the bootstrap shows the negative estimate is stable to object resampling rather than underpowered in the same sense as Aur-P1. Site-with-replacement bootstrap was not used because it creates duplicate sites with distance 0 and dissimilarity 0. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Aur-P1 test has low power: a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall inside the Aur-P1 sampling noise and could not be excluded. The non-significant Mantel results are therefore a *lack of evidence* for geographic structure, not evidence that it is absent, and they provide no support for any alternative cultural process, consistent with @sec-s8-1.
 
+### Distance-Based Redundancy Analysis {#sec-s4-4}
+
+#### Rationale
+
+All spatial tests above belong to the Mantel family: they correlate pairs of distance matrices, whose pairwise entries are non-independent by construction. Distance-based redundancy analysis [dbRDA, @Legendre_Anderson_1999] instead fits an explanatory model of the site composition matrix on geographic predictors, with an R² and a permutation p-value, so a null here is convergent evidence from different machinery rather than a re-run of the same correlation. We model the site Jaccard dissimilarity matrix (same construction as the Mantel tests) on a linear geographic trend surface (longitude + latitude). The 2-df specification is identical in both phases so Aur-P2 (9 sites, 6 residual df) remains estimable.
+
+```{r}
+#| label: tbl-dbrda
+#| tbl-cap: "Distance-based redundancy analysis of site Jaccard dissimilarity on a linear geographic trend surface (longitude + latitude), per phase. R² is the raw constrained proportion, adjR² the Ezekiel-adjusted value, F and p from 999 permutations."
+#| tbl-cap-location: bottom
+
+dbrda_s1_p1 <- dbrda_geo(aurp1_artifact_data, aurp1_unique_data)
+dbrda_s1_p2 <- dbrda_geo(aurp2_artifact_data, aurp2_unique_data)
+dbrda_s1_p1_r2 <- dbrda_s1_p1$`dbRDA R2`
+dbrda_s1_p1_adjr2 <- dbrda_s1_p1$`dbRDA adjR2`
+dbrda_s1_p1_p <- dbrda_s1_p1$`dbRDA p`
+dbrda_s1_p2_r2 <- dbrda_s1_p2$`dbRDA R2`
+dbrda_s1_p2_adjr2 <- dbrda_s1_p2$`dbRDA adjR2`
+dbrda_s1_p2_p <- dbrda_s1_p2$`dbRDA p`
+
+dbrda_tab <- bind_rows(
+  dbrda_s1_p1 %>% mutate(Phase = "Aur-P1", .before = 1),
+  dbrda_s1_p2 %>% mutate(Phase = "Aur-P2", .before = 1)
+)
+
+kable(dbrda_tab, digits = 3)
+```
+
+#### Interpretation
+
+**Does geography explain sign composition under a non-Mantel model?** Only faintly, and only in Aur-P1. The linear trend is nominally significant in Aur-P1 (R² = `r dbrda_s1_p1_r2`, adjusted R² = `r dbrda_s1_p1_adjr2`, p = `r dbrda_s1_p1_p`) but explains about six percent of the adjusted variation: a weak gradient the global Mantel correlation misses, not discrete geographic groups. In Aur-P2 there is no signal (R² = `r dbrda_s1_p2_r2`, adjusted R² = `r dbrda_s1_p2_adjr2`, p = `r dbrda_s1_p2_p`). Note the Aur-P2 raw R² exceeds Aur-P1's while its adjusted R² is negative: with 9 sites and 2 predictors the raw value is overfit, which is why the adjusted figure governs the reading. Both phases remain low-power, so as with the Mantel results these are convergent nulls reflecting limited samples, not evidence that geography is irrelevant.
+
 # Periodisation Scheme Sensitivity {#sec-s5}
 
 ## Rationale {#sec-s5-1}
@@ -3582,6 +3614,169 @@ kable(s7_md_summary,
 ## Synthesis and Limitation {#sec-s12-7}
 
 The five sampling analyses converge on a single conclusion. (1) Under object-downsampling, only the best-sampled sites retain their R/B assignment; small-object sites flip group at rates indistinguishable from chance, and network modularity collapses (@sec-s12-2). (2) Coverage-based rarefaction shows the broad/restricted contrast persists among the sites assessable at equal coverage, but the majority of the smallest sites never reach a comparable coverage, so the method cannot vindicate them (@sec-s12-3). (3) The offset model's null group effect was a property of fixing the richness-effort exponent at 1; with the exponent estimated, the group contrast persists, so the gap is not distinguishable from a genuine group difference at saturating effort (@sec-s12-4). (4) At equal effort with `iNEXT`, the Aur-P1 vs Aur-P2 sign-type pool difference lies inside sampling variation, even when restricted to shared object types (@sec-s12-5). (5) Under fixed margins the Jaccard group separation is not distinguished from richness structure alone (Aur-P1 exceeds object-sampling expectation; Aur-P2 does not), while Simpson turnover dissimilarity shows no group separation in either phase (@sec-s10-1). Figurine exclusion (@sec-s12-6) is the exception: it leaves the Aur-P1 greater than Aur-P2 ordering intact. Together these show that the restricted/broad division is **not fully independent of sampling intensity**: it is recovered robustly for large assemblages, but for the numerous small assemblages it is partly an artefact of how many objects were recovered, and the raw `r s95_n_p1` vs `r s95_n_p2` pool contraction does not survive equal-effort standardisation.
+
+# Design Sensitivity: Minimum Detectable Effects {#sec-s-power}
+
+## Rationale
+
+The main text reports null results for three headline tests: the per-phase Mantel isolation-by-distance tests, the restricted/broad PerMANOVA tests, and the Aur-P1 versus Aur-P2 network phase contrast. This section asks what effect each test could detect with the fixed samples (Aur-P1 = 20 sites, Aur-P2 = 9 sites). It reports the minimum detectable effect (MDE) at 80% power and α = 0.05 for each test. These are design calculations conditional on the observed margins. They are not post hoc power computed from the observed effects, which restates the observed p-value and must not be reported [@Hoenig_Heisey_2001]. Conventions for medium effects are rho = 0.3 and R^2^ = 0.13 [@Cohen_1992]. Mantel p-values are approximate under spatial dependence [@Legendre_2015; @Guillot_Rousset_2013], so the Mantel MDEs below are design aids rather than exact sampling statements. The Aur-P2 PerMANOVA (6 versus 3 sites) is indicative only, because small unbalanced PerMANOVA uses permutations with caution [@Anderson_Walsh_2013].
+
+## Analysis
+
+The Mantel generator mixes scaled geography into Curveball-randomised baselines, so each null preserves site richness and sign-type frequencies. Rows are permuted across sites before injection, so labels are exchangeable under the null and the zero-signal rejection rate stays near 0.05. The PerMANOVA generator imposes group-specific signs on the same baseline. The network generator calibrates Bernoulli presence probabilities to the observed Aur-P1 density and lowers the contrast group density by each grid delta, testing the difference with the main-text pooling design.
+
+```{r}
+#| label: setup-power-mde
+#| cache: true
+# MDE simulations call the shared generators in functions.R (single source).
+# Seeds 42/43/44 match the Mantel/PerMANOVA/network offsets used elsewhere.
+
+mk_geo_dist <- function(udf, art) {
+  sf_o <- sf::st_as_sf(udf, coords = c("longitude", "latitude"), crs = 4326)
+  G <- as.matrix(sf::st_distance(sf_o) / 1000)
+  rownames(G) <- udf$site_name; colnames(G) <- udf$site_name
+  sites <- rownames(art)
+  as.dist(G[sites, sites, drop = FALSE])
+}
+
+geo_p1 <- mk_geo_dist(aurp1_unique_data, aurp1_artifact_data)
+geo_p2 <- mk_geo_dist(aurp2_unique_data, aurp2_artifact_data)
+
+aurp1_grp <- aurp1_unique_data$group[match(rownames(aurp1_artifact_data), aurp1_unique_data$site_name)]
+names(aurp1_grp) <- rownames(aurp1_artifact_data)
+aurp2_grp <- aurp2_unique_data$group[match(rownames(aurp2_artifact_data), aurp2_unique_data$site_name)]
+names(aurp2_grp) <- rownames(aurp2_artifact_data)
+
+pow_mantel_p1 <- power_mantel_mde(aurp1_artifact_data, geo_p1,
+                                  lambda_grid = c(0, 0.2, 0.4, 0.6, 0.8),
+                                  B = 300, B_perm = 99, seed = 42)
+pow_mantel_p2 <- power_mantel_mde(aurp2_artifact_data, geo_p2,
+                                  lambda_grid = c(0, 0.2, 0.4, 0.6, 0.8),
+                                  B = 300, B_perm = 99, seed = 142)
+pow_perm_p1 <- power_permanova_mde(aurp1_artifact_data, aurp1_grp,
+                                   n_shift_grid = 0:4, B = 300, B_perm = 99, seed = 43)
+pow_perm_p2 <- power_permanova_mde(aurp2_artifact_data, aurp2_grp,
+                                   n_shift_grid = 0:4, B = 300, B_perm = 99, seed = 143)
+pow_net <- power_network_mde(aurp1_artifact_data, aurp2_artifact_data,
+                             delta_grid = c(0, 0.05, 0.10, 0.15, 0.20, 0.30),
+                             B = 200, B_perm = 99, seed = 44, threshold = 0.2)
+
+# MDEs (effect at 80% power) and power at conventional medium effects
+mde_rho_p1 <- mde_interp(pow_mantel_p1$mean_rho, pow_mantel_p1$power)
+mde_rho_p2 <- mde_interp(pow_mantel_p2$mean_rho, pow_mantel_p2$power)
+mde_R2_p1 <- mde_interp(pow_perm_p1$mean_R2, pow_perm_p1$power)
+mde_R2_p2 <- mde_interp(pow_perm_p2$mean_R2, pow_perm_p2$power)
+mde_dens <- mde_interp(pow_net$table$delta, pow_net$table$power_density)
+mde_mod <- mde_interp(pow_net$table$delta, pow_net$table$power_modularity)
+mde_bet <- mde_interp(pow_net$table$delta, pow_net$table$power_betweenness)
+mde_comp <- mde_interp(pow_net$table$delta, pow_net$table$power_components)
+
+pow_at <- function(eff, pwr, x) {
+  ok <- is.finite(eff) & is.finite(pwr)
+  if (sum(ok) < 2) return(NA_real_)
+  o <- order(eff[ok])
+  unname(stats::approx(eff[ok][o], pwr[ok][o], xout = x, rule = 2, ties = mean)$y)
+}
+pwr_rho03_p1 <- pow_at(pow_mantel_p1$mean_rho, pow_mantel_p1$power, 0.3)
+pwr_rho03_p2 <- pow_at(pow_mantel_p2$mean_rho, pow_mantel_p2$power, 0.3)
+pwr_R213_p1 <- pow_at(pow_perm_p1$mean_R2, pow_perm_p1$power, 0.13)
+pwr_R213_p2 <- pow_at(pow_perm_p2$mean_R2, pow_perm_p2$power, 0.13)
+pwr_d10_dens <- pow_at(pow_net$table$delta, pow_net$table$power_density, 0.10)
+pwr_d10_mod <- pow_at(pow_net$table$delta, pow_net$table$power_modularity, 0.10)
+pwr_d10_bet <- pow_at(pow_net$table$delta, pow_net$table$power_betweenness, 0.10)
+pwr_d10_comp <- pow_at(pow_net$table$delta, pow_net$table$power_components, 0.10)
+
+# Observed effects on the same metrics (point estimates, no new tests)
+jac_p1 <- vegan::vegdist(aurp1_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE)
+jac_p2 <- vegan::vegdist(aurp2_artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0))), "jaccard", binary = TRUE)
+obs_rho_p1 <- unname(vegan::mantel(geo_p1, jac_p1, permutations = 999)$statistic)
+obs_rho_p2 <- unname(vegan::mantel(geo_p2, jac_p2, permutations = 999)$statistic)
+obs_R2_p1 <- permanova_R2(as.matrix(jac_p1), factor(aurp1_grp))
+obs_R2_p2 <- permanova_R2(as.matrix(jac_p2), factor(aurp2_grp))
+obs_d1 <- network_stats(aurp1_artifact_data, threshold = 0.2, round_stats = FALSE)$density
+obs_d2 <- network_stats(aurp2_artifact_data, threshold = 0.2, round_stats = FALSE)$density
+obs_ddens <- obs_d1 - obs_d2
+
+fmt_mde <- function(mde, mx, d = 2) {
+  if (!is.finite(mde)) paste0(">", formatC(mx, digits = d, format = "f")) else formatC(mde, digits = d, format = "f")
+}
+```
+
+```{r}
+#| label: tbl-power-mde
+#| tbl-cap: "Minimum detectable effects at 80% power (alpha = 0.05) for the three headline null-hypothesis tests. Mantel rows use the Mantel rho scale (geographic-signal injection on Curveball-randomised baselines with rows permuted across sites, B = 300, 99 permutations). PerMANOVA rows use the total Jaccard R² scale under the adonis2(sqrt.dist = TRUE) convention on the same exchangeable baseline (group-signal injection, B = 300, 99 permutations). Network rows use the absolute edge-density-difference scale with the observed Aur-P1 density as baseline (B = 200, 99 permutations). MDE values above the simulated grid are shown as greater-than the grid maximum. Power at a medium effect uses rho = 0.3, R² = 0.13, and absolute density difference = 0.10."
+#| tbl-cap-location: bottom
+
+power_mde_tab <- data.frame(
+  Test = c("Mantel Aur-P1", "Mantel Aur-P2",
+           "PerMANOVA Aur-P1 (9 vs 11)", "PerMANOVA Aur-P2 (6 vs 3)",
+           "Network density (20 vs 9)", "Network modularity (20 vs 9)",
+           "Network betweenness (20 vs 9)", "Network components (20 vs 9)"),
+  N = c("20 sites (190 pairs)", "9 sites (36 pairs)",
+        "9 vs 11 sites", "6 vs 3 sites",
+        "20 vs 9 sites", "20 vs 9 sites", "20 vs 9 sites", "20 vs 9 sites"),
+  `Effect metric` = c("Mantel rho", "Mantel rho", "PerMANOVA R² (total)", "PerMANOVA R² (total)",
+                      "Absolute density difference", "Absolute density difference",
+                      "Absolute density difference", "Absolute density difference"),
+  `MDE at 80% power` = c(fmt_mde(mde_rho_p1, max(pow_mantel_p1$mean_rho)),
+                         fmt_mde(mde_rho_p2, max(pow_mantel_p2$mean_rho)),
+                         fmt_mde(mde_R2_p1, max(pow_perm_p1$mean_R2, na.rm = TRUE)),
+                         fmt_mde(mde_R2_p2, max(pow_perm_p2$mean_R2, na.rm = TRUE)),
+                         fmt_mde(mde_dens, 0.30), fmt_mde(mde_mod, 0.30),
+                         fmt_mde(mde_bet, 0.30), fmt_mde(mde_comp, 0.30)),
+  `Power at medium effect` = c(n2(pwr_rho03_p1), n2(pwr_rho03_p2),
+                               n2(pwr_R213_p1), n2(pwr_R213_p2),
+                               n2(pwr_d10_dens), n2(pwr_d10_mod),
+                               n2(pwr_d10_bet), n2(pwr_d10_comp)),
+  check.names = FALSE
+)
+
+kable(power_mde_tab)
+```
+
+```{r fig.height=7, fig.width=9}
+#| label: fig-power-curves
+#| fig-cap: "Simulated power curves for the three headline tests. A: Mantel power against Mantel rho per phase. B: PerMANOVA power against total Jaccard R² per phase. C: Network phase-contrast power against the absolute edge-density difference from the observed Aur-P1 baseline density. The dashed line marks 80% power; the effect where each curve crosses it is the minimum detectable effect in @tbl-power-mde. Curves are simulation estimates (Mantel and PerMANOVA: B = 300 with 99 permutations; network: B = 200 with 99 permutations)."
+
+pA <- bind_rows(pow_mantel_p1 %>% mutate(Phase = "Aur-P1"),
+                pow_mantel_p2 %>% mutate(Phase = "Aur-P2")) %>%
+  ggplot(aes(x = mean_rho, y = power, colour = Phase)) +
+  geom_line() + geom_point(size = 2) +
+  geom_hline(yintercept = 0.8, linetype = "dashed", colour = "grey40") +
+  labs(x = "Mantel rho", y = "Power", title = "A: Mantel") +
+  theme_minimal() + ylim(0, 1)
+
+pB <- bind_rows(pow_perm_p1 %>% mutate(Phase = "Aur-P1"),
+                pow_perm_p2 %>% mutate(Phase = "Aur-P2")) %>%
+  ggplot(aes(x = mean_R2, y = power, colour = Phase)) +
+  geom_line() + geom_point(size = 2) +
+  geom_hline(yintercept = 0.8, linetype = "dashed", colour = "grey40") +
+  labs(x = "PerMANOVA R²", y = "Power", title = "B: PerMANOVA") +
+  theme_minimal() + ylim(0, 1)
+
+pC <- pow_net$table %>%
+  dplyr::select(delta, power_density, power_modularity, power_betweenness, power_components) %>%
+  pivot_longer(-delta, names_to = "Statistic", values_to = "power") %>%
+  mutate(Statistic = recode(Statistic,
+    power_density = "Density", power_modularity = "Modularity",
+    power_betweenness = "Betweenness", power_components = "Components")) %>%
+  ggplot(aes(x = delta, y = power, colour = Statistic)) +
+  geom_line() + geom_point(size = 2) +
+  geom_hline(yintercept = 0.8, linetype = "dashed", colour = "grey40") +
+  labs(x = "Edge-density difference from Aur-P1 baseline", y = "Power",
+       title = "C: Network phase contrast") +
+  theme_minimal() + ylim(0, 1)
+
+plot_grid(pA, pB, pC, ncol = 1, align = "hv")
+```
+
+## Interpretation
+
+Mantel MDEs are `r fmt_mde(mde_rho_p1, max(pow_mantel_p1$mean_rho))` for Aur-P1 and `r fmt_mde(mde_rho_p2, max(pow_mantel_p2$mean_rho))` for Aur-P2 on the rho scale. Power at a medium rho of 0.3 is `r n2(pwr_rho03_p1)` in Aur-P1 and `r n2(pwr_rho03_p2)` in Aur-P2. The observed Mantel correlations (`r n3(obs_rho_p1)` and `r n3(obs_rho_p2)`) sit below their MDEs. The non-significant Mantel results are therefore a lack of evidence at these sample sizes, not evidence that geography is irrelevant, consistent with @sec-s4-3.
+
+PerMANOVA MDEs are `r fmt_mde(mde_R2_p1, max(pow_perm_p1$mean_R2, na.rm = TRUE))` for Aur-P1 and `r fmt_mde(mde_R2_p2, max(pow_perm_p2$mean_R2, na.rm = TRUE))` for Aur-P2 on the total Jaccard R² scale. The row-permuted baseline carries no group–richness link, so each MDE is the total separation the test needs, including any richness gap a real group effect would produce. Power at R² = 0.13 is `r n2(pwr_R213_p1)` in Aur-P1 and `r n2(pwr_R213_p2)` in Aur-P2. The Aur-P2 test with 6 versus 3 sites has the larger MDE and stays indicative. Group separations below these R² values cannot be distinguished from sampling variation by this test.
+
+The network contrast uses the observed Aur-P1 edge density (`r n3(pow_net$baseline_density)`) as baseline and measures absolute gaps. The observed Aur-P1 minus Aur-P2 density difference is `r n3(obs_ddens)` (Aur-P2 is the denser network, so the comparison is on magnitudes). MDEs on the absolute density-difference scale are `r fmt_mde(mde_dens, 0.30)` for density, `r fmt_mde(mde_mod, 0.30)` for modularity, `r fmt_mde(mde_bet, 0.30)` for betweenness, and `r fmt_mde(mde_comp, 0.30)` for component count. Power at an absolute density difference of 0.10 is `r n2(pwr_d10_dens)` for density, `r n2(pwr_d10_mod)` for modularity, `r n2(pwr_d10_bet)` for betweenness, and `r n2(pwr_d10_comp)` for components. Density is the most sensitive of the four statistics. Modularity, betweenness, and component count need larger density gaps before the phase contrast reaches 80% power, so their nulls carry less information than the density null at the same sample sizes.
 
 # Overall Synthesis {#sec-s13}
 
