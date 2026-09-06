@@ -1741,6 +1741,62 @@ bootstrap_mantel_R <- function(df_unique, signbase_clean, phase, B = 1000, seed 
        ci_hi = unname(quantile(Rs, 0.975, na.rm = TRUE)))
 }
 
+# Object-within-site bootstrap for PerMANOVA R2 (main-text Table 3 CIs).
+# Resamples objects within each site, rebuilds the site-level presence/absence
+# matrix, then recomputes the adonis2 R2 for the frozen manual
+# restricted/broad groups (manual_groups). Mirrors bootstrap_mantel_R(), so the
+# Table 3 intervals rest on the same resampling design as the Mantel intervals.
+# adonis2 runs with permutations = 0 per replicate because only the R2 point
+# estimate is needed; no permutation null is built inside the loop.
+bootstrap_permanova_R2 <- function(df_unique, signbase_clean, phase, B = 1000, seed = 43) {
+  set.seed(seed)
+  df_phase <- signbase_clean %>% filter(phase2 == phase)
+  sc <- intersect(SIGN_COLS, colnames(df_phase))
+  sites <- unique(df_phase$site_name)
+  grp <- factor(manual_groups[[phase]][sites])
+  r2_one <- function(mat, g) {
+    mat <- mat[, colSums(mat) > 0, drop = FALSE]
+    if (nrow(mat) < 3 || ncol(mat) == 0) return(NA_real_)
+    jac <- tryCatch(vegan::vegdist(mat, "jaccard", binary = TRUE),
+                    error = function(e) NA)
+    if (any(is.na(jac))) return(NA_real_)
+    dd <- data.frame(g = g)
+    out <- tryCatch(
+      vegan::adonis2(jac ~ g, data = dd, method = "jaccard",
+                     sqrt.dist = TRUE, permutations = 0),
+      error = function(e) NULL)
+    if (is.null(out)) return(NA_real_)
+    unname(out$R2[1])
+  }
+  # Observed R2 on the original site matrix (same construction as strength_function)
+  art_obs <- df_unique %>% column_to_rownames("site_name") %>%
+    dplyr::select(line:star) %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  art_obs <- art_obs[sites, , drop = FALSE]
+  obs_R2 <- r2_one(as.matrix(art_obs), grp)
+  Rs <- numeric(B)
+  for (b in seq_len(B)) {
+    boot_rows <- list()
+    for (s in sites) {
+      objs <- df_phase %>% filter(site_name == s)
+      n <- nrow(objs)
+      idx <- sample.int(n, n, replace = TRUE)
+      samp <- objs[idx, , drop = FALSE]
+      pv <- vapply(sc, function(cn) as.integer(any(as.numeric(samp[[cn]]) > 0)), integer(1))
+      boot_rows[[s]] <- pv
+    }
+    mat <- do.call(rbind, boot_rows)
+    rownames(mat) <- sites
+    Rs[b] <- r2_one(mat, grp)
+  }
+  Rs <- Rs[is.finite(Rs)]
+  list(observed_R2 = unname(obs_R2),
+       boot_R2 = Rs,
+       ci_lo = unname(quantile(Rs, 0.025, na.rm = TRUE)),
+       ci_hi = unname(quantile(Rs, 0.975, na.rm = TRUE)))
+}
+
 # ── S3 registration ───────────────────────────────────────────────────────────
 # Ensure ggplot2::autoplot() dispatches to autoplot.DiversityIndex even when the
 # function is defined in a sourced script rather than the global environment.

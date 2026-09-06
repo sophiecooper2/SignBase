@@ -155,7 +155,7 @@ edge_pct    <- sens$edge_pct
 md_pct      <- sens$md_pct
 ```
 
-Abstract: The Aurignacian technocomplex (ca. 43–30 ka cal BP) marks a pivotal expansion of _Homo sapiens_ into Western Eurasia, yet the evolution of social organization during this transition remains debated. Here we investigate social dynamics through the analysis of geometric signs on mobile objects within a two-phase framework based on specialist technological attributions in site assignment. Using seriation and network analyses, we examine patterns of sign production in each phase, and investigate how the sign-sharing network differs between the Early and Late Aurignacian. Within the early phase (Aur-P1; `r aurp1_site_count` sites) we hypothesize a two-group structure of restricted versus broad geometric-sign repertoires. Stochastic block modelling recovers the restricted/broad split as its two largest blocks in Aur-P1, with an additional small block (Labeko Koba, Les Cottés, Trou al'Wesse), while selecting a single block in Aur-P2; the richness gap between the groups is not distinguishable from a group difference once the saturating richness–effort relationship is modelled. The early phase has a larger site network, but permutation tests indicate that the phases do not differ significantly in edge density, modularity, mean betweenness, or component count. Size-normalized mean degree ratios are equivalent across phases, confirming the observed connectivity differences track network size rather than intrinsic community structure. The observed differences in network connectivity track the larger size of the early phase, not a statistically distinguishable community structure. The late phase (Aur-P2; `r aurp2_site_count` sites) shows a weaker, less resolved structure. Mantel tests did not detect a significant correlation between geographic distance and sign distribution in either phase, and the isolation-by-distance relationship does not differ between them, but bootstrap confidence intervals indicate these tests are underpowered at these sample sizes. This sample of geometric signs does not show the geographically distinct clusters found in personal ornaments; their function (notation, calendrical, identity) remains unresolved.
+Abstract: The Aurignacian technocomplex (ca. 43–30 ka cal BP) marks a pivotal expansion of _Homo sapiens_ into Western Eurasia, yet the evolution of social organization during this transition remains debated. Here we investigate social dynamics through the analysis of geometric signs on mobile objects within a two-phase framework based on specialist technological attributions in site assignment. Using seriation and network analyses, we examine patterns of sign production in each phase, and investigate how the sign-sharing network differs between the Early and Late Aurignacian. Within the early phase (Aur-P1; `r aurp1_site_count` sites) we hypothesize a two-group structure of restricted versus broad geometric-sign repertoires. Stochastic block modelling recovers the restricted/broad split as its two largest blocks in Aur-P1, while selecting a single block in Aur-P2; but the richness gap between the groups is not distinguishable from a group difference once the saturating richness–effort relationship is modelled. The early phase has a larger site network, but permutation tests indicate that the phases do not differ significantly in edge density, modularity, mean betweenness, or component count. Size-normalized mean degree ratios are equivalent across phases, confirming the observed connectivity differences track network size rather than intrinsic community structure. The late phase (Aur-P2; `r aurp2_site_count` sites) shows a weaker, less resolved structure. Mantel tests did not detect a significant correlation between geographic distance and sign distribution in either phase, and the isolation-by-distance relationship does not differ between them, but bootstrap confidence intervals indicate these tests are underpowered at these sample sizes. This sample of geometric signs does not show the geographically distinct clusters found in personal ornaments; their function (e.g. notation, calendrical, identity) remains unresolved.
 ---
 
 Archaeological evidence from the Upper Palaeolithic period indicates increasingly complex social organization across Europe [@Boyd_Silk_2020]. Archaeologists have frequently used ancient art, the abundance of which is a distinctive quality of the period, as a proxy for cultural difference to understand the shifting patterns of social organization and diversity of the Upper Palaeolithic [@dErrico_Baker_Rigaud_2025; @baker2024evidence; @Sauvet_2018; @Kuhn_Stiner_2007; @Vanhaeren_d; @Fuentes_Lucas_Robert_2019]. The Aurignacian technocomplex (ca. 43–30 ka cal BP) is often linked to the dispersal of _Homo sapiens_ across Western Eurasia, and is characterized by lithic and osseous markers [@Tejero_Grimaldi_2015; @Tartar_2012], some of which are decorated with geometric signs [@dutkiewicz2020]. Personal ornaments, such as the 41,500 year-old decorated ivory pendant from Stajnia Cave [@Talamo_2022], provide direct evidence of symbolic behavior and connectivity in sign repertoires during this period. Here we investigate human social organization dynamics implied by the distribution and variation of geometric sign types found on mobile objects in Europe within a two-phase framework [Aur-P1/Aur-P2; @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021].
@@ -403,20 +403,28 @@ If the distribution of sign types can be mostly explained by geographic distance
 
 ```{r}
 #| label: tbl-mantel-table
-#| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard dissimilarity matrix of sign type diversity and a geographic distance matrix"
+#| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard dissimilarity matrix of sign type diversity and a geographic distance matrix. The 95% confidence interval comes from an object-within-site bootstrap (B = 1,000; same procedure as S1 S5.11)."
 #| tbl-cap-location: bottom
+#| cache: true
 ## Mantel test for geography vs signs
 
 aurp1_strength <- strength_function(aurp1_artifact_data, aurp1_unique_data)
 aurp2_strength <- strength_function(aurp2_artifact_data, aurp2_unique_data)
- 
+
+# Bootstrap 95% CIs for Mantel R (object-within-site resampling, B = 1,000)
+mantel_ci_p1 <- bootstrap_mantel_R(aurp1_unique_data, signbase_full_clean, "Aur-P1", B = 1000, seed = 42)
+mantel_ci_p2 <- bootstrap_mantel_R(aurp2_unique_data, signbase_full_clean, "Aur-P2", B = 1000, seed = 42)
+mantel_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
+
 full_table <- rbind(aurp1_strength, aurp2_strength) %>% 
    mutate(`Aurignacian phase` = c("Aur-P1",
                                   "Aur-P2"), 
           .before = 1)
  
 mantel_table <- full_table %>% 
-  dplyr::select(`Aurignacian phase`, `Mantel R`, `Mantel p`)
+  dplyr::select(`Aurignacian phase`, `Mantel R`, `Mantel p`) %>% 
+  mutate(`Mantel 95% CI` = c(mantel_ci_fmt(mantel_ci_p1),
+                             mantel_ci_fmt(mantel_ci_p2)))
 
 kable(mantel_table)
 
@@ -704,7 +712,7 @@ ggsave(here::here("figures/network-stats-plot.png"),
 knitr::include_graphics(here::here("figures/network-stats-plot.png"))
 ```
 
-Distinct groups of sites are not evident in @fig-neighbor-net, supporting the hypothesis of a gradient of sign type composition variation. @fig-neighbor-net-stats shows the results of permutation tests (n&nbsp;=&nbsp;`r format(nperm, big.mark = ",", scientific = FALSE)`) assessing whether the observed statistics differ from a phase-randomized null distribution, and pairwise randomisation tests comparing the two phases. Under phase randomization, none of the network statistics, edge density, modularity (Louvain), mean betweenness, or component count, differs significantly from its null distribution in either phase. All observed values fall within the null 95% confidence intervals and all Benjamini–Hochberg-adjusted p-values are ≥ 0.05. The Aur-P1–Aur-P2 contrast is therefore primarily one of network scale rather than a statistically distinguishable community structure.
+Distinct groups of sites are not evident in @fig-neighbor-net, supporting the hypothesis of a gradient of sign type composition variation. @fig-neighbor-net-stats shows the results of permutation tests (n&nbsp;=&nbsp;`r format(nperm, big.mark = ",", scientific = FALSE)`) assessing whether the observed statistics differ from a phase-randomized null distribution, and pairwise randomisation tests comparing the two phases. Under phase randomization, none of the network statistics, edge density, modularity (Louvain), mean betweenness, or component count, differs significantly from its null distribution in either phase. All observed values fall within the null 95% confidence intervals and all Benjamini–Hochberg-adjusted p-values are ≥ 0.05. The Aur-P1–Aur-P2 contrast is therefore primarily one of network scale rather than a statistically distinguishable community structure. Object-within-site bootstrap stability bands likewise overlap between phases (S1), so the phase contrast could be produced by within-site object sampling alone. 
 
 We assessed the sensitivity of our network analysis to site assignment criteria in three ways: (1) reverting to purely date-based assignment; (2) excluding Vogelherd entirely, as a site with an unsually large sign assemblage; (3) excluding figurines concentrated at Vogelherd (S1 "Sensitivity Analyses"). Under all conditions, the Aur-P1 > Aur-P2 connectivity ordering is preserved (Aur-P1 mean degree: `r sprintf("%.2f", md_base_p1)` baseline, `r sprintf("%.2f", md_novog_p1)` no Vogelherd, `r sprintf("%.2f", md_nofig_p1)` no figurines; Aur-P2: `r sprintf("%.2f", md_base_p2)`). Excluding Vogelherd reduces Aur-P1 edges by `r edge_pct`% and mean degree by `r md_pct`%, but does not alter the phase contrast or the within-phase two-group pattern. Because the principal results are unchanged when Vogelherd is excluded entirely, our conclusions do not depend on its inclusion or on its precise archaeological attribution. That said, this connectivity ordering reflects Aur-P1's larger site sample, not higher intrinsic connectivity (size-normalized MD ratios are ~1.0 for both phases, see S1).
 
@@ -767,12 +775,17 @@ Spatial clusters of sites are not evident in the sites with signs (@fig-group-ma
 
 ```{r}
 #| label: tbl-strength-table
-#| tbl-cap: "Table of the results per phase for the perMANOVA"
+#| tbl-cap: "Table of the results per phase for the perMANOVA. The R² 95% confidence interval comes from an object-within-site bootstrap (B = 1,000)."
 #| tbl-cap-location: bottom
 #| cache: true
 
 aurp1_strength <- strength_function(aurp1_artifact_data, aurp1_unique_data)
 aurp2_strength <- strength_function(aurp2_artifact_data, aurp2_unique_data)
+
+# Bootstrap 95% CIs for PerMANOVA R2 (object-within-site resampling, B = 1,000)
+perm_ci_p1 <- bootstrap_permanova_R2(aurp1_unique_data, signbase_full_clean, "Aur-P1", B = 1000, seed = 43)
+perm_ci_p2 <- bootstrap_permanova_R2(aurp2_unique_data, signbase_full_clean, "Aur-P2", B = 1000, seed = 43)
+perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
  
 full_table <- rbind(aurp1_strength, aurp2_strength) %>% 
    mutate(`Aurignacian phase` = c("Aur-P1",
@@ -789,7 +802,9 @@ strength_table <- full_table %>%
   dplyr::select(`Aurignacian phase`, 
                 `PerMANOVA R2`, 
                 `PerMANOVA F`, 
-                `PerMANOVA p`)
+                `PerMANOVA p`) %>% 
+  mutate(`PerMANOVA R2 95% CI` = c(perm_ci_fmt(perm_ci_p1),
+                                   perm_ci_fmt(perm_ci_p2)))
 
 kable(strength_table)
 
