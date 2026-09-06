@@ -487,13 +487,13 @@ The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree
 
 ## Interpretation {#sec-S1-2-interpretation}
 
-**Question: do the phase contrasts hold at the alternative thresholds of 0.1 and 0.3?** Yes. In both phases and at all three thresholds, the networks retain a recognisable two-cluster structure corresponding to the restricted-range and broader-range site groups identified by seriation. Broader-range sites keep denser mutual connections, while restricted-range sites stay peripheral or isolated. Aur-P1 is consistently the more edge-rich network with the higher mean degree and clearer hub structure, while Aur-P2 is sparser and more fragmented (@tbl-sens-stats). Modularity in Aur-P1 remains in a moderate range across thresholds, indicating persistent community structure.
+**Question: do the phase contrasts hold at the alternative thresholds of 0.1 and 0.3?** Yes. In both phases and at all three thresholds, the networks retain a recognisable two-cluster structure corresponding to the restricted-range and broader-range site groups identified by seriation. Broader-range sites keep denser mutual connections, while restricted-range sites stay peripheral or isolated. Aur-P1 is consistently the more edge-rich network with the higher raw mean degree and clearer hub structure, while Aur-P2 is sparser and more fragmented (@tbl-sens-stats). Modularity in Aur-P1 remains in a moderate range across thresholds, indicating persistent community structure.
 
 **Question: is the 0.2 threshold a defensible middle ground between over-connection and fragmentation?** Yes. At threshold 0.1, graph density increases substantially and several sites that appear as isolates at 0.2 become connected, reflecting genuine weak cultural overlap or noise in the presence/absence data. At threshold 0.3, the graph becomes considerably sparser, with `r val(sens_stats, "n_isolates", "Aur-P1", 0.3)` isolates in Aur-P1 in particular. The number of isolated nodes increases monotonically with threshold in both phases, as expected. The 0.2 threshold preserves the major structural contrasts while avoiding both the over-connection artefacts of the 0.1 threshold and the excessive fragmentation of the 0.3 threshold.
 
 **Question: how much of the edge structure is preserved when the threshold moves?** Most of it. Edge-set Jaccard between 0.1 and 0.2 is `r agree_table$Edge_Jaccard[agree_table$Phase == "Aur-P1" & agree_table$T1 == 0.1 & agree_table$T2 == 0.2]` for Aur-P1 and `r agree_table$Edge_Jaccard[agree_table$Phase == "Aur-P2" & agree_table$T1 == 0.1 & agree_table$T2 == 0.2]` (@tbl-threshold-agreement). Moving the threshold changes density more than structure.
 
-**Question: over what continuous threshold range does the Aur-P1 greater than Aur-P2 ordering hold?** From 0.05 to 0.50. Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across the swept range, and the ordering is preserved throughout (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`) (@fig-threshold-sweep). Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses. Modularity shows the same ordering: Aur-P1 ranges from `r range_str(s56_p1_mod_range, 3)` and consistently exceeds Aur-P2 (`r range_str(s56_p2_mod_range, 3)`) at every threshold.
+**Question: over what continuous threshold range does the Aur-P1 greater than Aur-P2 ordering hold?** From 0.05 to 0.50. Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across the swept range, and the ordering is preserved throughout (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`) (@fig-threshold-sweep). Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses. Modularity shows the same ordering: Aur-P1 ranges from `r range_str(s56_p1_mod_range, 3)` and consistently exceeds Aur-P2 (`r range_str(s56_p2_mod_range, 3)`) at every threshold. However, as shown in @sec-s7-5, this raw mean-degree contrast reflects the larger site sample in Aur-P1 rather than higher intrinsic connectivity.
 
 **Implication for the main text.** The threshold of 0.2 used in the main analysis is a defensible and representative choice, not a cherry-picked value. Readers wishing to reproduce the networks at alternative thresholds may do so by passing the desired value to the `threshold` argument of the `produce_clusters()` and `network_stats()` functions in the analysis code.
 
@@ -559,6 +559,85 @@ ggsave(filename = here::here("figures/sensitivity-metric-plot.png"),
 knitr::include_graphics(here::here("figures/sensitivity-metric-plot.png"))
 ```
 
+### Ordination biplots with PCoA and CA {#sec-S1-3-ordination}
+
+PCoA uses the same Jaccard dissimilarity as the Mantel tests. CA uses the presence absence matrix directly. Both plots colour sites by the manual restricted broad groups. The two methods show the same gradient side by side.
+
+```{r fig.height=8, fig.width=10}
+#| label: fig-ordination-pcoa-ca
+#| fig-cap: "PCoA on Jaccard dissimilarity (left column) and CA on presence absence (right column) for Aur-P1 (top row) and Aur-P2 (bottom row). Points are sites coloured by manual group with restricted in red and broad in blue. Labels name sites with high leverage only when space allows."
+#| fig-height: 8
+#| fig-width: 10
+
+ordination_plots <- function(artifact_data, phase_name) {
+  mat <- artifact_data %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  site_names <- rownames(mat)
+  grp <- manual_groups[[phase_name]][site_names]
+  grp_lab <- factor(ifelse(grp == 1, "Restricted", "Broad"),
+                    levels = c("Restricted", "Broad"))
+  set.seed(500)
+  jac <- vegan::vegdist(mat, "jaccard", binary = TRUE)
+  pc <- stats::cmdscale(jac, k = 2, eig = TRUE)
+  eig_pos <- pc$eig[pc$eig > 0]
+  pcoa_var <- round(100 * pc$eig[1:2] / sum(eig_pos), 1)
+  pcoa_df <- data.frame(site = site_names,
+                        Dim1 = pc$points[, 1],
+                        Dim2 = pc$points[, 2],
+                        group = grp_lab,
+                        stringsAsFactors = FALSE)
+  ca_fit <- vegan::cca(mat)
+  ca_scores <- as.data.frame(vegan::scores(ca_fit, display = "sites"))
+  colnames(ca_scores)[1:2] <- c("Dim1", "Dim2")
+  ca_eig <- ca_fit$CA$eig
+  ca_var <- round(100 * ca_eig[1:2] / sum(ca_eig), 1)
+  ca_df <- data.frame(site = rownames(ca_scores),
+                      Dim1 = ca_scores$Dim1,
+                      Dim2 = ca_scores$Dim2,
+                      group = grp_lab[match(rownames(ca_scores), site_names)],
+                      stringsAsFactors = FALSE)
+  group_cols <- c("Restricted" = "#E41A1C", "Broad" = "#377EB8")
+  p_pcoa <- ggplot(pcoa_df, aes(x = Dim1, y = Dim2, colour = group, label = site)) +
+    geom_point(size = 3) +
+    ggrepel::geom_text_repel(size = 2.5, max.overlaps = 100,
+                             bg.color = "white", bg.r = 0.2) +
+    scale_colour_manual(values = group_cols, name = "Group") +
+    labs(x = paste0("PCoA 1 (", pcoa_var[1], "%)"),
+         y = paste0("PCoA 2 (", pcoa_var[2], "%)"),
+         title = paste0(phase_name, " PCoA on Jaccard")) +
+    theme_minimal(base_size = 9) +
+    ggpubr::border(color = "black", size = 0.5)
+  p_ca <- ggplot(ca_df, aes(x = Dim1, y = Dim2, colour = group, label = site)) +
+    geom_point(size = 3) +
+    ggrepel::geom_text_repel(size = 2.5, max.overlaps = 100,
+                             bg.color = "white", bg.r = 0.2) +
+    scale_colour_manual(values = group_cols, name = "Group") +
+    labs(x = paste0("CA 1 (", ca_var[1], "%)"),
+         y = paste0("CA 2 (", ca_var[2], "%)"),
+         title = paste0(phase_name, " CA on presence absence")) +
+    theme_minimal(base_size = 9) +
+    ggpubr::border(color = "black", size = 0.5)
+  list(pcoa = p_pcoa, ca = p_ca,
+       pcoa_var1 = pcoa_var[1], pcoa_var2 = pcoa_var[2],
+       ca_var1 = ca_var[1], ca_var2 = ca_var[2],
+       pcoa_points = pc$points)
+}
+
+ord_p1 <- ordination_plots(aurp1_artifact_data, "Aur-P1")
+ord_p2 <- ordination_plots(aurp2_artifact_data, "Aur-P2")
+
+p_ord_grid <- cowplot::plot_grid(ord_p1$pcoa, ord_p1$ca,
+                                 ord_p2$pcoa, ord_p2$ca,
+                                 ncol = 2, nrow = 2, align = "hv",
+                                 labels = c("a", "b", "c", "d"))
+
+ggsave(filename = here::here("figures/ordination-pcoa-ca-plot.png"),
+       plot = p_ord_grid, width = 10, height = 8, bg = "white")
+
+knitr::include_graphics(here::here("figures/ordination-pcoa-ca-plot.png"))
+```
+
 ## Interpretation {#sec-S1-3-interpretation}
 
 **Question: does the Aur-P1 greater than Aur-P2 phase contrast hold under all three metrics?** Yes. Aur-P1 consistently produces the higher edge count and node degree across Jaccard, Sorensen-Dice, and Simpson, while Aur-P2 is sparser, consistent with its smaller sample (@tbl-metric-stats; @fig-metric-networks).
@@ -566,6 +645,66 @@ knitr::include_graphics(here::here("figures/sensitivity-metric-plot.png"))
 **Question: does double-weighting shared presences under Sorensen-Dice change community structure relative to Jaccard?** No. Sorensen similarity yields higher edge counts (for example Aur-P1 `r val(metric_stats, "n_edges", "Aur-P1", metric = "sorensen")` versus `r val(metric_stats, "n_edges", "Aur-P1", metric = "jaccard")` for Jaccard) because double-weighting shared presences elevates similarity scores above the 0.2 threshold. Network community structures and hub locations remain identical.
 
 **Question: does the Aur-P1 connectivity advantage survive under Simpson similarity, which controls for richness asymmetry?** Yes. Simpson similarity shows that the Aur-P1 connectivity is driven by genuine shared sign repertoires rather than sample-size asymmetry.
+
+**Question: do ordinations show discrete clusters or a continuous gradient?** The PCoA and CA biplots show a continuous gradient with two single site outliers. In @fig-ordination-pcoa-ca the restricted sites in red and the broad sites in blue fall along one slope in Aur-P1 and in Aur-P2. PCoA axis 1 carries `r ord_p1$pcoa_var1`% of variance in Aur-P1 and `r ord_p2$pcoa_var1`% in Aur-P2. CA axis 1 carries `r ord_p1$ca_var1`% in Aur-P1 and `r ord_p2$ca_var1`% in Aur-P2. The main cloud shows no split into two groups. In Aur-P1 CA two broad sites stand apart, namely Les Cottés and Trou al'Wesse, because each carries a rare sign type. The visual matches the Simpson turnover result with no group separation.
+
+**Question: does PCoA1 track richness, geography, or both?** The PCoA axis 1 captures the primary gradient in sign-type composition. To evaluate whether this gradient reflects richness, geographic position, or both, a multiple regression fits PCoA1 against richness and both geographic coordinates. Partial t-tests show whether PCoA1 tracks richness after controlling for geography and vice versa.
+
+```{r}
+#| label: tbl-pc1-axis-test
+#| tbl-cap: "Multiple regression of PCoA axis 1 on sign-type richness and geographic coordinates. Partial t-tests show whether PCoA1 tracks richness after controlling for geography and vice versa. Bold p-values indicate significance."
+
+run_axis_test <- function(artifact_data, uniq_data, phase_name, pc1_scores) {
+  mat <- artifact_data %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  site_names <- rownames(mat)
+  richness <- rowSums(mat > 0)
+  uniq_sub <- uniq_data[match(site_names, uniq_data$site_name), ]
+  df <- data.frame(pc1 = pc1_scores[match(site_names, rownames(pc1_scores)), 1],
+                   richness = richness,
+                   longitude = uniq_sub$longitude,
+                   latitude = uniq_sub$latitude,
+                   stringsAsFactors = FALSE)
+  m <- lm(pc1 ~ richness + longitude + latitude, data = df)
+  sm <- summary(m)
+  co <- sm$coefficients
+  data.frame(
+    Phase = phase_name,
+    `n sites` = nrow(df),
+    `R² adj` = round(sm$adj.r.squared, 3),
+    `richness coef` = round(co["richness", "Estimate"], 3),
+    `richness p` = co["richness", "Pr(>|t|)"],
+    `longitude coef` = round(co["longitude", "Estimate"], 3),
+    `longitude p` = co["longitude", "Pr(>|t|)"],
+    `latitude coef` = round(co["latitude", "Estimate"], 3),
+    `latitude p` = co["latitude", "Pr(>|t|)"],
+    check.names = FALSE
+  )
+}
+
+axis_test <- bind_rows(
+  run_axis_test(aurp1_artifact_data, aurp1_unique_data, "Aur-P1", ord_p1$pcoa_points),
+  run_axis_test(aurp2_artifact_data, aurp2_unique_data, "Aur-P2", ord_p2$pcoa_points)
+)
+
+axis_test_display <- axis_test
+axis_test_display$`richness p` <- ifelse(axis_test_display$`richness p` < 0.001, "< 0.001",
+                                          sprintf("%.3f", axis_test_display$`richness p`))
+axis_test_display$`longitude p` <- ifelse(axis_test_display$`longitude p` < 0.001, "< 0.001",
+                                           sprintf("%.3f", axis_test_display$`longitude p`))
+axis_test_display$`latitude p` <- ifelse(axis_test_display$`latitude p` < 0.001, "< 0.001",
+                                         sprintf("%.3f", axis_test_display$`latitude p`))
+
+kable(axis_test_display,
+      col.names = c("Phase", "n",
+                    "R² adj",
+                    "Richness coef", "Richness p",
+                    "Longitude coef", "Longitude p",
+                    "Latitude coef", "Latitude p"),
+      digits = 3,
+      align = c("l", "c", "c", "c", "c", "c", "c", "c", "c"))
+```
 
 **Implication for the main text.** The metric comparison addresses the concern that Jaccard similarity, which ignores joint absences and penalises richness differences, might produce different network structures than metrics that treat richness asymmetry differently. The fact that all three metrics yield the same phase contrast and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity contrast under Simpson confirms that Aur-P1's higher mean degree (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. 
 
@@ -693,7 +832,7 @@ ggplot(mg_plot_df, aes(x = lag, y = mantelr)) +
 
 **Question: does sign dissimilarity show spatial autocorrelation at a specific distance lag?** No. In Aur-P1 the `r nclass_p1` distance lags yield Mantel r values from `r n3(min(mg_p1_df$mantelr))` to `r n3(max(mg_p1_df$mantelr))`, none significant (smallest p = `r n3(min(mg_p1_df$pval))`); in Aur-P2 the `r nclass_p2` lags range from `r n3(min(mg_p2_df$mantelr))` to `r n3(max(mg_p2_df$mantelr))`, also none significant (smallest p = `r n3(min(mg_p2_df$pval))`). Every lag's 95% bootstrap interval straddles or lies close to zero: the most extreme bounds across lags are `r n3(min(mg_p1_df$llim))` and `r n3(max(mg_p1_df$ulim))` for Aur-P1 and `r n3(min(mg_p2_df$llim))` and `r n3(max(mg_p2_df$ulim))` for Aur-P2, both comfortably including zero. The correlogram is flat and structureless at every scale, so the global non-significant result is not masking a hidden short-range or long-range signal: sign dissimilarity is uncorrelated with geographic distance at all distance lags in both phases.
 
-**Question: how uncertain is the global Mantel R estimate, and what does that imply about statistical power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the @sec-s4 geodesic results. The 95% interval from object-within-site bootstrap is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 (spans zero; observed `r n3(mb_p1_obs)`) and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2 (narrowly negative, does not span zero; observed `r n3(mb_p2_obs)`); permutation p = `r n3(mg_p2_p)` shows no isolation-by-distance, and the bootstrap shows the negative estimate is stable to object resampling rather than underpowered in the same sense as Aur-P1. Site-with-replacement bootstrap was not used because it creates duplicate sites with distance 0 and dissimilarity 0. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Aur-P1 test has low power: a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall inside the Aur-P1 sampling noise and could not be excluded. The non-significant Mantel results are therefore a *lack of evidence* for geographic structure, not evidence that it is absent, and they provide no support for any alternative cultural process, consistent with @sec-s8-1.
+**Question: how uncertain is the global Mantel R estimate, and what does that imply about statistical power?** The global Mantel R is `r n3(mg_p1_r)` (p = `r n3(mg_p1_p)`) for Aur-P1 and `r n3(mg_p2_r)` (p = `r n3(mg_p2_p)`) for Aur-P2, matching the @sec-s4 geodesic results. The 95% interval from object-within-site bootstrap is [`r n3(mb_p1_lo)`, `r n3(mb_p1_hi)`] for Aur-P1 (spans zero; observed `r n3(mb_p1_obs)`) and [`r n3(mb_p2_lo)`, `r n3(mb_p2_hi)`] for Aur-P2 (narrowly negative, does not span zero; observed `r n3(mb_p2_obs)`); permutation p = `r n3(mg_p2_p)` shows no isolation-by-distance, and the bootstrap shows the negative estimate is stable to object resampling rather than underpowered in the same sense as Aur-P1. The Aur-P2 bootstrap CI excluding zero suggests a stable negative correlation under object resampling, while the permutation p = `r n3(mg_p2_p)` remains non-significant — this discrepancy reflects the low power of the permutation test with only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2 pairs`). Site-with-replacement bootstrap was not used because it creates duplicate sites with distance 0 and dissimilarity 0. Because the Aur-P2 analysis rests on only `r nrow(aurp2_unique_data)` sites (`r n_pairs_p2` site pairs) and Aur-P1 on `r nrow(aurp1_unique_data)` sites (`r n_pairs_p1` pairs), the Aur-P1 test has low power: a true moderate geographic correlation (|r| ≈ 0.3–0.4) would fall inside the Aur-P1 sampling noise and could not be excluded. The non-significant Mantel results are therefore a *lack of evidence* for geographic structure, not evidence that it is absent, and they provide no support for any alternative cultural process, consistent with @sec-s8-1.
 
 **Implication for the main text.** No distance lag carries a geographic signal, and the global null reflects low power rather than proof of absence.
 
@@ -2559,7 +2698,9 @@ The membership table (@tbl-sbm-membership) gives posterior probabilities that qu
 
 Where the number of blocks matches the seriation's two-group structure and posterior probabilities are high, the two-group claim would be independently corroborated by a generative model that was never shown the seriation solution. In Aur-P1 this corroboration is partial rather than exact: the SBM recovers the restricted/broad axis as its two largest blocks and adds substructure — a small Labeko Koba/Les Cottés/Trou al'Wesse block under Bernoulli and Gaussian, and a further split of the restricted side under Gaussian — mirroring the Louvain finding of additional communities beyond the binary split. In Aur-P2 the SBM does not recover the two-group partition (Bernoulli/Poisson K = 1; Gaussian K = 2 by a margin of `r n2(s6_gap_wrap("Aur-P2", "gaussian"))` ICL points). This does not imply the Aur-P2 groups are absent; rather, the 9-site sample provides too little information for the ICL criterion to warrant a multi-block model. The manual restricted/broad assignment, defined partly by sign-type *richness* rather than purely by compositional *similarity*, captures a real contrast (rich vs. poor sign repertoires) that the SBM resolves into blocks only where sampling supports it. The Poisson SBM confirms the Aur-P1 multi-block result for the count-based representation of shared sign types, so the finding is not an artefact of the binary or continuous encoding of the adjacency.
 
-The SBM results must be interpreted alongside the bootstrap consensus (@sec-s9-2) and Louvain community detection (@sec-s6-1), as each method answers a different question. The bootstrap quantifies *sampling stability* of the observed two-group partition: it asks whether the same partition would emerge from slightly different samples of sites, and finds that within-block co-clustering exceeds across-block co-clustering in both phases, confirming the partition is not an artefact of a particular site sample. Louvain community detection (@sec-s6-1) is a descriptive modularity-optimisation algorithm that partitions the observed network without a generative model; it identifies `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P1" & s51_ncomm$Threshold == 0.2]` communities in Aur-P1 at threshold 0.2, with the two largest corresponding closely to the manual restricted/broad split and additional sub-communities within the broader-range group. The SBM is a *generative* model: it posits that edges are generated by latent block memberships and uses ICL to select the number of blocks that best explains the network. The three methods agree in Aur-P1 and diverge in Aur-P2: the bootstrap supports the two-group partition's internal coherence; Louvain detects multiple communities including substructure within the broader-range sites; the SBM selects multiple blocks in Aur-P1 under all three emission models (K = `r s6_bestK_wrap("Aur-P1", "bernoulli")`, `r s6_bestK_wrap("Aur-P1", "gaussian")`, `r s6_bestK_wrap("Aur-P1", "poisson")`) while selecting a single block in Aur-P2 under Bernoulli and Poisson (Gaussian K = 2 by `r n2(s6_gap_wrap("Aur-P2", "gaussian"))` points). This pattern reflects their different objectives: the bootstrap tests stability of an *imposed* partition; Louvain finds *any* modular structure in the observed network; the SBM asks whether a *generative* block model is warranted by the data, and answers yes in the well-sampled Aur-P1 phase under every encoding, while withholding support in the small Aur-P2 sample.
+The SBM results must be interpreted alongside the bootstrap consensus (@sec-s9-2) and Louvain community detection (@sec-s6-1), as each method answers a different question. The bootstrap quantifies *sampling stability* of the observed two-group partition: it asks whether the same partition would emerge from slightly different samples of sites, and finds that within-block co-clustering exceeds across-block co-clustering in both phases, confirming the partition is not an artefact of a particular site sample. Louvain community detection (@sec-s6-1) is a descriptive modularity-optimisation algorithm that partitions the observed network without a generative model; it identifies `r s51_ncomm$ncomm[s51_ncomm$Phase == "Aur-P1" & s51_ncomm$Threshold == 0.2]` communities in Aur-P1 at threshold 0.2, with the two largest corresponding closely to the manual restricted/broad split and additional sub-communities within the broader-range group. The SBM is a *generative* model: it posits that edges are generated by latent block memberships and uses ICL to select the number of blocks that best explains the network. The three methods agree in Aur-P1 and diverge in Aur-P2 . This divergence is expected because the methods address distinct questions: the bootstrap consensus (@sec-s9-2) quantifies sampling stability of the imposed two-group partition — it asks 'if we resample sites, does the same partition reappear?' and answers yes in both phases. Louvain (@sec-s6-1) is a descriptive modularity optimisation that finds any modular structure in the observed network — it identifies multiple communities in both phases. The SBM (@sec-s9-3) is a generative model that asks 'does a latent block model with K>1 explain the network better than K=1?' — it answers yes in the well-sampled Aur-P1 under all three emission models, but no in Aur-P2. The bootstrap therefore supports the internal coherence of the two groups, but the SBM withholds support for a generative multi-block model in Aur-P2 due to insufficient data. Both statements are true and not contradictory.
+
+
 
 **Implication for the main text.** The SBM recovers the two-group structure as its two largest blocks in Aur-P1 under Bernoulli, Gaussian, and Poisson emission models, with a stable small-block refinement (Labeko Koba, Les Cottés, Trou al'Wesse), while in Aur-P2 the Bernoulli and Poisson models select a single block. The restricted/broad dichotomy should therefore be read as the *dominant axis of variation* (rich vs. poor sign repertoires) with genuine substructure in Aur-P1, rather than an exact two-group partition. The main findings are therefore: (1) the two-group framing is a simplification that captures the primary contrast in sign repertoire size, with the SBM corroborating the split as its two largest Aur-P1 blocks, (2) the generative SBM—unlike the descriptive Louvain and stability-based bootstrap—additionally resolves a small third block in Aur-P1 under Bernoulli and Gaussian models, consistent with Louvain isolating the same sites, (3) the Poisson SBM confirms the Aur-P1 multi-block result for the count-based representation of shared sign types, strengthening the conclusion that the finding is not an artefact of binarisation or the continuous similarity encoding, (4) the Aur-P2 results are qualified by the small sample size (9 sites, sparse edges, failed higher-K fits) that precludes reliable block detection. These results complement the bootstrap analysis: the bootstrap shows the two blocks to be internally coherent and well separated under resampling, while the SBM asks whether an independent generative model reproduces the two-block partition—and answers that it reproduces it as its dominant structure in Aur-P1, with a small-block refinement, while recovering no stable partition in Aur-P2.
 
@@ -2752,7 +2893,7 @@ The methods below answer whether the restricted/broad difference is a genuine pa
 
 **Question: is the optimal two-group split stronger than the best split from randomised data?** Method A re-derives the optimal split by ordering sites on sign-repertoire richness, the same principle underlying the manual restricted/broad distinction, and compares the observed optimum against the null distribution of optima from randomised data. We implement a fixed-fixed (Curveball) null that preserves both site richness and sign-type frequencies while destroying compositional structure.
 
-*Answer:* **Under the fixed-fixed (Curveball) null, the observed optimal split is not significant in either phase** (Aur-P1 observed optimal pseudo-F = `r round(s6_6_bestP1$observed_best_F, 2)`, permutation p = `r s6_6_bestP1$p_value`; Aur-P2 observed optimal pseudo-F = `r round(s6_6_bestP2$observed_best_F, 2)`, permutation p = `r s6_6_bestP2$p_value`). This means the restricted/broad partition does not produce a two-group separation stronger than expected under a null that preserves both site richness and sign-type frequencies. The non-significance under the fixed-fixed null indicates that the restricted/broad contrast is not a sharp discontinuous partition that survives the most stringent "optimisation-accounted-for" null; rather, it is a **recoverable gradient/axis of variation** whose strength is partly attributable to the marginal richness and frequency structure of the data. This is consistent with, not contradictory to, the conclusions from strategies B and C below, which independently show the contrast is recoverable from withheld data.
+*Answer:* **Under the fixed-fixed (Curveball) null, the observed optimal split is not significant in either phase** (Aur-P1 observed optimal pseudo-F = `r round(s6_6_bestP1$observed_best_F, 2)`, permutation p = `r s6_6_bestP1$p_value`; Aur-P2 observed optimal pseudo-F = `r round(s6_6_bestP2$observed_best_F, 2)`, permutation p = `r s6_6_bestP2$p_value`). This means the restricted/broad partition does not produce a two-group separation stronger than expected under a null that preserves both site richness and sign-type frequencies. The non-significance under the fixed-fixed null indicates that the restricted/broad contrast is not a sharp discontinuous partition that survives the most stringent "optimisation-accounted-for" null; rather, it is a **recoverable gradient/axis of variation** whose strength is partly attributable to the marginal richness and frequency structure of the data. This is consistent with, not contradictory to, the conclusions from strategies B and C below: the fixed-fixed null tests whether any two-group split exceeding the observed optimum could arise from richness structure alone (it can), while Method B-ii tests whether the specific manual richness-based split generalizes to independent objects (it does, for well-sampled sites). The contrast is therefore a recoverable gradient/axis of variation — strong for well-sampled sites, provisional for small ones — rather than a sharp discontinuous partition that exceeds richness structure.
 
 **Question: can the group assignment be recovered from withheld sites and from disjoint halves of objects?** Can the group assignment be recovered from data that did **not** contribute to defining it?
 - *Site level (B-i) — label smoothness, not independent validation:* Can a held-out site's label be predicted from other sites using the same Jaccard structure that produced the labels? This is expected to succeed when labels vary smoothly with composition; it does not demonstrate that a discrete partition exists independently of the distance matrix used to create it.
@@ -3904,7 +4045,7 @@ All results are conditional on the retained sample in @sec-s1. Date parsing and 
 
 Threshold, metric, distance, and periodisation checks support the same reading. The Aur-P1 greater than Aur-P2 mean-degree ordering holds at thresholds 0.1, 0.2, and 0.3 and across the continuous sweep in @sec-s2. It holds under Jaccard, Sorensen-Dice, and Simpson in @sec-s3. It holds under geodesic and Euclidean distance in @sec-s4, where neither phase shows a geographic correlation. It holds across two, three, and four phase schemes, across date variants, across boundary shifts, and under date-based versus technological assignment in @sec-s5. Modularity ordering does not survive all of these changes. It reverses under date-based assignment, so the between-phase contrast is best read as a difference in network scale rather than a stable ordering of modularity.
 
-Group existence requires a narrower reading. Louvain recovery in @sec-s6 and bootstrap stability in @sec-s9 show that the restricted versus broad axis is coherent under resampling, most clearly in Aur-P1. Generative modelling in @sec-s9 recovers multi-block structure in Aur-P1 under Bernoulli, Gaussian, and Poisson specifications (K = 3, 4, and 3), with the two largest blocks tracking the manual restricted/broad split and a stable Labeko Koba/Les Cottés/Trou al'Wesse third block, but recovers no stable multi-block structure in Aur-P2 (Bernoulli/Poisson K = 1; Gaussian K = 2 by 0.90 points). Withheld-data validation in @sec-s10 does not find separation beyond richness structure under the fixed-fixed null, and Simpson turnover shows no separation in either phase. The supported claim is a dominant richness axis that is recoverable from disjoint objects in well sampled sites, with an SBM- and Louvain-supported small-block refinement (Labeko Koba, Les Cottés, Trou al'Wesse) in Aur-P1, rather than discrete provinces.
+Group existence requires a narrower reading. Louvain recovery in @sec-s6 and bootstrap stability in @sec-s9 show that the restricted versus broad axis is coherent under resampling, most clearly in Aur-P1. Generative modelling in @sec-s9 recovers multi-block structure in Aur-P1 under Bernoulli, Gaussian, and Poisson specifications (K = 3, 4, and 3), with the two largest blocks tracking the manual restricted/broad split and a stable Labeko Koba/Les Cottés/Trou al'Wesse third block, but recovers no stable multi-block structure in Aur-P2 (Bernoulli/Poisson K = 1; Gaussian K = 2 by 0.90 points), withholding support for a generative multi-block model due to the 9-site sample size, while the bootstrap consensus confirms the two-group partition's internal coherence in both phases. Withheld-data validation in @sec-s10 does not find separation beyond richness structure under the fixed-fixed null, and Simpson turnover shows no separation in either phase. The supported claim is a dominant richness axis that is recoverable from disjoint objects in well sampled sites, with an SBM- and Louvain-supported small-block refinement (Labeko Koba, Les Cottés, Trou al'Wesse) in Aur-P1, rather than discrete provinces.
 
 Sampling intensity qualifies small-site assignments. Downsampling, coverage, regression with estimated exponent, and equal-effort pool comparison in @sec-s12 show that large assemblages retain their grouping while sites with one or two objects flip at chance rates and never reach comparable coverage. The raw Aur-P1 versus Aur-P2 pool difference is not distinguishable from sampling variation at equal effort. Figurine exclusion is the exception and leaves the ordering intact.
 
