@@ -576,7 +576,10 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
 # ── Network statistics & tests ────────────────────────────────────────────────
 # Parameterised network-stats function (threshold & metric exposed).
 # NOTE: igraph:: is used explicitly throughout to avoid sna/statnet masking.
-network_stats <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
+# `round_stats = FALSE` returns unrounded raw values, so callers that take
+# quantiles (e.g. bootstrap) do not lose precision to pre-rounding.
+network_stats <- function(artifact_data, threshold = 0.2, metric = "jaccard",
+                          round_stats = TRUE) {
   # Select only sign-type columns that have at least one nonzero value
   sign_names <- SIGN_COLS
   present <- intersect(sign_names, colnames(artifact_data))
@@ -599,21 +602,32 @@ network_stats <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
                                               weighted = TRUE, diag = FALSE)
   comp      <- igraph::components(ig)
   mean_dist <- tryCatch(igraph::mean_distance(ig), error = function(e) NA)
-set.seed(42)
+  # Locally-scoped seed so cluster_louvain is deterministic without
+  # resetting the global RNG stream. (Previously a stray set.seed(42) here
+  # caused all bootstrap replicates to draw identical resamples, collapsing
+  # the bootstrap CI to a single point.)
+  louvain_seed <- 42
+  if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+    old_seed <- .GlobalEnv$.Random.seed
+    on.exit(assign(".Random.seed", old_seed, envir = .GlobalEnv), add = TRUE)
+  }
+  set.seed(louvain_seed)
   comm      <- igraph::cluster_louvain(ig)
+  md_raw    <- mean(igraph::degree(ig))
+  mod_raw   <- igraph::modularity(comm)
   data.frame(
     n_sites       = igraph::vcount(ig),
     n_edges       = igraph::ecount(ig),
-    density       = round(igraph::edge_density(ig), 3),
+    density       = if (round_stats) round(igraph::edge_density(ig), 3) else igraph::edge_density(ig),
     n_components  = comp$no,
     n_isolates    = sum(comp$csize == 1),
-    mean_degree   = round(mean(igraph::degree(ig)), 2),
-    mean_strength = round(mean(igraph::strength(ig)), 2),
-    mean_between  = round(mean(igraph::betweenness(ig, weights = NA)), 2),
-    transitivity  = round(igraph::transitivity(ig), 3),
-    mean_path     = round(mean_dist, 2),
+    mean_degree   = if (round_stats) round(md_raw, 2) else md_raw,
+    mean_strength = if (round_stats) round(mean(igraph::strength(ig)), 2) else mean(igraph::strength(ig)),
+    mean_between  = if (round_stats) round(mean(igraph::betweenness(ig, weights = NA)), 2) else mean(igraph::betweenness(ig, weights = NA)),
+    transitivity  = if (round_stats) round(igraph::transitivity(ig), 3) else igraph::transitivity(ig),
+    mean_path     = if (round_stats) round(mean_dist, 2) else mean_dist,
     n_communities = length(unique(igraph::membership(comm))),
-    modularity    = round(igraph::modularity(comm), 3),
+    modularity    = if (round_stats) round(mod_raw, 3) else mod_raw,
     row.names = NULL
   )
 }
