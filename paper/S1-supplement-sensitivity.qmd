@@ -1583,37 +1583,45 @@ Point estimates of network statistics are sensitive to individual sites and to o
 
 ```{r}
 #| label: tbl-bootstrap-ci
-#| tbl-cap: "Bootstrap 95% percentile intervals for mean degree and modularity at threshold = 0.2, based on 999 object-within-site resamples per phase. Observed is the statistic on the full data; interval is the 2.5% and 97.5% quantiles of the bootstrap distribution. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
+#| tbl-cap: "Object-within-site bootstrap stability bands for mean degree and modularity at threshold = 0.2, based on 999 resamples per phase. Observed is the statistic on the full data computed without rounding; 2.5% and 97.5% are quantiles of the raw bootstrap distribution; SD is the bootstrap standard deviation. Values are rounded for display only. These bands quantify stability to within-site object resampling, not confidence intervals for the true parameter: resampling drops rare signs, so a band may sit below or above its observed value. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
 #| tbl-cap-location: bottom
 #| cache: true
 
+b_p1 <- bootstrap_network_stats(aurp1_artifact_data, signbase_full_clean, "Aur-P1", n_boot = 999, threshold = 0.2, seed = 42)
+b_p2 <- bootstrap_network_stats(aurp2_artifact_data, signbase_full_clean, "Aur-P2", n_boot = 999, threshold = 0.2, seed = 42)
+
 boot_results <- bind_rows(
-  {
-    b1 <- bootstrap_network_stats(aurp1_artifact_data, signbase_full_clean, "Aur-P1", n_boot = 999, threshold = 0.2, seed = 42)
-    tibble(Phase = "Aur-P1",
-           md_point = round(b1$observed_md, 2),
-           md_lower = round(b1$md_lower, 2),
-           md_upper = round(b1$md_upper, 2),
-           mod_point = round(b1$observed_mod, 3),
-           mod_lower = round(b1$mod_lower, 3),
-           mod_upper = round(b1$mod_upper, 3))
-  },
-  {
-    b2 <- bootstrap_network_stats(aurp2_artifact_data, signbase_full_clean, "Aur-P2", n_boot = 999, threshold = 0.2, seed = 42)
-    tibble(Phase = "Aur-P2",
-           md_point = round(b2$observed_md, 2),
-           md_lower = round(b2$md_lower, 2),
-           md_upper = round(b2$md_upper, 2),
-           mod_point = round(b2$observed_mod, 3),
-           mod_lower = round(b2$mod_lower, 3),
-           mod_upper = round(b2$mod_upper, 3))
-  }
+  tibble(Phase = "Aur-P1",
+         md_point = b_p1$observed_md,
+         md_lower = b_p1$md_lower,
+         md_upper = b_p1$md_upper,
+         md_sd = b_p1$md_sd,
+         md_n = b_p1$md_n_distinct,
+         mod_point = b_p1$observed_mod,
+         mod_lower = b_p1$mod_lower,
+         mod_upper = b_p1$mod_upper,
+         mod_sd = b_p1$mod_sd,
+         mod_n = b_p1$mod_n_distinct),
+  tibble(Phase = "Aur-P2",
+         md_point = b_p2$observed_md,
+         md_lower = b_p2$md_lower,
+         md_upper = b_p2$md_upper,
+         md_sd = b_p2$md_sd,
+         md_n = b_p2$md_n_distinct,
+         mod_point = b_p2$observed_mod,
+         mod_lower = b_p2$mod_lower,
+         mod_upper = b_p2$mod_upper,
+         mod_sd = b_p2$mod_sd,
+         mod_n = b_p2$mod_n_distinct)
 )
 
-kable(boot_results,
-      col.names = c("Phase", "Mean degree (observed)", "2.5%", "97.5%", "Q (observed)", "2.5%", "97.5%"),
-      digits = 3,
-      align = "lcccccc")
+kable(boot_results %>%
+        dplyr::select(Phase, md_point, md_lower, md_upper, md_sd,
+                      mod_point, mod_lower, mod_upper, mod_sd),
+      col.names = c("Phase", "Mean degree (observed)", "2.5%", "97.5%", "SD",
+                    "Q (observed)", "2.5%", "97.5%", "SD"),
+      digits = c(NA, 2, 2, 2, 2, 3, 3, 3, 3),
+      align = "lcccccccc")
 ```
 
 ```{r}
@@ -1630,14 +1638,61 @@ s57_p <- s57_phase("Aur-P1")
 s57_v <- s57_phase("Aur-P2")
 s57_md_overlap <- !(s57_p$md_low > s57_v$md_hi || s57_v$md_low > s57_p$md_hi)
 s57_md_sentence <- if (s57_md_overlap) {
-  paste0("Because the intervals overlap, the bootstrap does not formally separate the two phases ",
+  paste0("Because the bands overlap, the bootstrap does not formally separate the two phases ",
          "by the strict non-overlap criterion; the Aur-P1–Aur-P2 contrast is supported at the ",
          "point-estimate level (Aur-P1 ", n2(s57_p$md_pt), " vs Aur-P2 ", n2(s57_v$md_pt),
          ") but is not statistically decisive.")
 } else {
-  paste0("Because the intervals do not overlap, the bootstrap confirms that the Aur-P1–Aur-P2 ",
-         "connectivity contrast is not driven by a handful of influential sites.")
+  paste0("Because the bands do not overlap, the Aur-P1–Aur-P2 point-estimate contrast is not ",
+         "explained by within-site object sampling alone; this band separation is a stability ",
+         "check, not a significance test (inference rests on the permutation tests).")
 }
+# Diagnostics for the stability-band reporting: distinct-value counts show the
+# bootstrap distributions are non-degenerate; single-object sites are invariant
+# under within-site resampling by construction and contribute no variation.
+s57_diag <- function(ph) list(
+  md_n   = val(boot_results, "md_n", ph),
+  mod_n  = val(boot_results, "mod_n", ph),
+  md_sd  = val(boot_results, "md_sd", ph),
+  mod_sd = val(boot_results, "mod_sd", ph)
+)
+s57_dp <- s57_diag("Aur-P1")
+s57_dv <- s57_diag("Aur-P2")
+s57_single_p1 <- signbase_full_clean %>%
+  filter(phase2 == "Aur-P1") %>%
+  count(site_name) %>%
+  filter(n == 1) %>%
+  nrow()
+s57_single_p2 <- signbase_full_clean %>%
+  filter(phase2 == "Aur-P2") %>%
+  count(site_name) %>%
+  filter(n == 1) %>%
+  nrow()
+```
+
+```{r}
+#| label: fig-bootstrap-dist
+#| fig-cap: "Raw object-within-site bootstrap distributions (999 resamples per phase) for mean degree and modularity at threshold 0.2. Dashed lines mark the observed statistic on the full data; dotted lines mark the 2.5% and 97.5% quantiles. The distributions take many distinct values (see @tbl-bootstrap-ci); any offset between a band and its observed value reflects systematic rare-sign dropout under resampling, which is why the bands are read as stability checks rather than confidence intervals."
+#| cache: true
+
+boot_dist <- bind_rows(
+  tibble(Phase = "Aur-P1", Stat = "Mean degree", value = b_p1$boot_md,
+         obs = b_p1$observed_md, lo = b_p1$md_lower, hi = b_p1$md_upper),
+  tibble(Phase = "Aur-P1", Stat = "Modularity", value = b_p1$boot_mod,
+         obs = b_p1$observed_mod, lo = b_p1$mod_lower, hi = b_p1$mod_upper),
+  tibble(Phase = "Aur-P2", Stat = "Mean degree", value = b_p2$boot_md,
+         obs = b_p2$observed_md, lo = b_p2$md_lower, hi = b_p2$md_upper),
+  tibble(Phase = "Aur-P2", Stat = "Modularity", value = b_p2$boot_mod,
+         obs = b_p2$observed_mod, lo = b_p2$mod_lower, hi = b_p2$mod_upper)
+)
+ggplot(boot_dist, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "grey60", colour = "white") +
+  geom_vline(aes(xintercept = obs), linetype = "dashed") +
+  geom_vline(aes(xintercept = lo), linetype = "dotted") +
+  geom_vline(aes(xintercept = hi), linetype = "dotted") +
+  facet_wrap(Phase ~ Stat, scales = "free", ncol = 2) +
+  labs(x = "Bootstrap value", y = "Resamples") +
+  theme_minimal()
 ```
 
 The intervals quantify uncertainty due to object sampling within sites: a narrow interval means the observed statistic is stable when objects are resampled within sites, while a wide interval signals sensitivity to which objects were recovered. Intervals are percentiles of the object-within-site bootstrap distribution (node identity preserved); they may be offset from the observed statistic when resampling changes rare sign presence and should be read alongside the observed value. Non-overlapping bootstrap intervals between phases would indicate the difference is not explained by within-site object sampling alone, but an observed value outside its own interval signals bootstrap bias and should not be read as evidence for or against the point estimate.
