@@ -1624,15 +1624,18 @@ browns_combine_p <- function(p) {
 # with similarity 1 and distance 0), resample objects within each site with
 # replacement, then rebuild the site x sign matrix. This preserves node
 # identity and sampling effort per site while quantifying uncertainty due to
-# object sampling. Reports observed statistics and bootstrap percentile
-# intervals around the observed value.
+# object sampling. Reports observed statistics and bootstrap stability bands
+# around the observed value.
+# NOTE: statistics are computed unrounded (round_stats = FALSE) so the
+# percentile bands and diagnostics reflect the raw bootstrap distribution;
+# rounding is applied only at display time by the calling document.
 bootstrap_network_stats <- function(art_data, signbase_clean, phase, n_boot = 999, threshold = 0.2, seed = 42) {
   set.seed(seed)
   df_phase <- signbase_clean %>% filter(phase2 == phase)
   sc <- intersect(SIGN_COLS, colnames(df_phase))
   sites <- unique(df_phase$site_name)
-  # Observed stats
-  obs <- network_stats(art_data, threshold = threshold)
+  # Observed stats (unrounded; the caller rounds for display)
+  obs <- network_stats(art_data, threshold = threshold, round_stats = FALSE)
   boot_md <- numeric(n_boot)
   boot_mod <- numeric(n_boot)
   for (b in seq_len(n_boot)) {
@@ -1655,21 +1658,44 @@ bootstrap_network_stats <- function(art_data, signbase_clean, phase, n_boot = 99
       boot_mod[b] <- NA_real_
       next
     }
-    ns <- tryCatch(network_stats(as.data.frame(mat), threshold = threshold),
+    ns <- tryCatch(network_stats(as.data.frame(mat), threshold = threshold, round_stats = FALSE),
                    error = function(e) data.frame(mean_degree = NA_real_, modularity = NA_real_))
     boot_md[b] <- ns$mean_degree
     boot_mod[b] <- ns$modularity
   }
+  n_na_md <- sum(!is.finite(boot_md))
+  n_na_mod <- sum(!is.finite(boot_mod))
   boot_md <- boot_md[is.finite(boot_md)]
   boot_mod <- boot_mod[is.finite(boot_mod)]
+  # Regression guard: a healthy bootstrap must produce a non-degenerate
+  # distribution. Fewer than 3 distinct values indicates the RNG stream is
+  # being reset inside the loop (the set.seed-in-network_stats bug class).
+  n_distinct_md <- length(unique(boot_md))
+  n_distinct_mod <- length(unique(boot_mod))
+  if (n_distinct_md < 3 || n_distinct_mod < 3) {
+    stop("bootstrap_network_stats (", phase, "): degenerate bootstrap distribution ",
+         "(distinct mean_degree = ", n_distinct_md,
+         ", distinct modularity = ", n_distinct_mod,
+         "); the RNG stream may be reset inside the resampling loop.")
+  }
   list(observed_md = obs$mean_degree,
        observed_mod = obs$modularity,
        boot_md = boot_md,
        boot_mod = boot_mod,
        md_lower = unname(quantile(boot_md, 0.025, na.rm = TRUE)),
        md_upper = unname(quantile(boot_md, 0.975, na.rm = TRUE)),
+       md_sd = stats::sd(boot_md),
+       md_min = min(boot_md),
+       md_max = max(boot_md),
+       md_n_distinct = n_distinct_md,
        mod_lower = unname(quantile(boot_mod, 0.025, na.rm = TRUE)),
-       mod_upper = unname(quantile(boot_mod, 0.975, na.rm = TRUE)))
+       mod_upper = unname(quantile(boot_mod, 0.975, na.rm = TRUE)),
+       mod_sd = stats::sd(boot_mod),
+       mod_min = min(boot_mod),
+       mod_max = max(boot_mod),
+       mod_n_distinct = n_distinct_mod,
+       n_na_md = n_na_md,
+       n_na_mod = n_na_mod)
 }
 
 # Object-within-site bootstrap for Mantel R (S5.11 fix).
