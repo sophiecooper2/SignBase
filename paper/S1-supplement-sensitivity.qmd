@@ -190,7 +190,11 @@ site_phase_comparison <- variant_results$midpoint$sites %>%
 
 ## Rationale
 
-This section expands on the site rejection details notes in the main text. 
+This section expands on the site rejection details notes in the main text. It answers two specific questions:
+
+**Question: how many signed objects and sites are lost at each step of data cleaning?**
+
+**Question: does the loss fall disproportionately on the small Aur-P2 sample?**
 
 ## Counts {#sec-S1-1-counts}
 
@@ -223,11 +227,6 @@ kable(dropped_tbl,
       align = "lclcl")
 ```
 
-## Interpretation {#sec-S1-1-interpretation}
-
-Because the `r n_dropped_objects` objects include the seventh-largest assemblage (Grotte de Goyet, `r goyet_plain_objects` objects) and ten of the `r n_plain_sites` plain-range sites date to `38–30` ka, the small Aur-P2 sample is disproportionately affected — in the retained sample Aur-P2 rests on only 9 sites (see next chunk). All network, Mantel and PerMANOVA results in Sections [-@sec-s2]–[-@sec-s12] below are therefore conditional on the retained sample of `r n_retained_objects` objects at `r n_retained_sites` sites. The phase table in Supplement 2 lists the retained sites with their technological or date-based assignment; @tbl-dropped-sites provides the site-by-site loss table that the main text references. 
-
-
 ## Analysis-ready phase data {#sec-S1-1-analysis-ready-phase}
 
 ```{r}
@@ -243,13 +242,29 @@ aurp1_unique_data <- add_manual_group(aurp1_unique_data, "Aur-P1")
 aurp2_unique_data <- add_manual_group(aurp2_unique_data, "Aur-P2")
 ```
 
+## Interpretation {#sec-S1-1-interpretation}
+
+**Question: how many signed objects and sites are lost at each step of data cleaning?** The raw extract holds `r n_raw_signed_objects` signed objects at `r n_raw_signed_sites` sites. Removing the eight low-quality sites leaves `r nrow(after_eight)` signed objects at `r n_distinct(after_eight$site_name)` sites. Date parsing then removes a further `r n_dropped_sites` sites carrying `r n_dropped_objects` signed objects (@tbl-dropped-sites). The retained analysed sample is therefore `r n_retained_objects` objects at `r n_retained_sites` unique geographic sites.
+
+**Question: does the loss fall disproportionately on the small Aur-P2 sample?** Yes. The dropped objects include the seventh-largest assemblage (Grotte de Goyet, `r goyet_plain_objects` objects), and ten of the `r n_plain_sites` plain-range sites date to `38–30` ka. The retained Aur-P2 sample therefore rests on only 9 sites.
+
+**Implication for the main text.** All network, Mantel and PerMANOVA results in Sections [-@sec-s2]–[-@sec-s12] below are conditional on the retained sample of `r n_retained_objects` objects at `r n_retained_sites` sites. The phase table in Supplement 2 lists the retained sites with their technological or date-based assignment.
+
 # Network Threshold {#sec-s2}
 
 ## Rationale
 
 In the main analysis, edges in the site-to-site networks are drawn only when two sites share a Jaccard similarity of ≥ 0.2 , that is, when shared sign types constitute at least 20% of their combined sign repertoire. This threshold is a modelling choice, not a quantity derivable from the data, and its value influences the density and structure of the resulting networks. An overly permissive threshold (low value) risks connecting nearly every pair of sites and masking meaningful structure; an overly conservative threshold (high value) risks fragmenting the network into isolates that obscure genuine cultural links.
 
-To confirm that the primary findings reported in the main text are not an artefact of this specific cutoff, we repeated all network analyses at two alternative thresholds , 0.1 (permissive) and 0.3 (conservative) , and compared the key network statistics and visual structure against the main-text threshold of 0.2.
+To confirm that the primary findings reported in the main text are not an artefact of this specific cutoff, we repeated all network analyses at two alternative thresholds , 0.1 (permissive) and 0.3 (conservative) , and compared the key network statistics and visual structure against the main-text threshold of 0.2. It answers four specific questions:
+
+**Question: do the phase contrasts hold at the alternative thresholds of 0.1 and 0.3?**
+
+**Question: is the 0.2 threshold a defensible middle ground between over-connection and fragmentation?**
+
+**Question: how much of the edge structure is preserved when the threshold moves?**
+
+**Question: over what continuous threshold range does the Aur-P1 greater than Aur-P2 ordering hold?**
 
 
 ## Network Statistics Across Thresholds {#sec-S1-2-network-statistics-across}
@@ -337,22 +352,6 @@ ggsave(filename = here::here("figures/sensitivity-network-plot.png"),
 knitr::include_graphics(here::here("figures/sensitivity-network-plot.png"))
 ```
 
-## Interpretation {#sec-S1-2-interpretation}
-
-The sensitivity analysis shows that the main findings reported in the text are **robust across the tested range of thresholds**. Several patterns hold consistently at all three values:
-
-**Two-group structure.** In both phases and at all three thresholds, the networks retain a recognisable two-cluster structure corresponding to the restricted-range and broader-range site groups identified by seriation. Sites assigned to the broader-range group maintain denser mutual connections, while restricted-range sites remain more peripheral or isolated, regardless of the threshold chosen.
-
-**Connectivity between phases.** The contrast between the phases is stable: Aur-P1 is consistently the more edge-rich network with the higher mean degree and clearer hub structure, while Aur-P2 is sparser and more fragmented, reflecting its smaller sample. This contrast is preserved at thresholds of 0.1, 0.2, and 0.3 (@tbl-sens-stats).
-
-**Modularity.** Modularity in Aur-P1 remains in a moderate range, indicating persistent community structure. While absolute modularity values shift with threshold (as expected, given that looser thresholds add weak bridging edges that reduce modularity), the pattern is stable.
-
-**Threshold-specific effects.** At threshold 0.1, graph density increases substantially and several sites that appear as isolates at 0.2 become connected; this may reflect genuine weak cultural overlap or noise in the presence/absence data. At threshold 0.3, the graph becomes considerably sparser, with `r val(sens_stats, "n_isolates", "Aur-P1", 0.3)` isolates in Aur-P1 in particular. The 0.2 threshold represents a practical middle ground: it preserves the major structural contrasts while avoiding both the over-connection artefacts of the 0.1 threshold and the excessive fragmentation of the 0.3 threshold.
-
-**Isolates.** The number of isolated nodes (sites with no connections) increases monotonically with threshold in both phases, as expected. Sites that appear as isolates at 0.2 are preserved or strengthened at 0.3, reinforcing their interpretation as peripheral assemblages. At threshold 0.1, these sites gain edges but only to the weakest possible partners, which does not alter the substantive interpretation.
-
-Together, these results confirm that the threshold of 0.2 used in the main analysis is a defensible and representative choice. Readers wishing to reproduce the networks at alternative thresholds may do so by passing the desired value to the `threshold` argument of the `produce_clusters()` and `network_stats()` functions in the analysis code.
-
 ## Threshold Agreement Metrics {#sec-s2-4}
 
 Below we quantify the stability of the network structures across thresholds using two metrics:
@@ -362,9 +361,9 @@ Below we quantify the stability of the network structures across thresholds usin
 - **Adjacency-matrix correlation** between each pair of thresholds: the Pearson correlation between the vectorised upper triangles of the two adjacency matrices. This is a continuous measure of how similar the full set of pairwise similarity scores is before any cutoff is applied.
 
 ```{r}
-# | label: tbl-threshold-agreement
-# | tbl-cap: "Pairwise agreement between networks at adjacent thresholds. Edge‑set Jaccard measures the fraction of edges present at both thresholds out of all edges present at either threshold. Adjacency‑matrix correlation is the Pearson r between the vectorised upper‑triangular elements of the adjacency matrices at each threshold (all pairs of sites before the cutoff is applied)."
-# | tbl-cap-location: bottom
+#| label: tbl-threshold-agreement
+#| tbl-cap: "Pairwise agreement between networks at adjacent thresholds. Edge‑set Jaccard measures the fraction of edges present at both thresholds out of all edges present at either threshold. Adjacency‑matrix correlation is the Pearson r between the vectorised upper‑triangular elements of the adjacency matrices at each threshold (all pairs of sites before the cutoff is applied)."
+#| tbl-cap-location: bottom
 
 edge_jaccard <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
   build_adj <- function(mat, th, met) {
@@ -486,6 +485,18 @@ s56_p2_mod_range <- range(sweep_results$Modularity[sweep_results$Phase == "Aur-P
 The sweep reveals the threshold range over which the Aur-P1 > Aur-P2 mean-degree ordering holds. The two-phase contrast is monotonic and holds at every threshold in the swept range: Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across thresholds of 0.05–0.50, and the ordering is preserved throughout. At very low thresholds both networks are densely connected and the relative contrast compresses; at high thresholds both fragment as edges drop out, but Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses.
 
 **Implications for the main text.** The continuous sweep confirms that the main-text threshold of 0.2 is not a cherry-picked value that produces a desired result. The Aur-P1 > Aur-P2 mean-degree ordering is preserved across the entire informative threshold range (`r n2(s56_ok_range[1])`–`r n2(s56_ok_range[2])`). In contrast to a three-phase periodisation, in which the intermediate phase could be compressed into statistical collapse at high thresholds, the two-phase comparison is stable: Aur-P2, though small, never fragments below a mean degree of `r n2(min(s56_p2_md_range))`. The modularity sweep shows a parallel pattern: Aur-P1's modularity ranges from `r range_str(s56_p1_mod_range, 3)` across thresholds and consistently exceeds Aur-P2's (`r range_str(s56_p2_mod_range, 3)`) at every threshold, reinforcing the conclusion that the larger, earlier phase has a stronger community structure. The baseline threshold of 0.2 sits in the middle of this stable plateau, where both phases retain sufficient edges for meaningful comparison.
+
+## Interpretation {#sec-S1-2-interpretation}
+
+**Question: do the phase contrasts hold at the alternative thresholds of 0.1 and 0.3?** Yes. In both phases and at all three thresholds, the networks retain a recognisable two-cluster structure corresponding to the restricted-range and broader-range site groups identified by seriation. Broader-range sites keep denser mutual connections, while restricted-range sites stay peripheral or isolated. Aur-P1 is consistently the more edge-rich network with the higher mean degree and clearer hub structure, while Aur-P2 is sparser and more fragmented (@tbl-sens-stats). Modularity in Aur-P1 remains in a moderate range across thresholds, indicating persistent community structure.
+
+**Question: is the 0.2 threshold a defensible middle ground between over-connection and fragmentation?** Yes. At threshold 0.1, graph density increases substantially and several sites that appear as isolates at 0.2 become connected, reflecting genuine weak cultural overlap or noise in the presence/absence data. At threshold 0.3, the graph becomes considerably sparser, with `r val(sens_stats, "n_isolates", "Aur-P1", 0.3)` isolates in Aur-P1 in particular. The number of isolated nodes increases monotonically with threshold in both phases, as expected. The 0.2 threshold preserves the major structural contrasts while avoiding both the over-connection artefacts of the 0.1 threshold and the excessive fragmentation of the 0.3 threshold.
+
+**Question: how much of the edge structure is preserved when the threshold moves?** Most of it. Edge-set Jaccard between 0.1 and 0.2 is `r agree_table$Edge_Jaccard[agree_table$Phase == "Aur-P1" & agree_table$T1 == 0.1 & agree_table$T2 == 0.2]` for Aur-P1 and `r agree_table$Edge_Jaccard[agree_table$Phase == "Aur-P2" & agree_table$T1 == 0.1 & agree_table$T2 == 0.2]` (@tbl-threshold-agreement). Moving the threshold changes density more than structure.
+
+**Question: over what continuous threshold range does the Aur-P1 greater than Aur-P2 ordering hold?** From 0.05 to 0.50. Aur-P1's mean degree runs from `r range_str(s56_p1_md_range, 2)` and Aur-P2's from `r range_str(s56_p2_md_range, 2)` across the swept range, and the ordering is preserved throughout (@fig-threshold-sweep). Aur-P2 retains a mean degree of at least `r n2(min(s56_p2_md_range))` even at the coarsest threshold (0.50), so the contrast never collapses.
+
+**Implication for the main text.** The threshold of 0.2 used in the main analysis is a defensible and representative choice, not a cherry-picked value. Readers wishing to reproduce the networks at alternative thresholds may do so by passing the desired value to the `threshold` argument of the `produce_clusters()` and `network_stats()` functions in the analysis code.
 
 # Similarity Metric Choice (Jaccard vs. Sørensen-Dice vs. Simpson) {#sec-s3}
 
