@@ -567,7 +567,7 @@ knitr::include_graphics(here::here("figures/sensitivity-metric-plot.png"))
 
 **Question: does the Aur-P1 connectivity advantage survive under Simpson similarity, which controls for richness asymmetry?** Yes. Simpson similarity shows that the Aur-P1 connectivity is driven by genuine shared sign repertoires rather than sample-size asymmetry.
 
-**Implication for the main text.** The metric comparison addresses the concern that Jaccard similarity, which ignores joint absences and penalises richness differences, might produce different network structures than metrics that treat richness asymmetry differently. The fact that all three metrics yield the same phase contrast and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity contrast under Simpson confirms that Aur-P1's higher mean degree (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. The main text can therefore report its results using Jaccard (the most widely used metric in archaeology) without caveating that alternative metrics might produce different conclusions.
+**Implication for the main text.** The metric comparison addresses the concern that Jaccard similarity, which ignores joint absences and penalises richness differences, might produce different network structures than metrics that treat richness asymmetry differently. The fact that all three metrics yield the same phase contrast and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity contrast under Simpson confirms that Aur-P1's higher mean degree (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. 
 
 # Geographic Distance Verification (Mantel Tests) {#sec-s4}
 
@@ -621,7 +621,7 @@ The Mantel tests reported in the main text and in @sec-s4 evaluate a single glob
 
 ### Analysis
 
-We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the @sec-s4 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram` [@Goslee_Urban_2007], which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we additionally resample sites with replacement (B = 1000) and recompute the Mantel R each time, taking the 2.5% and 97.5% quantiles as the bootstrap interval.
+We reconstruct, for each phase, the Jaccard sign dissimilarity and the geodesic geographic-distance matrix used by the @sec-s4 Mantel tests (the same construction as `run_mantel_comp`, applied to the technology-assigned phase data). The Mantel correlogram is computed with `ecodist::mgram` [@Goslee_Urban_2007], which bins pairs by geographic distance — into 5 equiprobable lags for Aur-P1 and 3 for Aur-P2, to keep pair counts per lag stable given the small samples — and returns the Mantel r, a permutation p-value, and 95% bootstrap confidence limits (llim/ulim) for each lag. For the global statistic we resample objects within each site with replacement, B equals 1000, rebuild the site presence matrix, recompute Mantel R, and take the 2.5 percent and 97.5 percent quantiles as the bootstrap interval. We do not resample sites with replacement because duplicate sites create distance 0 and dissimilarity 0 pairs.
 
 ```{r}
 #| label: setup-mantel-correlogram
@@ -1917,7 +1917,7 @@ The ratio columns (MD ratio and Q ratio) are the key normalised comparisons. A r
 
 In short, size normalisation removes the mean-degree confound and confirms that the modularity-based claim of stronger community structure in Aur-P1 survives net of network size, whereas neither phase's mean degree can be used as evidence of intrinsically higher connectivity.
 
-**Implication for the main text.** Report raw degree descriptively and base inference on permutation tests; the modularity contrast survives size normalisation.
+**Implication for the main text.** The modularity contrast survives size normalisation.
 
 # Space, Time, and Regional Drivers {#sec-s8}
 
@@ -2245,7 +2245,7 @@ knitr::include_graphics(here::here("figures/s513-region-map.png"))
 
 Signs do not form Vanhaeren-style regional provinces. For Aur-P1 the geography-first region explains `R2=` `r s513_reg_p1_k2$R2` (`F=` `r s513_reg_p1_k2$F`, `p=` `r s513_reg_p1_k2$p`, betadisper `p=` `r s513_bd_p1_k2`) at `k=2`. At `k=3` the objective region explains `R2=` `r s513_ad(s513_perm_p1_k3$region,1)$R2` (`p=` `r s513_ad(s513_perm_p1_k3$region,1)$p`), no stronger. In the marginal model `J ~ region + group` (by margin), region is `R2=` `r s513_marg_reg_p1$R2` (`p=` `r s513_marg_reg_p1$p`) and `group` is `R2=` `r s513_marg_grp_p1$R2` (`p=` `r s513_marg_grp_p1$p`) for Aur-P1, so group is not subsumed by geography — consistent with @sec-s12-3–@sec-s12-4 where broad sites remain richer at equal coverage and saturating effort. Louvain sign clusters align weakly with objective regions (`ARI=` `r round(s513_ari_louv_reg_p1,2)` Aur-P1, `r round(s513_ari_louv_reg_p2,2)` Aur-P2), and manual restricted/broad aligns only moderately (`ARI=` `r round(s513_ari_manual_reg_p1,2)` / `r round(s513_ari_manual_reg_p2,2)`), confirming sign-driven groups are richness-driven, not region-driven, as in @sec-s6-1.
 
-Aur-P2 results are indicative. With `n=9` the PAM `k=2` region explains `R2=` `r s513_reg_p2_k2$R2` (`p=` `r s513_reg_p2_k2$p`, betadisper `p=` `r s513_bd_p2_k2`), marginal `region|group R2=` `r s513_marg_reg_p2$R2` (`p=` `r s513_marg_reg_p2$p`) and `group|region R2=` `r s513_marg_grp_p2$R2` (`p=` `r s513_marg_grp_p2$p`), all with low power. Per Anderson & Walsh 2013, small unbalanced PERMANOVA (`6` vs `3` groups in @sec-s10-1 terms) uses permutations with caution; per Boemke et al. 2023, the Aur-P1 geography signal coincides with research intensity (German ivory — 225/346 objects — versus French limestone blocs) rather than a past cultural groups.
+Aur-P2 results are indicative. With `n=9` the PAM `k=2` region explains `R2=` `r s513_reg_p2_k2$R2` (`p=` `r s513_reg_p2_k2$p`, betadisper `p=` `r s513_bd_p2_k2`), marginal `region|group R2=` `r s513_marg_reg_p2$R2` (`p=` `r s513_marg_reg_p2$p`) and `group|region R2=` `r s513_marg_grp_p2$R2` (`p=` `r s513_marg_grp_p2$p`), all with low power. Per Anderson & Walsh 2013, small unbalanced PERMANOVA (`6` vs `3` groups in @sec-s10-1 terms) uses permutations with caution; per Boemke et al. 2023, the Aur-P1 geography signal coincides with research intensity (German ivory — 225/346 objects — versus French limestone blocs) rather than past cultural groups.
 
 **Implication for the main text.** Objective regions do not explain sign composition; the restricted/broad contrast is not a geographic province effect.
 
@@ -2413,7 +2413,7 @@ knitr::include_graphics(here::here("figures/bootstrap-consensus-plot.png"))
 
 **Per-site stability.** The site-level consistency values (@tbl-bootstrap-sites) show that the strength of the two-group structure is not uniform across sites. Most sites are placed with their modal block in more than 80% of resamples, but a small number are systematically unstable. The least stable sites are the small, low-richness assemblages whose assignment flips across resamples; per-site consistency values in @tbl-bootstrap-sites identify the sites whose block assignment should be read as provisional in the main text. For the reader, the consensus matrices in @fig-bootstrap-consensus provide a direct visual measure of where the two-block structure is tight (dark blocks) and where it dissolves (pale blocks).
 
-**Implication for the main text.** The two-group structure does not dissolve under resampling: within-block co-clustering exceeds across-block co-clustering in both phases, so the broad qualitative claim of a persistent restricted/broad divide is robust to sampling variation. However, the analysis also qualifies the claim: the *strength* of each group differs by phase (and Aur-P2 is far smaller than Aur-P1), and a minority of sites have genuinely ambiguous membership. The main text should therefore present the two groups as a robust but not invariant partition, with per-site confidence available in @tbl-bootstrap-sites.
+**Implication for the main text.** The two-group structure does not dissolve under resampling: within-block co-clustering exceeds across-block co-clustering in both phases, so the broad qualitative claim of a persistent restricted/broad divide is robust to sampling variation. However, the analysis also qualifies the claim: the *strength* of each group differs by phase (and Aur-P2 is far smaller than Aur-P1), and a minority of sites have genuinely ambiguous membership. The two groups are a robust but not invariant partition, with per-site confidence available in @tbl-bootstrap-sites.
 
 ## Stochastic Block Models {#sec-s9-3}
 
@@ -2858,7 +2858,7 @@ The PerMANOVA results in @sec-s6-5 and bootstrap consensus in @sec-s9-2 show tha
 
 ### Method
 
-We extract the community assignments for each of the four algorithms at the main-analysis threshold (Jaccard ≥ 0.2) and report the full site-by-site membership, with the manual restricted (1) / broad (2) group as reference. A reviewer can then read across any row to see where Louvain, Infomap, Leiden, and Walktrap place the same site.
+We extract the community assignments for each of the four algorithms at the main-analysis threshold (Jaccard ≥ 0.2) and report the full site-by-site membership, with the manual restricted (1) / broad (2) group as reference. We can then read across any row to see where Louvain, Infomap, Leiden, and Walktrap place the same site.
 
 ```{r}
 #| label: tbl-community-membership
@@ -3518,7 +3518,7 @@ cowplot::plot_grid(p_all, p_shared, ncol = 2)
 
 When the comparison is restricted to object types present in both phases, the overlap remains (`r round(pool_shared$target_est$qD[pool_shared$target_est$Assemblage == "Aur-P1"], 1)` vs `r round(pool_shared$observed$qD[pool_shared$observed$Assemblage == "Aur-P2"], 1)`), so limestone blocs, tubes and figurines do not create the effect.
 
-**Answer:** the raw pool difference is not distinguishable from sampling variation at equal object count or equal coverage. The raw `r s95_n_p1` vs `r s95_n_p2` count reflects `r s95_obj_p1` vs `r s95_obj_p2` objects and phase-specific object classes, not a demonstrated phase-level contraction. The diversity-pool paragraphs in the Discussion and Conclusion that call this the most robust finding should be rewritten to the not distinguishable from form and the sample-difference caveat stated.
+**Answer:** the raw pool difference is not distinguishable from sampling variation at equal object count or equal coverage. The raw `r s95_n_p1` vs `r s95_n_p2` count reflects `r s95_obj_p1` vs `r s95_obj_p2` objects and phase-specific object classes, not a demonstrated phase-level contraction. 
 
 ## Figurine Exclusion {#sec-s12-6}
 
@@ -3907,8 +3907,6 @@ Threshold, metric, distance, and periodisation checks support the same reading. 
 Group existence requires a narrower reading. Louvain recovery in @sec-s6 and bootstrap stability in @sec-s9 show that the restricted versus broad axis is coherent under resampling, most clearly in Aur-P1. Generative modelling in @sec-s9 recovers multi-block structure in Aur-P1 under Bernoulli, Gaussian, and Poisson specifications (K = 3, 4, and 3), with the two largest blocks tracking the manual restricted/broad split and a stable Labeko Koba/Les Cottés/Trou al'Wesse third block, but recovers no stable multi-block structure in Aur-P2 (Bernoulli/Poisson K = 1; Gaussian K = 2 by 0.90 points). Withheld-data validation in @sec-s10 does not find separation beyond richness structure under the fixed-fixed null, and Simpson turnover shows no separation in either phase. The supported claim is a dominant richness axis that is recoverable from disjoint objects in well sampled sites, with an SBM- and Louvain-supported small-block refinement (Labeko Koba, Les Cottés, Trou al'Wesse) in Aur-P1, rather than discrete provinces.
 
 Sampling intensity qualifies small-site assignments. Downsampling, coverage, regression with estimated exponent, and equal-effort pool comparison in @sec-s12 show that large assemblages retain their grouping while sites with one or two objects flip at chance rates and never reach comparable coverage. The raw Aur-P1 versus Aur-P2 pool difference is not distinguishable from sampling variation at equal effort. Figurine exclusion is the exception and leaves the ordering intact.
-
-For the main text, report raw degree descriptively and base inference on permutation and withheld-data results. Present the restricted versus broad contrast as a recoverable gradient that is strong for well sampled sites and provisional for small ones. Present Aur-P2 community structure as indicative rather than conclusive. Present the pool contraction as not demonstrated at equal effort, with the sample-difference caveat stated.
 
 ## References cited {.unnumbered}
 
