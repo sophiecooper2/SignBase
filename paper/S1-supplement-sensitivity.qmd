@@ -2243,8 +2243,13 @@ The bootstrap treats block structure as a resampling artefact of an observed par
 
 ```{r}
 #| label: setup-sbm-compute
+#| fig.keep: none
+#| fig.show: hide
 # Fit stochastic block models for both phases (requires `blockmodels` package).
 # This runs at render time for full reproducibility; no cached RDS is used.
+# fig.keep none discards blockmodels diagnostic ICL-vs-Q traces so they are
+# not captured as setup-sbm-compute-N.png files; plot suppression also
+# happens at the source in fit_sbm() via plotting = "" and a null device.
 s6_sbm <- s6_fit_sbm_all(
   list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data),
   max_K = 5,
@@ -2308,6 +2313,31 @@ if (length(s6_sbm)) {
 ```
 
 ```{r}
+#| label: fig-sbm-icl
+#| fig-cap: "Integrated Classification Likelihood (ICL) by number of blocks (K) for Bernoulli, Gaussian, and Poisson stochastic block models, by phase. Higher ICL marks stronger support. Large dots mark the best-supported K within each curve. Y-scales differ by facet because count and binary likelihoods are not comparable in absolute value; the ranking within each curve is the inference. Bernoulli uses binarized adjacency (edge if Jaccard similarity ≥ 0.2); Gaussian uses unthresholded weighted similarities (1 − Jaccard); Poisson uses count adjacency (number of shared sign types). Curves stop early where higher-K fits fail (small Aur-P2 sample)."
+#| fig-width: 7
+#| fig-height: 3.5
+
+if (exists("icl_long") && nrow(icl_long)) {
+  icl_best <- icl_long %>%
+    inner_join(best_ks, by = c("Phase", "Model")) %>%
+    filter(K == bestK)
+  ggplot(icl_long, aes(x = K, y = ICL, colour = Model, shape = Model)) +
+    geom_line(linewidth = 0.7) +
+    geom_point(size = 2) +
+    geom_point(data = icl_best, size = 4, show.legend = FALSE) +
+    facet_wrap(~ Phase, scales = "free_y") +
+    scale_x_continuous(breaks = seq_len(5)) +
+    labs(x = "Number of blocks (K)", y = "ICL (higher is better supported)",
+         colour = "Emission model", shape = "Emission model") +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "bottom")
+} else {
+  cat("SBM results not available. Install `blockmodels` package (`renv::install(\"blockmodels\")`) and re-render to fit models.")
+}
+```
+
+```{r}
 #| label: tbl-sbm-membership
 #| tbl-cap: "Posterior block-membership probabilities and modal (hard) assignment from the best-fitting stochastic block model for each phase and emission model. Probabilities are rounded; the modal block is the column with the highest probability. Sites with probability spread across blocks (e.g. no entry above 0.7) have ambiguous membership. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard); Poisson model uses count adjacency (number of shared sign types)."
 #| tbl-cap-location: bottom
@@ -2337,7 +2367,7 @@ if (length(s6_sbm)) {
 
 ### Interpretation
 
-The ICL model-selection results (@tbl-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase for three model families: a Bernoulli SBM on binarized adjacency (edge if Jaccard similarity ≥ 0.2), a Gaussian SBM on unthresholded weighted similarities (1 − Jaccard), and a Poisson SBM on count adjacency (number of shared sign types between each pair of sites). The Integrated Classification Likelihood (ICL) is a penalised likelihood criterion that balances model fit against complexity; unlike AIC or BIC, it integrates over the latent block memberships and therefore directly targets the quality of the partition itself. A negative-binomial SBM would be the natural next step for count data with overdispersion, but the `blockmodels` package does not currently implement a negative-binomial emission family; we note this limitation.
+The ICL model-selection results (@tbl-sbm-icl; @fig-sbm-icl) report the number of blocks best supported by the sign-sharing network in each phase for three model families: a Bernoulli SBM on binarized adjacency (edge if Jaccard similarity ≥ 0.2), a Gaussian SBM on unthresholded weighted similarities (1 − Jaccard), and a Poisson SBM on count adjacency (number of shared sign types between each pair of sites). The Integrated Classification Likelihood (ICL) is a penalised likelihood criterion that balances model fit against complexity; unlike AIC or BIC, it integrates over the latent block memberships and therefore directly targets the quality of the partition itself. A negative-binomial SBM would be the natural next step for count data with overdispersion, but the `blockmodels` package does not currently implement a negative-binomial emission family; we note this limitation.
 
 In **Aur-P1**, the Bernoulli model's best-supported solution contains `r s6_bestK_wrap("Aur-P1", "bernoulli")` block (ICL = `r n2(s6_maxICL("Aur-P1", "bernoulli"))`), while the two-block solution scores `r n2(s6_icl("Aur-P1", "bernoulli")[2])` and the three-block solution `r n2(s6_icl("Aur-P1", "bernoulli")[3])`. The ICL gap between the best and second-best model is `r n2(s6_gap_wrap("Aur-P1", "bernoulli"))`, indicating that the one-block model is preferred but the preference is modest. The Gaussian model shows a similar profile: best K = `r s6_bestK_wrap("Aur-P1", "gaussian")` (ICL = `r n2(s6_maxICL("Aur-P1", "gaussian"))`), with two-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[2])` and three-block ICL = `r n2(s6_icl("Aur-P1", "gaussian")[3])`, gap = `r n2(s6_gap_wrap("Aur-P1", "gaussian"))`. The Poisson model produces a similar picture: best K = `r s6_bestK_wrap("Aur-P1", "poisson")` (ICL = `r n2(s6_maxICL("Aur-P1", "poisson"))`), with two-block ICL = `r n2(s6_icl("Aur-P1", "poisson")[2])` and three-block ICL = `r n2(s6_icl("Aur-P1", "poisson")[3])`, gap = `r n2(s6_gap_wrap("Aur-P1", "poisson"))`. Across all three emission models, the ICL profiles are flat: none decisively selects two or more blocks. The Poisson model's ICL values are higher in absolute terms (because the count-data likelihood is a different quantity than the binary or Gaussian likelihood and is not directly comparable), but the *relative* ranking of K values is consistent: K = 1 is preferred under Poisson as under Bernoulli and Gaussian. No multi-block structure emerges under the Poisson formulation.
 

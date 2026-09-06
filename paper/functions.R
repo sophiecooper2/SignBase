@@ -1897,25 +1897,31 @@ fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   adj_pois <- as.matrix(mat_bin %*% t(mat_bin))
   diag(adj_pois) <- 0
   
-  # Suppress verbose output from blockmodels estimation
-  sink(tempfile()); on.exit(sink())
-  
+  # Suppress verbose output and diagnostic plots from blockmodels estimation.
+  # sink() captures text only; blockmodels also draws ICL-vs-Q traces to the
+  # active graphics device on each $estimate(), which Quarto would otherwise
+  # capture as dozens of setup-sbm-compute-N.png files. plotting = "" disables
+  # file output and the null device below discards device output.
+  sink(tempfile()); on.exit(sink(), add = TRUE)
+  grDevices::pdf(NULL); on.exit(grDevices::dev.off(), add = TRUE)
+
   # Bernoulli SBM on binarized adjacency
   bm_bern <- blockmodels::BM_bernoulli("SBM_sym", adj_bin, verbosity = 0,
+                                       plotting = "",
                                        explore_min = 1, explore_max = max_K)
   bm_bern$estimate()
-  
+
   # Gaussian SBM on weighted adjacency
   bm_gauss <- blockmodels::BM_gaussian("SBM_sym", adj_gauss, verbosity = 0,
+                                       plotting = "",
                                        explore_min = 1, explore_max = max_K)
   bm_gauss$estimate()
-  
+
   # Poisson SBM on count adjacency (number of shared sign types between sites)
   bm_pois <- blockmodels::BM_poisson("SBM_sym", adj_pois, verbosity = 0,
+                                     plotting = "",
                                      explore_min = 1, explore_max = max_K)
   bm_pois$estimate()
-  
-  sink()
   
   # Extract ICL for all three models (length max_K)
   icl_bern <- bm_bern$ICL[1:max_K]
