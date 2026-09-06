@@ -772,7 +772,7 @@ The four-phase Aurignacian taxonomy of @teyssandier2018entity distinguishes Prot
 
 ```{r}
 #| label: tbl-date-variant-comparison
-#| tbl-cap: "Site phase assignments under three date variants. The midpoint variant is used in the main analysis. Sites with 'Yes' in the Changes column have different phase assignments across variants."
+#| tbl-cap: "Site phase assignments under three date variants. The oldest variant is used in the main analysis. Sites with 'Yes' in the Changes column have different phase assignments across variants."
 #| tbl-cap-location: bottom
 
 changing_sites <- site_phase_comparison %>%
