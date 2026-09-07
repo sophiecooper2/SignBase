@@ -554,6 +554,13 @@ all_cols <- Reduce(union, list(colnames(aurp1_artifact_data),
 aurp1_mat <- pad(aurp1_artifact_data, all_cols)
 aurp2_mat <- pad(aurp2_artifact_data, all_cols)
 
+# Pool all sites' binary sign vectors + observed phase sizes for the
+# phase-randomized null (shared compute_phase_randomized_null() in functions.R)
+all_mat <- rbind(aurp1_mat, aurp2_mat)
+all_mat <- all_mat[, colSums(all_mat) > 0, drop = FALSE]
+all_mat <- as.data.frame(lapply(all_mat, function(x) as.numeric(x > 0)))
+sizes <- c(nrow(aurp1_mat), nrow(aurp2_mat))
+
 # Pairwise permutation test on differences
 # stat builder: mat is a padded site x sign matrix (all cols present)
 stats <- c("density", "modularity", "betweenness", "components")
@@ -567,13 +574,14 @@ pairwise_p_density <- pairwise_perm$pairwise_p_density
 pairwise_p_modularity <- pairwise_perm$pairwise_p_modularity
 pairwise_p_betweenness <- pairwise_perm$pairwise_p_betweenness
 pairwise_p_components <- pairwise_perm$pairwise_p_components
+pairwise_res <- pairwise_perm$res
 ```
 
 
 ```{r}
 #| label: phase-randomized-null
 # Phase-randomized null distribution for network statistics
-phase_rand <- compute_phase_randomized_null(all_mat, sizes, nperm = 10000)
+phase_rand <- compute_phase_randomized_null(all_mat, sizes, pairwise_res, nperm = 10000)
 
 # Unpack for plotting
 tab <- phase_rand$tab
@@ -592,11 +600,49 @@ nperm <- 10000
 #| label: fig-neighbor-net-stats
 #| fig-cap: "Network statistics for the two phases. The vertical black lines are the null 95% confidence interval, the observed statistic value is shown as a solid black circle (BH-adjusted p < 0.05) or a hollow circle (not significantly different from a phase-randomized null distribution). The horizontal brackets at the top of each panel show p-values of pairwise randomisation tests for significant differences in network statistics between phases."
 
-net_stats <- rbind(
-  `Aur-P1` = network_stats(aurp1_artifact_data),
-  `Aur-P2` = network_stats(aurp2_artifact_data)
-) %>%
-  mutate(Aurignacian.phase = c("Aur-P1", "Aur-P2"), .before = 1)
+network_stats_p <- ggplot(tab, aes(x = phase)) +
+    facet_wrap(~ statistic,
+             scales = "free_y",
+             ncol = 2,
+             labeller = labeller(statistic = stat_lab)) +
+  geom_linerange(aes(ymin = ci_lo,
+                     ymax = ci_hi)) +
+  geom_point(aes(y = observed,
+                 shape = significant),
+             size = 4.5, colour = "black") +
+  geom_segment(data = seg,
+              aes(x = x,
+                  xend = xend,
+                  y = y,
+                  yend = yend)) +
+  geom_label_repel(data = txt, aes(x = x, y = y, label = label),
+                size = 3,
+                label.size = NA,
+                color = "white",
+                force = 0, force_pull = 0,          # don't move the labels
+                segment.color = NA,                  # no leader lines
+                max.overlaps = 100,
+                xlim = c(1, 2), ylim = c(1, 1.8))  +
+  geom_text_repel(data = txt, aes(x = x, y = y, label = label),
+                size = 3,
+                force = 0, force_pull = 0,          # don't move the labels
+                segment.color = NA,                  # no leader lines
+                max.overlaps = 100,
+                xlim = c(1, 2), ylim = c(1, 1.8))  +
+  scale_shape_manual(values = c("TRUE" = 19, "FALSE" = 1),
+                     labels = c("FALSE" = "adjusted p \u2265 0.05", "TRUE" = "adjusted p < 0.05"),
+                     name = "Phase-randomization test:") +
+  labs(x = NULL, y = "Observed value vs. null distribution") +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank(),
+        legend.position = "bottom")
+
+ggsave(here::here("figures/network-stats-plot.png"),
+       network_stats_p,
+       width = 8,
+       height = 5.5, dpi = 300)
+
+knitr::include_graphics(here::here("figures/network-stats-plot.png"))
 ```
 
 Distinct groups of sites are not evident in @fig-neighbor-net, supporting the hypothesis of a gradient of sign type composition variation. @fig-neighbor-net-stats shows the results of permutation tests (n&nbsp;=&nbsp;`r format(nperm, big.mark = ",", scientific = FALSE)`) assessing whether the observed statistics differ from a phase-randomized null distribution, and pairwise randomisation tests comparing the two phases. Under phase randomization, none of the network statistics, edge density, modularity (Louvain), mean betweenness, or component count, differs significantly from its null distribution in either phase. All observed values fall within the null 95% confidence intervals and all Benjamini–Hochberg-adjusted p-values are ≥ 0.05. A separate null-benchmarked modularity test (S1) shows that Aur-P1's observed modularity (`r n3(val(null_results, "Observed", "Aur-P1", 0.2))` at threshold 0.2) significantly exceeds the random expectation (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`), while Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))`) does not (p = `r n3(val(null_results, "p", "Aur-P2", 0.2))`), consistent with Aur-P2's small sample size. The Aur-P1–Aur-P2 contrast is therefore primarily one of network scale rather than a statistically distinguishable community structure. Object-within-site bootstrap stability bands likewise overlap between phases for both mean degree and modularity (S1), so the phase contrast could be produced by within-site object sampling alone.

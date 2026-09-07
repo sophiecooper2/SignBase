@@ -3299,7 +3299,8 @@ pairwise_perm_test <- function(aurp1_mat, aurp2_mat, nperm = 10000) {
     pairwise_p_density = round(res$p[res$statistic == "density"], 3),
     pairwise_p_modularity = round(res$p[res$statistic == "modularity"], 3),
     pairwise_p_betweenness = round(res$p[res$statistic == "betweenness"], 3),
-    pairwise_p_components = round(res$p[res$statistic == "components"], 3)
+    pairwise_p_components = round(res$p[res$statistic == "components"], 3),
+    res = res
   )
 }
 
@@ -3322,7 +3323,9 @@ pairwise_perm_test <- function(aurp1_mat, aurp2_mat, nperm = 10000) {
   }))
 }
 # -- Phase-randomized null distribution (from paper.qmd) --------------------------
-compute_phase_randomized_null <- function(all_mat, sizes, nperm = 10000) {
+# res: pairwise permutation result data frame (from pairwise_perm_test) with
+# columns statistic, xmin, xmax, p, p_adjust; used for the spanning brackets
+compute_phase_randomized_null <- function(all_mat, sizes, res, nperm = 10000) {
   stats <- c("density", "modularity", "betweenness", "components")
   phases <- c("Aur-P1", "Aur-P2")
 
@@ -3352,16 +3355,14 @@ compute_phase_randomized_null <- function(all_mat, sizes, nperm = 10000) {
   stat_lab <- c(density = "Edge density", modularity = "Modularity (Louvain)",
                 betweenness = "Mean betweenness", components = "Connected components")
   top <- tab %>% group_by(statistic) %>% summarise(top = max(observed, ci_hi, na.rm = TRUE))
-  brack <- tab %>% left_join(top, by = "statistic") %>%
+  brack <- res %>% left_join(top, by = "statistic") %>%
     group_by(statistic) %>%
     mutate(level = seq_len(n())) %>% ungroup() %>%
     mutate(y.pos = top + 0.15 * level,
            tip = 0.05,
-           label = ifelse(p_two_adj < 0.05,
-                          paste0("padj = ", sprintf("%.3f", p_two_adj), " *"),
-                          paste0("p = ", ifelse(p_two < 0.001, "<0.001", sprintf("%.3f", p_two)))),
-           xmin = ifelse(phase == "Aur-P1", 1, 2),
-           xmax = ifelse(phase == "Aur-P1", 1, 2)) %>%
+           label = ifelse(p_adjust < 0.05,
+                          paste0("padj = ", sprintf("%.3f", p_adjust), " *"),
+                          paste0("p = ", ifelse(p < 0.001, "<0.001", sprintf("%.3f", p))))) %>%
     distinct(statistic, xmin, xmax, .keep_all = TRUE)
 
   # Expand brackets
