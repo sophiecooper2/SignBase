@@ -1628,10 +1628,11 @@ cv_permanova_objectsplit <- function(object_df, site_sign_cols,
     gA  <- ifelse(richA <= cut, 1, 2)
     matB <- do.call(rbind, sigB_list)
     rownames(matB) <- usable
-    # Use Simpson turnover distance matrix (square first for permanova_F)
-    D2B_sim <- as.matrix(simpson_turnover_dist(matB))^2
-    f_obs_sim <- permanova_F(D2B_sim, gA)
-    null_f_sim <- replicate(B_perm, permanova_F(D2B_sim, sample(gA)))
+    # Use plain Simpson turnover dissimilarity; permanova_F Gower-centres it
+    # directly (adonis2 sqrt.dist = TRUE convention), matching the Jaccard path.
+    DB_sim <- as.matrix(simpson_turnover_dist(matB))
+    f_obs_sim <- permanova_F(DB_sim, gA)
+    null_f_sim <- replicate(B_perm, permanova_F(DB_sim, sample(gA)))
     pvals_sim[r] <- (1 + sum(null_f_sim >= f_obs_sim, na.rm = TRUE)) / (1 + B_perm)
   }
   list(n_usable = length(usable), usable_sites = usable,
@@ -3054,6 +3055,9 @@ power_permanova_mde <- function(mat, group, n_shift_grid = 0:4,
   } else {
     g <- as.factor(group)
     if (length(g) != nrow(M)) stop("group length must match nrow(mat)")
+    # Positional branch: align the factor to site rownames so the g[s] lookup
+    # below works even when `group` arrives unnamed (mutate() strips names).
+    names(g) <- sites
   }
   lvl <- levels(g)
   if (length(lvl) != 2) stop("group must have exactly two levels")
