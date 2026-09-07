@@ -2,7 +2,7 @@
 # Single source of truth for all functions used by paper.qmd and the supplements.
 # Sourced from both documents; do not duplicate function definitions elsewhere.
 
-# ── Package loading ──────────────────────────────────────────────────────────
+# -- Package loading ----------------------------------------------------------
 # All packages used by any function below. Load order matters where names
 # collide (e.g. igraph/statnet/sna); the network functions are fully
 # igraph::-namespaced so load order is irrelevant for them.
@@ -38,7 +38,7 @@ SIGN_COLS <- c("line","dashline","obline","radline","circumline","notch","obnotc
                "v","circumspiral","vulva","anthropomorph","zoomorph","paw",
                "concenline","pinleft","pinright","star")
 
-# ── Canonical data-cleaning pipeline (shared by paper.qmd and S1) ───────────────
+# -- Canonical data-cleaning pipeline (shared by paper.qmd and S1) ---------------
 # `signbase_full` is the raw SignBase CSV tibble (read by the calling document).
 # Returns the cleaned object-level table with calibrated `MedianBP` (variant
 # selected by `date_variant`: "older", "midpoint", or "younger"), a
@@ -166,7 +166,7 @@ site_latlong <- function(df) {
     distinct(site_name, .keep_all = TRUE)
 }
 
-# Site-level time-lag analysis (S5.12 / paper.qmd temporal-Mantel summary).
+# Site-level time-lag analysis (S1 §S1.8.3 / paper.qmd temporal-Mantel summary).
 # Aggregates to site level, computes pairwise Jaccard dissimilarity and |ΔMedianBP|
 # lag (ka), and returns trend statistics plus a binned summary table. Single source
 # of truth so the supplement and main text report identical numbers.
@@ -233,7 +233,7 @@ time_lag_pairs <- function(df = signbase_full_clean) {
   )
 }
 
-# ── Data preparation ──────────────────────────────────────────────────────────
+# -- Data preparation ----------------------------------------------------------
 # Build per-phase site-level data from the object-level table.
 # `signbase_full_clean` and `lat_long_df` are expected to exist in the calling
 # environment (created in the document setup chunks).
@@ -260,7 +260,7 @@ extract_artifact <- function(df) {
     dplyr::select(where(~ is.numeric(.) && sum(.) != 0))
 }
 
-# ── Automated group detection ─────────────────────────────────────────────────
+# -- Automated group detection -------------------------------------------------
 # Louvain community detection on a site × sign binary matrix.
 # Returns a named integer vector (community ID per site).
 get_louvain_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
@@ -292,7 +292,7 @@ get_louvain_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard
   mem
 }
 
-# ── Infomap community detection ────────────────────────────────────────────────
+# -- Infomap community detection ------------------------------------------------
 # Infomap community detection on a site × sign binary matrix.
 # Returns a named integer vector (community ID per site).
 get_infomap_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
@@ -324,7 +324,7 @@ get_infomap_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard
   mem
 }
 
-# ── Leiden community detection ────────────────────────────────────────────────
+# -- Leiden community detection ------------------------------------------------
 # Leiden community detection on a site × sign binary matrix.
 # Returns a named integer vector (community ID per site).
 # The resolution parameter (default 0.01) controls the number of communities
@@ -359,7 +359,7 @@ get_leiden_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard"
   mem
 }
 
-# ── Walktrap community detection ──────────────────────────────────────────────
+# -- Walktrap community detection ----------------------------------------------
 # Walktrap community detection on a site × sign binary matrix.
 # Returns a named integer vector (community ID per site).
 get_walktrap_groups <- function(artifact_data, threshold = 0.2, metric = "jaccard") {
@@ -400,7 +400,7 @@ pretty_print_dates <- function(x) {
           format = "f")
 }
 
-# ── Seriation ────────────────────────────────────────────────────────────────
+# -- Seriation ----------------------------------------------------------------
 # Tile-plot a presence/absence matrix; rows are sites, columns are sign types.
 mplot <- function(x, ..., fill_colour = "black", title = NULL,
                   row_labels = NULL, col_labels = NULL, palette_colors = NULL) {
@@ -573,7 +573,7 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
   return(list(plot = final_plot, group_sizes = group_sizes))
 }
 
-# ── Network statistics & tests ────────────────────────────────────────────────
+# -- Network statistics & tests ------------------------------------------------
 # Parameterised network-stats function (threshold & metric exposed).
 # NOTE: igraph:: is used explicitly throughout to avoid sna/statnet masking.
 # `round_stats = FALSE` returns unrounded raw values, so callers that take
@@ -751,7 +751,7 @@ dbrda_geo <- function(artifact_data, group_data, nperm = 999, seed = 7) {
              check.names = FALSE)
 }
 
-# ── Permutation tests for network statistics ─────────────────────────────────
+# -- Permutation tests for network statistics ---------------------------------
 # Build a single network statistic from a padded site x sign matrix.
 build_stat <- function(stat) {
   force(stat)
@@ -811,7 +811,7 @@ pad <- function(m, all_cols) {
   m[, all_cols]   # pad matrix to the same column layout
 }
 
-# ── Network plotting ──────────────────────────────────────────────────────────
+# -- Network plotting ----------------------------------------------------------
 # Parameterised network-plot function (threshold & metric exposed).
 network_plot <- function(artifact_data, threshold = 0.2, metric = "jaccard", title = NULL) {
   mat <- artifact_data %>%
@@ -852,7 +852,7 @@ network_plot <- function(artifact_data, threshold = 0.2, metric = "jaccard", tit
     ggpubr::border(color = "black", size = 0.5)
 }
 
-# ── Diversity plotting helpers (tabula) ───────────────────────────────────────
+# -- Diversity plotting helpers (tabula) ---------------------------------------
 # Recast a vector to a factor preserving level order (optionally reversed).
 as_factor <- function(x, reverse = FALSE) {
   lvl <- unique(x)
@@ -998,7 +998,7 @@ summarise_diversity <- function(df) {
   )
 }
 
-# ── Mantel comparison (Euclidean vs. geodesic distance) ──────────────────────
+# -- Mantel comparison (Euclidean vs. geodesic distance) ----------------------
 run_mantel_comp <- function(df) {
   art <- df %>%
     column_to_rownames("site_name") %>%
@@ -1026,7 +1026,7 @@ run_mantel_comp <- function(df) {
   )
 }
 
-# ── betadisper ────────────────────────────────────────────────────────────────
+# -- betadisper ----------------------------------------------------------------
 # Test for homogeneity of multivariate dispersions (betadisper) across groups.
 # Returns group medians, distances to median, and ANOVA test for dispersion
 # differences. Used to validate perMANOVA results.
@@ -1056,10 +1056,10 @@ run_betadisper <- function(phase_df, groups) {
   )
 }
 
-# ── S5.13 Objective regional grouping (geography-first, country-free analogue) ───
+# -- S1 §S1.8.4 Objective regional grouping (geography-first, country-free analogue) ---
 # Geography chooses its own borders via PAM on geodesic distances; signs are
 # tested across them. Primary = PAM on sf::st_distance (km); sensitivity =
-# k-means on cbind(lon, lat). Mirrors S3 geodesic correction (S3 rs).
+# k-means on cbind(lon, lat). Mirrors the §S1.4 geodesic correction.
 
 # PAM on geodesic distances (km) for one phase.
 # df: per-phase site-level data frame with site_name, longitude, latitude
@@ -1171,7 +1171,7 @@ adonis_region_marginal <- function(art, uniq_df, region_factor, seed = 500) {
        betadisper_p = bd_region, n = length(common))
 }
 
-# ── Circularity-breaking validation for the restricted/broad PERMANOVA ─────────
+# -- Circularity-breaking validation for the restricted/broad PERMANOVA ---------
 # These functions answer the editor's concern (response-plan line 17) that the
 # restricted/broad groups were defined from the same sign data tested in the
 # PERMANOVA, so its p-values are not independent confirmation. Each method below
@@ -1312,7 +1312,7 @@ best_split_permtest <- function(mat, group = NULL, B = 999, seed = 42,
        null_F = null, p_value = p, B = B)
 }
 
-# Simpson turnover dissimilarity for binary site x sign matrices (S1 S9.7,
+# Simpson turnover dissimilarity for binary site x sign matrices (S1 §S1.10.3,
 # PEER_REVIEW 3.3(c)). beta_sim = min(b,c) / (a + min(b,c)) keeps only the
 # turnover component, so unlike Jaccard it does not separate rich from poor
 # assemblages by construction. Nested pairs score 0, disjoint pairs 1.
@@ -1358,7 +1358,7 @@ permanova_R2 <- function(D2, group) {
 }
 
 # Richness-preserving null quantiles for the whole restricted/broad pattern
-# (S1 S9.7, PEER_REVIEW 3.3(c)). Reports the observed manual-group PerMANOVA
+# (S1 §S1.10.3, PEER_REVIEW 3.3(c)). Reports the observed manual-group PerMANOVA
 # R^2 (Jaccard and Simpson turnover) and the Louvain-to-manual ARI as
 # quantiles of structure-destroying nulls: "curveball" (fixed-fixed, preserves
 # site richness and sign-type frequencies) and, when object-level inputs are
@@ -1652,7 +1652,7 @@ browns_combine_p <- function(p) {
   pchisq(fisher_stat / c_scale, df = df_adj, lower.tail = FALSE)
 }
 
-# Object-within-site bootstrap for network statistics (S5.7 fix).
+# Object-within-site bootstrap for network statistics (S1 §S1.7.4).
 # Instead of resampling sites with replacement (which creates duplicate nodes
 # with similarity 1 and distance 0), resample objects within each site with
 # replacement, then rebuild the site x sign matrix. This preserves node
@@ -1731,7 +1731,7 @@ bootstrap_network_stats <- function(art_data, signbase_clean, phase, n_boot = 99
        n_na_mod = n_na_mod)
 }
 
-# Object-within-site bootstrap for Mantel R (S5.11 fix).
+# Object-within-site bootstrap for Mantel R (S1 §S1.4.3).
 # Resamples objects within each site, rebuilds site-level presence matrix,
 # then recomputes Jaccard vs geodesic distance Mantel R.
 bootstrap_mantel_R <- function(df_unique, signbase_clean, phase, B = 1000, seed = 42) {
@@ -1830,12 +1830,12 @@ bootstrap_permanova_R2 <- function(df_unique, signbase_clean, phase, B = 1000, s
        ci_hi = unname(quantile(Rs, 0.975, na.rm = TRUE)))
 }
 
-# ── S3 registration ───────────────────────────────────────────────────────────
+# -- S3 registration -----------------------------------------------------------
 # Ensure ggplot2::autoplot() dispatches to autoplot.DiversityIndex even when the
 # function is defined in a sourced script rather than the global environment.
 registerS3method("autoplot", "DiversityIndex", autoplot.DiversityIndex)
 
-# ── Paper-specific helpers ──────────────────────────────────────────────────────
+# -- Paper-specific helpers ------------------------------------------------------
 # Build per-phase (Aur-P1/Aur-P2) site-level data from the object-level table.
 # Uses the `phase2` column created during data cleaning.
 # `signbase_full_clean` and `lat_long_df` are expected to exist in the calling
@@ -1856,8 +1856,8 @@ make_phase2_data <- function(phase2_val, signbase_full_clean, lat_long_df) {
     mutate(time_period = phase2_val)
 }
 
-# ── Canonical manual group assignment (restricted = 1, broad = 2) ────────────────
-# Single source of truth for paper.qmd, S1 (S5/S6), and S2.
+# -- Canonical manual group assignment (restricted = 1, broad = 2) ----------------
+# Single source of truth for paper.qmd, S1 (§S1.6/§S1.9), and S2.
 manual_groups <- list(
   "Aur-P1" = c("Abri Pataud" = 1, "Fumane" = 1, "Pod Hradem" = 1,
                "Riparo Bombrini" = 1, "Grottes de Fonds-de-Forêt" = 1,
@@ -1877,7 +1877,7 @@ add_manual_group <- function(df, phase) {
   df %>% mutate(group = as.character(g[df$site_name]))
 }
 
-# ── Bootstrap consensus co-clustering (S1 S6.2) ──────────────────────────────────
+# -- Bootstrap consensus co-clustering (S1 §S1.9.2) ----------------------------------
 # Subsampling consensus co-clustering into k blocks, from a site x sign matrix.
 # Uses subsampling without replacement (80% of sites) to avoid duplicate-node
 # bias of site-with-replacement bootstrap (Roberts et al. 2021).
@@ -1979,7 +1979,7 @@ sci_md <- function(x, digits = 2) {
   }
 }
 
-# ── SBM fitting (S1 S6.3) ────────────────────────────────────────────────────────
+# -- SBM fitting (S1 §S1.9.3) --------------------------------------------------------
 # Fit stochastic block models for K = 1:5 blocks on a binary site x sign matrix.
 # Fits three model families:
 #   1. Bernoulli SBM on binarized adjacency (edge if Jaccard similarity >= 0.2)
@@ -2102,7 +2102,7 @@ s6_fit_sbm_all <- function(art_list, max_K = 5, save_path = NULL) {
   out
 }
 
-# SBM vs manual group mismatch (S1 S6.3)
+# SBM vs manual group mismatch (S1 §S1.9.3)
 # Compute sites where SBM modal assignment diverges from manual restricted/broad
 # groups after optimal block-to-group mapping.
 # `sbm_list`: output of s6_fit_sbm_all (list per phase with $bernoulli, $gaussian, $poisson)
@@ -2152,7 +2152,7 @@ s6_global_minPost <- function(sbm_list, model = "bernoulli") {
   })), na.rm = TRUE)
 }
 
-# ── Object-level downsampling & coverage-rarefaction helpers (S1 S9) ───────────
+# -- Object-level downsampling & coverage-rarefaction helpers (S1 §S1.12) --------
 
 # 1) Per-site object counts for a phase (object-level rows of signbase_full_clean).
 site_object_counts <- function(signbase, phase) {
@@ -2243,7 +2243,7 @@ run_downsample_sensitivity <- function(signbase, phase, k, R = 1000,
        mean_n_communities = mean(ncomm_vec, na.rm = TRUE))
 }
 
-# 3) Coverage-based rarefaction with iNEXT + Chao analytic fallback (S1 S9.3).
+# 3) Coverage-based rarefaction with iNEXT + Chao analytic fallback (S1 §S1.12.4).
 #    PEER_REVIEW 3.3(b): the hand-rolled C(m) = 1 - f1/m estimator is replaced.
 #    Primary path: iNEXT::estimateD on the per-site object x sign incidence
 #    matrix (datatype = "incidence_raw": species in rows, sampling units in
@@ -2361,9 +2361,9 @@ coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
 }
 
 # 5) Negative-binomial model of sign-type richness with an object-count offset
-#    (S1 S9.4). Tests whether the restricted/broad group effect on richness
+#    (S1 §S1.12.5). Tests whether the restricted/broad group effect on richness
 #    survives after accounting for sampling effort (object count as exposure).
-#    Defined once here and called by both paper.qmd and S1 S9.4 so the model is
+#    Defined once here and called by both paper.qmd and S1 §S1.12.5 so the model is
 #    fitted identically in the two documents and never duplicated.
 # Args:
 #   art_list:    named list of site x sign matrices, one per phase
@@ -2375,7 +2375,7 @@ coverage_rarefaction <- function(signbase, phase, target_coverage = 0.9,
 # Returns: list with $data (per-site richness/offset/group/phase), $fit
 #          (glm.nb object), and scalar summaries $group_coef,
 #          $group_rate_ratio, $group_p.
-# Shared per-site richness frame for the S9 negative-binomial models (S1 S9.4).
+# Shared per-site richness frame for the §S1.12 negative-binomial models (S1 §S1.12.5).
 # Extracted so the offset and free-slope fits use byte-identical inputs.
 s9_richness_df <- function(art_list, uniq_list, groups_list) {
   richness_df <- bind_rows(lapply(names(art_list), function(ph) {
@@ -2410,7 +2410,7 @@ s9_offset_mixed_model <- function(art_list, uniq_list, groups_list) {
 }
 
 # 5b) Negative-binomial model of sign-type richness with a FREE object-count
-#    slope (S1 S9.4, PEER_REVIEW 3.3(a)). The offset model above fixes the
+#    slope (S1 §S1.12.5, PEER_REVIEW 3.3(a)). The offset model above fixes the
 #    richness-effort exponent at 1, which assumes richness grows in proportion
 #    to object count; richness saturates with effort (Gotelli & Colwell 2001),
 #    so the offset biases the group contrast against the large broad-group
@@ -2453,7 +2453,7 @@ s9_free_slope_nb <- function(art_list, uniq_list, groups_list) {
        phase_p = unname(sm["phaseAur-P2", "Pr(>|z|)"]))
 }
 
-# ── Equal-effort pool comparison with iNEXT (S1 S9.5 / PEER_REVIEW 3.4) ──────────
+# -- Equal-effort pool comparison with iNEXT (S1 §S1.12.6 / PEER_REVIEW 3.4) ----------
 # incidence_raw rarefaction/extrapolation of sign-type richness to a common
 # number of objects. Each object is a sampling unit; each sign type is a
 # species. Incidence frequency of a sign type = number of objects that carry it.
@@ -2506,9 +2506,9 @@ pool_inext_restricted_incidence <- function(signbase_clean, target_n = NULL, nbo
   pool_inext_incidence(df_shared, target_n = target_n, nboot = nboot, seed = seed)
 }
 
-# ── Shared sensitivity (S7 figurine-exclusion + S8 exclude-entire-Vogelherd) ──
+# -- Shared sensitivity (§S1.12 figurine-exclusion + §S1.5.5 exclude-entire-Vogelherd) --
 # Single source of truth for the figurine/site-robustness statistics so that the
-# main text (paper.qmd) and the S1/S8 supplements cannot report divergent numbers.
+# main text (paper.qmd) and the S1/§S1.5.5 sections cannot report divergent numbers.
 sensitivity_summary <- function(signbase_full_clean,
                                  aurp1_artifact_data, aurp2_artifact_data) {
   figurine_types <- c("figurine zoomorph", "figurine anthropomorph",
@@ -2528,7 +2528,7 @@ sensitivity_summary <- function(signbase_full_clean,
                       transitivity, modularity) %>%
     mutate(Condition = "Baseline (all objects)")
 
-  # S7: rebuild each phase after excluding the filtered rows, then network_stats
+  # §S1.12: rebuild each phase after excluding the filtered rows, then network_stats
   s7_phase_stats <- function(df, condition) {
     purrr::map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
       ph_df <- df %>% filter(phase2 == ph)
@@ -2551,11 +2551,11 @@ sensitivity_summary <- function(signbase_full_clean,
     })
   }
 
-  # S7 Analysis: exclude all figurines (global)
+  # §S1.12 Analysis: exclude all figurines (global)
   signbase_no_fig <- signbase_full_clean %>% filter(!object_type %in% figurine_types)
   s7_no_fig <- s7_phase_stats(signbase_no_fig, "Exclude all figurines")
 
-  # S7 Analysis: exclude only Vogelherd figurines
+  # §S1.12 Analysis: exclude only Vogelherd figurines
   signbase_no_vog_fig <- signbase_full_clean %>%
     filter(!(site_name == "Vogelherd" & object_type %in% figurine_types))
   s7_no_vog_fig <- s7_phase_stats(signbase_no_vog_fig, "Exclude Vogelherd figurines")
@@ -2585,7 +2585,7 @@ sensitivity_summary <- function(signbase_full_clean,
     mutate(pct_change_md = round((mean_degree - Baseline_md) / Baseline_md * 100, 1)) %>%
     dplyr::select(-Baseline_md)
 
-  # S8 Analysis B: exclude the entire Vogelherd site
+  # §S1.5.5 Analysis B: exclude the entire Vogelherd site
   signbase_novog <- signbase_full_clean %>% filter(site_name != "Vogelherd")
   lat_long_nv <- signbase_novog %>%
     dplyr::select(site_name, longitude, latitude) %>% distinct(site_name, .keep_all = TRUE)
@@ -2598,7 +2598,7 @@ sensitivity_summary <- function(signbase_full_clean,
                       transitivity, modularity) %>%
     mutate(Condition = "Exclude Vogelherd")
 
-  # ── Date-based object counts (S8 Analysis A prose) ──
+  # -- Date-based object counts (§S1.5.5 Analysis A prose) --
   signbase_date <- signbase_full_clean %>%
     mutate(phase2_date = ifelse(time_period_date %in%
                                   c("proto_aurignacian", "early_aurignacian"),
@@ -2609,7 +2609,7 @@ sensitivity_summary <- function(signbase_full_clean,
   vog_p2_date <- nrow(signbase_date %>% filter(site_name == "Vogelherd",  phase2_date == "Aur-P2"))
   young_total <- hf_p2 + vog_p2_date
 
-  # ── Scalars for the main-text sensitivity sentence (paper.qmd) ──
+  # -- Scalars for the main-text sensitivity sentence (paper.qmd) --
   md_base_p1   <- s7_baseline$mean_degree[s7_baseline$Phase == "Aur-P1"]
   md_base_p2   <- s7_baseline$mean_degree[s7_baseline$Phase == "Aur-P2"]
   md_nofig_p1  <- s7_no_fig$mean_degree[s7_no_fig$Phase == "Aur-P1"]
@@ -2639,7 +2639,7 @@ sensitivity_summary <- function(signbase_full_clean,
   )
 }
 
-# ── Design sensitivity: minimum detectable effects (S1 sec-s-power) ──────────
+# -- Design sensitivity: minimum detectable effects (S1 sec-s-power) ----------
 # Simulation-based MDEs at 80% power for the three headline null-hypothesis
 # tests (Mantel isolation-by-distance, restricted/broad PerMANOVA, network
 # phase contrast). These are design calculations conditional on the fixed
@@ -2904,7 +2904,7 @@ power_network_mde <- function(art_p1, art_p2, delta_grid = c(0, 0.05, 0.10, 0.15
   list(baseline_density = unname(d0), n1 = n1, n2 = n2, k = k, q1 = q1, table = tab)
 }
 
-# ── Null-benchmarked modularity (S1 signature, uses globals) ───────────────────
+# -- Null-benchmarked modularity (S1 signature, uses globals) -------------------
 # Requires globals: aurp1_unique_data, aurp2_unique_data, signbase_full_clean
 # Returns tibble: Phase, Threshold, Observed, Null_mean, Null_sd, p
 run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
@@ -2965,7 +2965,7 @@ run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
   )
 }
 
-# ── Inline formatting & lookup helpers (shared by paper.qmd and S1) ─────────────
+# -- Inline formatting & lookup helpers (shared by paper.qmd and S1) -------------
 # Format a number to fixed decimal places as character (avoids trailing zeros in inline text)
 n3 <- function(x) formatC(x, digits = 3, format = "f")
 n2 <- function(x) formatC(x, digits = 2, format = "f")
@@ -2987,7 +2987,7 @@ val <- function(df, col, phase, thr = NULL, metric = NULL) {
   if (length(out) == 0) NA_real_ else out[[1]]
 }
 
-# Pattern-based lookup for frames whose phase labels are long strings (S4, S5.5).
+# Pattern-based lookup for frames whose phase labels are long strings (S1 §S1.5).
 pval <- function(df, col, pattern) {
   x <- df[[col]][grepl(pattern, df$Phase)]
   if (!length(x)) NA_real_ else x[[1]]
@@ -3000,7 +3000,7 @@ mantel_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprin
 perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
 
 
-# ── SBM accessors (S1 canonical, from S1 lines 2605-2613) ──────────────────────
+# -- SBM accessors (S1 canonical, from S1 lines 2605-2613) ----------------------
 # s6_sbm is expected to be a list with phase names, each containing model fits
 # with $icl (vector of ICL values for K=1..max_K) and $bestK (optimal K)
 # Internal 3-arg versions (prefix with dot); 2-arg wrappers in paper.qmd capture global s6_sbm
@@ -3027,7 +3027,7 @@ perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf
   sorted[1] - sorted[2]
 }
 
-# ── Threshold agreement helpers (from S1 tbl-threshold-agreement) ───────────────
+# -- Threshold agreement helpers (from S1 tbl-threshold-agreement) ---------------
 # Compute edge-set Jaccard similarity between networks at two thresholds
 edge_jaccard <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
   build_adj <- function(mat, th, met) {
@@ -3067,7 +3067,7 @@ adjmatrix_corr <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
 }
 
 
-# ── Ordination plots (PCoA + CA) from S1 ────────────────────────────────────────
+# -- Ordination plots (PCoA + CA) from S1 ----------------------------------------
 # Returns list with pcoa, ca plots, variance percentages, and PCoA points
 ordination_plots <- function(artifact_data, phase_name) {
   mat <- artifact_data %>%
@@ -3124,7 +3124,7 @@ ordination_plots <- function(artifact_data, phase_name) {
        pcoa_points = pc$points)
 }
 
-# ── PCoA axis test (richness vs geography) from S1 ──────────────────────────────
+# -- PCoA axis test (richness vs geography) from S1 ------------------------------
 # Returns data.frame with regression results and partial correlations
 pcoa_axis_test <- function(artifact_data, uniq_data, phase_name, pc1_scores) {
   mat <- artifact_data %>%
@@ -3172,7 +3172,7 @@ pcoa_axis_test <- function(artifact_data, uniq_data, phase_name, pc1_scores) {
   )
 }
 
-# ── Phase distances for Mantel correlogram (from S1) ────────────────────────────
+# -- Phase distances for Mantel correlogram (from S1) ----------------------------
 # Returns list with jac (Jaccard distance) and geo (geodesic distance in km)
 phase_distances <- function(df) {
   art <- df %>%
@@ -3187,13 +3187,13 @@ phase_distances <- function(df) {
 
 
 
-# ── Shared SBM computation (called by both paper.qmd and S1) ────────────────────
+# -- Shared SBM computation (called by both paper.qmd and S1) --------------------
 compute_sbm <- function(art_list, max_K = 5) {
   s6_fit_sbm_all(art_list, max_K = max_K)
 }
 
 
-# ── Paper-specific computations (from paper.qmd) ────────────────────────────────
+# -- Paper-specific computations (from paper.qmd) --------------------------------
 
 # Mantel test for object abundance vs sign dissimilarity
 compute_mantel_abundance <- function(time_unique_data_full) {
@@ -3320,10 +3320,7 @@ pairwise_perm_test <- function(aurp1_mat, aurp2_mat, nperm = 10000) {
     ncomp <- if (igraph::ecount(ig) > 0) igraph::components(ig)$no else nrow(site_vectors)
     c(density = dens, modularity = mod, betweenness = bet, components = ncomp)
   })
-}
-}
-
-# ── Phase-randomized null distribution (from paper.qmd) ──────────────────────────
+# -- Phase-randomized null distribution (from paper.qmd) --------------------------
 compute_phase_randomized_null <- function(all_mat, sizes, nperm = 10000) {
   stats <- c("density", "modularity", "betweenness", "components")
   phases <- c("Aur-P1", "Aur-P2")
