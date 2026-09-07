@@ -2180,7 +2180,7 @@ Aur-P2 results are indicative. With `n=9` the PAM `k=2` region explains `R2=` `r
 
 The main-text claim that each phase resolves into two cultural groups, restricted-range versus broader-range sign repertoires, rests on a single Brower-Kile seriation run followed by manual block assignment (see @sec-s5). Two limitations remain unaddressed by @sec-s2–@sec-s8. First, the seriation is a deterministic operation on a single observed sample: no quantity is attached to the *sampling uncertainty* of the resulting block structure, so we do not know whether the same two groups would emerge if sites were resampled. Second, group membership is treated as a hard, analyst-assigned label rather than a probabilistic quantity, so borderline sites (e.g. Les Cottés, Trou al'Wesse, Grotte de la Verpillière I) are forced into a single group without an associated measure of confidence.
 
-This section addresses both limitations. In @sec-s9-2 we use bootstrap resampling of sites within each phase to build a **consensus co-clustering matrix** [@Monti_2003], quantifying the stability of the two-group partition as a whole and of each site's assignment. In @sec-s9-3 we fit **stochastic block models (SBM)** using the `blockmodels` R package [@Leger_2016], which treat block membership as a latent variable, select the number of blocks via the Integrated Classification Likelihood (ICL), and return posterior membership probabilities for every site. In @sec-s9-4 we cross-validate the bootstrap and SBM assignments against the main-text restricted/broad groups using the Adjusted Rand Index (ARI) [@Hubert_Arabie_1985].
+This section addresses both limitations. In @sec-s9-2 we use bootstrap resampling of sites within each phase to build a **consensus co-clustering matrix** [@Monti_2003], quantifying the stability of the two-group partition as a whole and of each site's assignment. In @sec-s9-3 we fit **stochastic block models (SBM)** using the `blockmodels` R package [@Leger_2016], which treat block membership as a latent variable, select the number of blocks via the Integrated Classification Likelihood (ICL), and return posterior membership probabilities for every site. In @sec-s9-4 we test the SBM block recovery against a Curveball null model. In @sec-s9-5 we cross-validate the bootstrap and SBM assignments against the main-text restricted/broad groups using the Adjusted Rand Index (ARI) [@Hubert_Arabie_1985].
 
 ## Bootstrap Consensus Analysis {#sec-s9-2}
 
@@ -2489,7 +2489,101 @@ The SBM results must be interpreted alongside the bootstrap consensus (@sec-s9-2
 
 **Implication for the main text.** The SBM recovers the two-group structure as its two largest blocks in Aur-P1 under Bernoulli, Gaussian, and Poisson emission models, with a stable small-block refinement (Labeko Koba, Les Cottés, Trou al'Wesse), while in Aur-P2 the Bernoulli and Poisson models select a single block. The restricted/broad dichotomy should therefore be read as the *dominant axis of variation* (rich vs. poor sign repertoires) with genuine substructure in Aur-P1, rather than an exact two-group partition. The main findings are therefore: (1) the two-group framing is a simplification that captures the primary contrast in sign repertoire size, with the SBM corroborating the split as its two largest Aur-P1 blocks, (2) the generative SBM—unlike the descriptive Louvain and stability-based bootstrap—additionally resolves a small third block in Aur-P1 under Bernoulli and Gaussian models, consistent with Louvain isolating the same sites, (3) the Poisson SBM confirms the Aur-P1 multi-block result for the count-based representation of shared sign types, strengthening the conclusion that the finding is not an artefact of binarisation or the continuous similarity encoding, (4) the Aur-P2 results are qualified by the small sample size (9 sites, sparse edges, failed higher-K fits) that precludes reliable block detection. These results complement the bootstrap analysis: the bootstrap shows the two blocks to be internally coherent and well separated under resampling, while the SBM asks whether an independent generative model reproduces the two-block partition—and answers that it reproduces it as its dominant structure in Aur-P1, with a small-block refinement, while recovering no stable partition in Aur-P2.
 
-## Cross-Validation of Group Assignments (ARI) {#sec-s9-4}
+## SBM Block Recovery Null Test {#sec-s9-4}
+
+### Rationale
+
+The SBM analysis in @sec-s9-3 selects the number of blocks by maximising the Integrated Classification Likelihood (ICL) for K = 1:5. The observed best K values (Aur-P1: Bernoulli 3, Gaussian 4, Poisson 3; Aur-P2: Bernoulli 1, Gaussian 2, Poisson 1) indicate a multi-block preference in Aur-P1 and a single-block preference in Aur-P2 (except Gaussian). However, ICL maximisation alone does not test whether the preference for K > 1 exceeds what the same SBM pipeline would find on data where genuine block structure has been destroyed but site richness and sign-type frequency margins are preserved. Without such a null comparison, it is unclear whether the observed ICL gaps (best K versus K = 1) represent genuine structure or are consistent with chance variation from the marginal constraints alone.
+
+To address this, we test the null hypothesis that the observed preference for K > 1 comes only from site richness and sign-type frequency margins, not from genuine block structure. We generate null site-by-sign matrices using the Curveball fixed-fixed algorithm [@Strona_2014] via `vegan::nullmodel()`, which preserves row sums (site richness) and column sums (sign-type frequencies) while randomising the rest. For each of B = 499 null replicates we rebuild the three SBM adjacencies (binarized for Bernoulli, weighted for Gaussian, count for Poisson) and refit the three emission models with K capped at 3 (to avoid failed higher-K fits in the small Aur-P2 sample). The primary test statistic is the ICL gap between the best K and K = 1: gap_K1 = ICL(bestK) - ICL(1). A secondary statistic is the K = 2 versus K = 1 gap: gap_K2 = ICL(2) - ICL(1). One-sided p-values are computed as (1 + sum(null >= obs)) / (1 + B_finite) over finite null replicates. We apply Benjamini-Hochberg correction across the six phase-by-model tests.
+
+**Question: does the SBM's preference for multi-block structure exceed the Curveball null in either phase?**
+
+```{r}
+#| label: setup-sbm-null
+#| cache: true
+#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
+
+# Load null results (precomputed with B=499, seed=7, max_K_null=3)
+sbm_null_results <- readRDS(here::here("paper/sbm_null_results_full.rds"))
+```
+
+```{r}
+#| label: tbl-sbm-null
+#| tbl-cap: "SBM block recovery null test results (B = 499 Curveball replicates, max K = 3 for null fits, seed = 7). Observed gap_K1 = ICL(bestK) - ICL(1); null mean/SD from 499 replicates. p_gap_K1 is the one-sided upper-tail p-value; p_gap_K1_bh is Benjamini-Hochberg adjusted across the six phase-by-model tests. null_bestK_gt1_rate is the proportion of null replicates where bestK > 1. All six cells have B_finite = 499, failures = 0."
+#| tbl-cap-location: bottom
+
+sbm_null_display <- sbm_null_results %>%
+  dplyr::select(Phase, Model, obs_bestK, obs_gap_K1, obs_gap_K2,
+                null_mean_gap_K1, null_sd_gap_K1,
+                p_gap_K1, p_gap_K1_bh, p_gap_K2, p_gap_K2_bh,
+                null_bestK_gt1_rate, B_finite, failures) %>%
+  dplyr::mutate(
+    obs_gap_K1 = round(obs_gap_K1, 2),
+    obs_gap_K2 = round(obs_gap_K2, 2),
+    null_mean_gap_K1 = round(null_mean_gap_K1, 2),
+    null_sd_gap_K1 = round(null_sd_gap_K1, 2),
+    p_gap_K1 = round(p_gap_K1, 3),
+    p_gap_K1_bh = round(p_gap_K1_bh, 3),
+    p_gap_K2 = round(p_gap_K2, 3),
+    p_gap_K2_bh = round(p_gap_K2_bh, 3),
+    null_bestK_gt1_rate = round(null_bestK_gt1_rate, 2)
+  )
+
+knitr::kable(sbm_null_display,
+             col.names = c("Phase", "Model", "obs best K", "obs gap K1",
+                           "obs gap K2", "null mean gap K1", "null SD gap K1",
+                           "p (gap K1)", "p_BH (gap K1)", "p (gap K2)", "p_BH (gap K2)",
+                           "null bestK>1 rate", "B_finite", "failures"),
+             digits = 3, align = "lcccccccccccc")
+```
+
+```{r}
+#| label: fig-sbm-null
+#| fig-cap: "Observed ICL gap_K1 (best K vs K=1) against the null distribution from 99 Curveball-randomised site-by-sign matrices (B=99 for figure speed; B=499 for final p-values), by phase and emission model. Vertical lines mark the observed gap_K1; histograms show the null distribution. Y-scales are free because Bernoulli, Gaussian, and Poisson likelihoods are on different absolute scales. None of the six phase-by-model combinations has a Benjamini-Hochberg adjusted p-value below 0.05."
+#| fig-width: 8
+#| fig-height: 4
+
+library(ggplot2)
+
+fig_data <- readRDS(here::here("paper/sbm_null_figure_data.rds"))
+
+# Build plotting data frame
+plot_df <- do.call(rbind, lapply(names(fig_data), function(ph) {
+  nd <- fig_data[[ph]]
+  do.call(rbind, lapply(c("bernoulli", "gaussian", "poisson"), function(m) {
+    mi <- match(m, c("bernoulli", "gaussian", "poisson"))
+    data.frame(
+      Phase = ph,
+      Model = toupper(substr(m, 1, 1)) %>% paste0(substr(m, 2, nchar(m))),
+      gap_K1 = nd$null_gap_K1[, mi],
+      obs_gap_K1 = nd$summary$obs_gap_K1[nd$summary$Model == m]
+    )
+  }))
+}))
+
+ggplot(plot_df, aes(x = gap_K1)) +
+  geom_histogram(bins = 20, fill = "#2c7fb8", colour = "white", alpha = 0.8) +
+  geom_vline(aes(xintercept = obs_gap_K1), colour = "#d95f02", linewidth = 1) +
+  facet_grid(Phase ~ Model, scales = "free") +
+  labs(x = "ICL gap_K1 (best K vs K=1)", y = "Null replicate count") +
+  theme_minimal(base_size = 10) +
+  theme(panel.spacing = unit(0.8, "lines"),
+        strip.text = element_text(face = "bold"))
+
+ggsave(filename = here::here("figures/sbm-null-test-plot.png"),
+       width = 8, height = 4, bg = "white")
+
+knitr::include_graphics(here::here("figures/sbm-null-test-plot.png"))
+```
+
+### Interpretation
+
+**Question: does the SBM's preference for multi-block structure exceed the Curveball null in either phase?** No. In **Aur-P1**, all three emission models select best K > 1 (Bernoulli K = `r s6_bestK_wrap("Aur-P1", "bernoulli")`, Gaussian K = `r s6_bestK_wrap("Aur-P1", "gaussian")`, Poisson K = `r s6_bestK_wrap("Aur-P1", "poisson")`), and the observed ICL gaps (Bernoulli gap_K1 = `r n2(sbm_null_results$obs_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "bernoulli"])`; Gaussian gap_K1 = `r n2(sbm_null_results$obs_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "gaussian"])`; Poisson gap_K1 = `r n2(sbm_null_results$obs_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "poisson"])`) exceed their respective null means (Bernoulli null mean = `r n2(sbm_null_results$null_mean_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "bernoulli"])`; Gaussian null mean = `r n2(sbm_null_results$null_mean_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "gaussian"])`; Poisson null mean = `r n2(sbm_null_results$null_mean_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "poisson"])`). However, the one-sided p-values are `r n3(sbm_null_results$p_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "bernoulli"])` (Bernoulli), `r n3(sbm_null_results$p_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "gaussian"])` (Gaussian), and `r n3(sbm_null_results$p_gap_K1[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "poisson"])` (Poisson). After Benjamini-Hochberg correction across the six phase-by-model tests, the adjusted p-values are `r n3(sbm_null_results$p_gap_K1_bh[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "bernoulli"])` (Bernoulli), `r n3(sbm_null_results$p_gap_K1_bh[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "gaussian"])` (Gaussian), and `r n3(sbm_null_results$p_gap_K1_bh[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "poisson"])` (Poisson). None falls below 0.05. The null distributions also show that the Curveball null frequently selects best K > 1 (Bernoulli rate = `r n2(sbm_null_results$null_bestK_gt1_rate[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "bernoulli"])`; Gaussian rate = `r n2(sbm_null_results$null_bestK_gt1_rate[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "gaussian"])`; Poisson rate = `r n2(sbm_null_results$null_bestK_gt1_rate[sbm_null_results$Phase == "Aur-P1" & sbm_null_results$Model == "poisson"])`), indicating that the observed multi-block preference is consistent with what richness and frequency margins alone produce.
+
+In **Aur-P2**, the Bernoulli and Poisson models select a single block (best K = 1; gap_K1 = 0). The Gaussian model selects K = 2 with gap_K1 = `r n2(sbm_null_results$obs_gap_K1[sbm_null_results$Phase == "Aur-P2" & sbm_null_results$Model == "gaussian"])`, but its p-value is `r n3(sbm_null_results$p_gap_K1[sbm_null_results$Phase == "Aur-P2" & sbm_null_results$Model == "gaussian"])` (BH-adjusted `r n3(sbm_null_results$p_gap_K1_bh[sbm_null_results$Phase == "Aur-P2" & sbm_null_results$Model == "gaussian"])`), well above 0.05. The Bernoulli and Poisson null means are effectively zero because the null fits almost always return K = 1. The Gaussian null frequently selects best K > 1 (rate = `r n2(sbm_null_results$null_bestK_gt1_rate[sbm_null_results$Phase == "Aur-P2" & sbm_null_results$Model == "gaussian"])`), again indicating the observed K = 2 preference is not exceptional.
+
+**Implication for the main text.** The SBM block recovery null test shows that none of the six phase-by-model combinations has a statistically significant preference for K > 1 after accounting for site richness and sign-type frequency margins. The multi-block solutions in Aur-P1 (Bernoulli K = 3, Gaussian K = 4, Poisson K = 3) and the Gaussian K = 2 in Aur-P2 are consistent with what the Curveball null produces. This does not mean the SBM blocks are meaningless—bootstrap consensus (@sec-s9-2) and Louvain community detection (@sec-s6-1) both find coherent substructure—but it means the *generative* SBM's ICL criterion does not distinguish the observed block structure from the marginal constraints alone at conventional significance levels. The restricted/broad dichotomy and its SBM corroboration should therefore be read as a descriptive pattern supported by bootstrap stability and community detection, not as a generative model finding that exceeds chance expectations under the fixed-fixed null.
 
 ### Rationale
 
@@ -2570,12 +2664,22 @@ kable(s6_ari_tab %>% dplyr::select(Phase, ARI_manual_boot,
                     "ARI manual vs SBM (Pois)", "ARI boot vs SBM (Pois)"),
       digits = 2, align = "lccccccc")
 ```
+  digits = 2, align = "lccccccc")
+```
+
+## Cross-Validation of Group Assignments (ARI) {#sec-s9-5}
+
+### Rationale
+
+To quantify overall agreement among the three ways of partitioning sites — the main-text manual restricted/broad groups, the bootstrap modal blocks (@sec-s9-2), and the SBM modal assignments (@sec-s9-3) under each emission model (Bernoulli, Gaussian, Poisson) — we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the @sec-s6 analyses use `mclust::adjustedRandIndex`, which yields the same values). Trivial single-block SBM solutions yield ARI values near 0 against any multi-group partition, which is itself informative about the absence of recoverable structure.
+
+**Question: how strongly do manual, bootstrap-modal, and SBM-modal partitions agree in each phase?**
 
 ### Interpretation
 
 **Question: how strongly do manual, bootstrap-modal, and SBM-modal partitions agree in each phase?** The ARI values summarise how far the three routes to the two-group partition agree, and the agreement is informative precisely because it varies by phase and method (@tbl-ari-bootstrap-sbm). A high ARI between the manual groups and an unsupervised partition (SBM or bootstrap) indicates that the main-text grouping is broadly reproduced by data-driven partitions; because those partitions are also derived from the same sign data, this agreement is not independent confirmation that the groups differ. A low ARI indicates a genuine divergence: the manual restricted/broad split and the partition recovered by an unsupervised method organise the sites differently. Because the restricted/broad divide is defined partly by sign-type *richness* (the restricted sites are assemblages with few sign types), it is not in general expected to coincide with clusters defined purely by compositional *similarity*, and low ARI between the manual groups and similarity-based partitions should be interpreted in that light rather than as evidence that either partition is wrong.  
 
-**Implication for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-ari-bootstrap-sbm). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The Bernoulli-SBM columns are defined in Aur-P1 (manual–SBM `r s6_ari_val("Aur-P1","ARI_manual_sbm")`, bootstrap–SBM `r s6_ari_val("Aur-P1","ARI_boot_sbm")`) and show strong agreement with both the manual split and the bootstrap partition despite the SBM's third block: the two largest SBM blocks track the manual groups. Agreement remains moderate to strong under the other emission models (Gaussian manual–SBM `r s6_ari_val("Aur-P1","ARI_manual_sbm_gaussian")`, bootstrap–SBM `r s6_ari_val("Aur-P1","ARI_boot_sbm_gaussian")`; Poisson manual–SBM `r s6_ari_val("Aur-P1","ARI_manual_sbm_poisson")`, bootstrap–SBM `r s6_ari_val("Aur-P1","ARI_boot_sbm_poisson")`). In Aur-P2 the Bernoulli and Poisson SBM columns are `r s6_ari_val("Aur-P2","ARI_manual_sbm")` and `r s6_ari_val("Aur-P2","ARI_manual_sbm_poisson")` respectively, because those solutions are trivial single blocks; the Gaussian K = 2 solution (manual–SBM `r s6_ari_val("Aur-P2","ARI_manual_sbm_gaussian")`) is selected by only `r n2(s6_gap_wrap("Aur-P2", "gaussian"))` ICL points yet reproduces the bootstrap partition exactly (bootstrap–SBM `r s6_ari_val("Aur-P2","ARI_boot_sbm_gaussian")`; see @sec-s9-3). The SBM therefore supports the Aur-P1 partition under every encoding and withholds support in Aur-P2, matching the bootstrap pattern in which the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s10.
+**Implication for the main text.** The ARI between the manual restricted/broad assignment and the bootstrap modal blocks is `r s6_ari_val("Aur-P1","ARI_manual_boot")` in Aur-P1 and `r s6_ari_val("Aur-P2","ARI_manual_boot")` in Aur-P2 (@tbl-ari-bootstrap-sbm). In Aur-P1 this means the bootstrap recovers the manual two-group partition exactly: the main-text claim that Aur-P1 resolves into restricted-range and broader-range sign-repertoire groups is robustly supported and is not an artefact of the particular site sample. In Aur-P2 the value of `r s6_ari_val("Aur-P2","ARI_manual_boot")` means the bootstrap recovers the manual partition only weakly, so the main-text Aur-P2 two-group claim rests on a markedly weaker evidence base than the Aur-P1 claim and is best treated as a provisional pattern. The Bernoulli-SBM columns are defined in Aur-P1 (manual–SBM `r s6_ari_val("Aur-P1","ARI_manual_sbm")`, bootstrap–SBM `r s6_ari_val("Aur-P1","ARI_boot_sbm")`) and show strong agreement with both the manual split and the bootstrap partition despite the SBM's third block: the two largest SBM blocks track the manual groups. Agreement remains moderate to strong under the other emission models (Gaussian manual–SBM `r s6_ari_val("Aur-P1","ARI_manual_sbm_gaussian")`, bootstrap–SBM `r s6_ari_val("Aur-P1","ARI_boot_sbm_gaussian")`; Poisson manual–SBM `r s6_ari_val("Aur-P1","ARI_manual_sbm_poisson")`, bootstrap–SBM `r s6_ari_val("Aur-P1","ARI_boot_sbm_poisson")`). In Aur-P2 the Bernoulli and Poisson SBM columns are `r s6_ari_val("Aur-P2","ARI_manual_sbm")` and `r s6_ari_val("Aur-P2","ARI_manual_sbm_poisson")` respectively, because those solutions are trivial single blocks; the Gaussian K = 2 solution (manual–SBM `r s6_ari_val("Aur-P2","ARI_manual_sbm_gaussian")`) is selected by only `r n2(s6_gap_wrap("Aur-P2", "gaussian"))` ICL points yet reproduces the bootstrap partition exactly (bootstrap–SBM `r s6_ari_val("Aur-P2","ARI_boot_sbm_gaussian")`; see @sec-s9-4). The SBM therefore supports the Aur-P1 partition under every encoding and withholds support in Aur-P2, matching the bootstrap pattern in which the Aur-P2 partition is the less robust of the two. These agreements are among partitions derived from the same sign data, so they establish the *recovery and stability* of the two-group structure rather than independent confirmation that the groups differ — that question is addressed in @sec-s10.
 
 # Withheld-Data Validation {#sec-s10}
 
