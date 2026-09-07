@@ -3065,3 +3065,123 @@ adjmatrix_corr <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
   u2 <- build_adj(mat, threshold_t2, metric)
   cor(u1, u2, use = "complete.obs")
 }
+
+
+# ── Ordination plots (PCoA + CA) from S1 ────────────────────────────────────────
+# Returns list with pcoa, ca plots, variance percentages, and PCoA points
+ordination_plots <- function(artifact_data, phase_name) {
+  mat <- artifact_data %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  site_names <- rownames(mat)
+  grp <- manual_groups[[phase_name]][site_names]
+  grp_lab <- factor(ifelse(grp == 1, "Restricted", "Broad"),
+                    levels = c("Restricted", "Broad"))
+  set.seed(500)
+  jac <- vegan::vegdist(mat, "jaccard", binary = TRUE)
+  pc <- stats::cmdscale(jac, k = 2, eig = TRUE)
+  eig_pos <- pc$eig[pc$eig > 0]
+  pcoa_var <- round(100 * pc$eig[1:2] / sum(eig_pos), 1)
+  pcoa_df <- data.frame(site = site_names,
+                        Dim1 = pc$points[, 1],
+                        Dim2 = pc$points[, 2],
+                        group = grp_lab,
+                        stringsAsFactors = FALSE)
+  ca_fit <- vegan::cca(mat)
+  ca_scores <- as.data.frame(vegan::scores(ca_fit, display = "sites"))
+  colnames(ca_scores)[1:2] <- c("Dim1", "Dim2")
+  ca_eig <- ca_fit$CA$eig
+  ca_var <- round(100 * ca_eig[1:2] / sum(ca_eig), 1)
+  ca_df <- data.frame(site = rownames(ca_scores),
+                      Dim1 = ca_scores$Dim1,
+                      Dim2 = ca_scores$Dim2,
+                      group = grp_lab[match(rownames(ca_scores), site_names)],
+                      stringsAsFactors = FALSE)
+  group_cols <- c("Restricted" = "#E41A1C", "Broad" = "#377EB8")
+  p_pcoa <- ggplot(pcoa_df, aes(x = Dim1, y = Dim2, colour = group, label = site)) +
+    geom_point(size = 3) +
+    ggrepel::geom_text_repel(size = 2.5, max.overlaps = 100,
+                             bg.color = "white", bg.r = 0.2) +
+    scale_colour_manual(values = group_cols, name = "Group") +
+    labs(x = paste0("PCoA 1 (", pcoa_var[1], "%)"),
+         y = paste0("PCoA 2 (", pcoa_var[2], "%)"),
+         title = paste0(phase_name, " PCoA on Jaccard")) +
+    theme_minimal(base_size = 9) +
+    ggpubr::border(color = "black", size = 0.5)
+  p_ca <- ggplot(ca_df, aes(x = Dim1, y = Dim2, colour = group, label = site)) +
+    geom_point(size = 3) +
+    ggrepel::geom_text_repel(size = 2.5, max.overlaps = 100,
+                             bg.color = "white", bg.r = 0.2) +
+    scale_colour_manual(values = group_cols, name = "Group") +
+    labs(x = paste0("CA 1 (", ca_var[1], "%)"),
+         y = paste0("CA 2 (", ca_var[2], "%)"),
+         title = paste0(phase_name, " CA on presence absence")) +
+    theme_minimal(base_size = 9) +
+    ggpubr::border(color = "black", size = 0.5)
+  list(pcoa = p_pcoa, ca = p_ca,
+       pcoa_var1 = pcoa_var[1], pcoa_var2 = pcoa_var[2],
+       ca_var1 = ca_var[1], ca_var2 = ca_var[2],
+       pcoa_points = pc$points)
+}
+
+# ── PCoA axis test (richness vs geography) from S1 ──────────────────────────────
+# Returns data.frame with regression results and partial correlations
+pcoa_axis_test <- function(artifact_data, uniq_data, phase_name, pc1_scores) {
+  mat <- artifact_data %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  site_names <- rownames(mat)
+  richness <- rowSums(mat > 0)
+  uniq_sub <- uniq_data[match(site_names, uniq_data$site_name), ]
+  df <- data.frame(pc1 = pc1_scores[match(site_names, rownames(pc1_scores)), 1],
+                   richness = richness,
+                   longitude = uniq_sub$longitude,
+                   latitude = uniq_sub$latitude,
+                   stringsAsFactors = FALSE)
+  m <- lm(pc1 ~ richness + longitude + latitude, data = df)
+  sm <- summary(m)
+  co <- sm$coefficients
+
+  # Partial correlations (Approach B: control for the other two predictors)
+  pc1_resid_rl <- residuals(lm(pc1 ~ richness + latitude, data = df))
+  lon_resid_rl <- residuals(lm(longitude ~ richness + latitude, data = df))
+  partial_rho_longitude <- cor(pc1_resid_rl, lon_resid_rl)
+
+  pc1_resid_rl2 <- residuals(lm(pc1 ~ richness + longitude, data = df))
+  lat_resid_rl2 <- residuals(lm(latitude ~ richness + longitude, data = df))
+  partial_rho_latitude <- cor(pc1_resid_rl2, lat_resid_rl2)
+
+  fmt_p <- function(p) ifelse(p < 0.001, "< 0.001", sprintf("%.3f", p))
+
+  data.frame(
+    phase = phase_name,
+    n_sites = nrow(df),
+    r2_adj = round(sm$adj.r.squared, 3),
+    richness_coef = round(co["richness", "Estimate"], 3),
+    richness_p = co["richness", "Pr(>|t|)"],
+    richness_p_fmt = fmt_p(co["richness", "Pr(>|t|)"]),
+    longitude_coef = round(co["longitude", "Estimate"], 3),
+    longitude_p = co["longitude", "Pr(>|t|)"],
+    longitude_p_fmt = fmt_p(co["longitude", "Pr(>|t|)"]),
+    latitude_coef = round(co["latitude", "Estimate"], 3),
+    latitude_p = co["latitude", "Pr(>|t|)"],
+    latitude_p_fmt = fmt_p(co["latitude", "Pr(>|t|)"]),
+    partial_rho_longitude = round(partial_rho_longitude, 3),
+    partial_rho_latitude = round(partial_rho_latitude, 3),
+    check.names = FALSE
+  )
+}
+
+# ── Phase distances for Mantel correlogram (from S1) ────────────────────────────
+# Returns list with jac (Jaccard distance) and geo (geodesic distance in km)
+phase_distances <- function(df) {
+  art <- df %>%
+    dplyr::select(line:star) %>%
+    dplyr::select(where(~ is.numeric(.) && sum(.) != 0)) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+  jac <- vegan::vegdist(art, "jaccard", binary = TRUE)
+  sf_obj <- sf::st_as_sf(df, coords = c("longitude", "latitude"), crs = 4326)
+  geo <- as.dist(sf::st_distance(sf_obj) / 1000)
+  list(jac = jac, geo = geo)
+}
+
