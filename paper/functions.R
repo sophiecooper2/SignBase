@@ -497,6 +497,91 @@ concentrate <- function(x, group = NULL, max_iter = 100) {
   list(matrix = new, group = group)
 }
 
+# Compute seriation concentration statistic on a reordered matrix
+# Returns mean absolute distance of presences from the diagonal, normalised to [0,1]
+# Smaller values = tighter concentration along diagonal
+seriation_concentration <- function(x) {
+  x <- as.matrix(x)
+  nr <- nrow(x)
+  nc <- ncol(x)
+  if (nr == 0 || nc == 0) return(NA_real_)
+  pres <- which(x == 1, arr.ind = TRUE)
+  if (nrow(pres) == 0) return(NA_real_)
+  r_norm <- pres[, 1] / nr
+  c_norm <- pres[, 2] / nc
+  mean(abs(r_norm - c_norm))
+}
+
+# Compute seriated path length: sum of consecutive Jaccard distances
+# in the row order produced by concentrate()
+# Smaller values = smoother seriation
+seriation_path_length <- function(x) {
+  x <- as.matrix(x)
+  x <- (x > 0) + 0L
+  if (nrow(x) < 2) return(NA_real_)
+  res <- concentrate(x, group = NULL)
+  ord <- rownames(res$matrix)
+  mat_ord <- x[ord, , drop = FALSE]
+  D <- as.matrix(vegan::vegdist(mat_ord, "jaccard", binary = TRUE))
+  sum(D[cbind(seq_len(nrow(D) - 1), seq_len(nrow(D) - 1) + 1)])
+}
+
+# Seriation null test against Curveball fixed-fixed null
+# Tests whether the concentrate() ordering is more ordered than chance
+# given the same site richness and sign-type frequency margins.
+# Returns observed stats, null distributions, and one-sided p-values.
+seriation_null_test <- function(mat, B = 999, seed = 1) {
+  mat <- as.matrix(mat)
+  mat <- (mat > 0) + 0L
+  mat <- mat[rowSums(mat) > 0, colSums(mat) > 0, drop = FALSE]
+  if (nrow(mat) < 2 || ncol(mat) < 2) {
+    stop("Matrix must have at least 2 rows and 2 columns after dropping empty margins")
+  }
+
+  # Observed: run concentrate and compute both statistics
+  res_obs <- concentrate(mat, group = NULL)
+  conc_obs <- seriation_concentration(res_obs$matrix)
+  path_obs <- seriation_path_length(mat)
+
+  # Null: Curveball fixed-fixed preserving row/col sums
+  null_mod <- vegan::nullmodel(mat, "curveball")
+  set.seed(seed)
+  conc_null <- numeric(B)
+  path_null <- numeric(B)
+  B_finite <- 0L
+
+  for (b in seq_len(B)) {
+    sim <- tryCatch(simulate(null_mod, nsim = 1), error = function(e) NULL)
+    if (is.null(sim)) next
+    mp <- sim[,,1]
+    mp <- (mp > 0) + 0L
+    mp <- mp[rowSums(mp) > 0, colSums(mp) > 0, drop = FALSE]
+    if (nrow(mp) < 2 || ncol(mp) < 2) next
+    res_p <- tryCatch(concentrate(mp, group = NULL), error = function(e) NULL)
+    if (is.null(res_p)) next
+    conc_null[B_finite + 1] <- seriation_concentration(res_p$matrix)
+    path_null[B_finite + 1] <- seriation_path_length(mp)
+    B_finite <- B_finite + 1L
+  }
+
+  conc_null <- conc_null[seq_len(B_finite)]
+  path_null <- path_null[seq_len(B_finite)]
+
+  # One-sided: smaller = more ordered
+  p_conc <- if (B_finite > 0 && is.finite(conc_obs))
+    (1 + sum(conc_null <= conc_obs, na.rm = TRUE)) / (1 + B_finite) else NA_real_
+  p_path <- if (B_finite > 0 && is.finite(path_obs))
+    (1 + sum(path_null <= path_obs, na.rm = TRUE)) / (1 + B_finite) else NA_real_
+
+  list(
+    observed = c(concentration = conc_obs, path_length = path_obs),
+    null = list(concentration = conc_null, path_length = path_null),
+    p_values = c(concentration = p_conc, path_length = p_path),
+    B_finite = B_finite,
+    B_requested = B
+  )
+}
+
 # Produce a seriation or network plot for one phase.
 produce_clusters <- function(artifact_data, artifact_data_unique,
                              method = "seriation",

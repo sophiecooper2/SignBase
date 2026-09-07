@@ -2585,6 +2585,114 @@ In **Aur-P2**, the Bernoulli and Poisson models select a single block (best K = 
 
 **Implication for the main text.** The SBM block recovery null test shows that none of the six phase-by-model combinations has a statistically significant preference for K > 1 after accounting for site richness and sign-type frequency margins. The multi-block solutions in Aur-P1 (Bernoulli K = 3, Gaussian K = 4, Poisson K = 3) and the Gaussian K = 2 in Aur-P2 are consistent with what the Curveball null produces. This does not mean the SBM blocks are meaningless—bootstrap consensus (@sec-s9-2) and Louvain community detection (@sec-s6-1) both find coherent substructure—but it means the *generative* SBM's ICL criterion does not distinguish the observed block structure from the marginal constraints alone at conventional significance levels. The restricted/broad dichotomy and its SBM corroboration should therefore be read as a descriptive pattern supported by bootstrap stability and community detection, not as a generative model finding that exceeds chance expectations under the fixed-fixed null.
 
+## Seriation-Order Null Test {#sec-s9-6}
+
+### Rationale
+
+The main-text seriation (Figure 2) applies the Brower–Kile `concentrate()` algorithm to the site × sign-type presence/absence matrix, producing a reordered matrix where presences cluster along the diagonal. This visual pattern is the starting point for the restricted/broad group hypothesis. However, a deterministic algorithm run on a single observed sample gives no measure of whether the diagonal concentration exceeds what richness margins alone would produce. The previous null tests (S9-4, S10-A, S10-1) test *downstream* partitions (SBM blocks, richness splits, manual groups), not the seriation ordering itself. This section fills that gap: we test whether the `concentrate()` output is more ordered than the same pipeline applied to Curveball-fixed-fixed randomised matrices that preserve both site richness (row sums) and sign-type frequencies (column sums).
+
+**Question: does the seriation diagonal concentration exceed the Curveball fixed-fixed null in either phase?**
+
+```{r}
+#| label: setup-seriation-null
+#| cache: true
+#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
+
+# Prepare binary site x sign matrices for both phases
+aurp1_mat <- as.matrix(aurp1_artifact_data)
+aurp1_mat <- (aurp1_mat > 0) + 0L
+aurp1_mat <- aurp1_mat[rowSums(aurp1_mat) > 0, colSums(aurp1_mat) > 0, drop = FALSE]
+
+aurp2_mat <- as.matrix(aurp2_artifact_data)
+aurp2_mat <- (aurp2_mat > 0) + 0L
+aurp2_mat <- aurp2_mat[rowSums(aurp2_mat) > 0, colSums(aurp2_mat) > 0, drop = FALSE]
+
+# Run seriation null test for both phases
+set.seed(1)
+s6_ser_null_p1 <- seriation_null_test(aurp1_mat, B = 999, seed = 1)
+s6_ser_null_p2 <- seriation_null_test(aurp2_mat, B = 999, seed = 1)
+```
+
+```{r}
+#| label: tbl-seriation-null
+#| tbl-cap: "Seriation-order null test results (B = 999 Curveball replicates per phase, seed = 1). Concentration = mean normalised distance of presences from diagonal; Path length = sum of consecutive Jaccard distances along seriated order. One-sided p-values: smaller observed statistic = more ordered. B_finite = replicates that converged."
+#| tbl-cap-location: bottom
+
+ser_null_tab <- bind_rows(
+  data.frame(
+    Phase = "Aur-P1",
+    Obs_concentration = round(s6_ser_null_p1$observed["concentration"], 3),
+    Null_mean_conc = round(mean(s6_ser_null_p1$null$concentration), 3),
+    Null_sd_conc = round(sd(s6_ser_null_p1$null$concentration), 3),
+    p_concentration = round(s6_ser_null_p1$p_values["concentration"], 3),
+    Obs_path_length = round(s6_ser_null_p1$observed["path_length"], 3),
+    Null_mean_path = round(mean(s6_ser_null_p1$null$path_length), 3),
+    Null_sd_path = round(sd(s6_ser_null_p1$null$path_length), 3),
+    p_path_length = round(s6_ser_null_p1$p_values["path_length"], 3),
+    B_finite = s6_ser_null_p1$B_finite
+  ),
+  data.frame(
+    Phase = "Aur-P2",
+    Obs_concentration = round(s6_ser_null_p2$observed["concentration"], 3),
+    Null_mean_conc = round(mean(s6_ser_null_p2$null$concentration), 3),
+    Null_sd_conc = round(sd(s6_ser_null_p2$null$concentration), 3),
+    p_concentration = round(s6_ser_null_p2$p_values["concentration"], 3),
+    Obs_path_length = round(s6_ser_null_p2$observed["path_length"], 3),
+    Null_mean_path = round(mean(s6_ser_null_p2$null$path_length), 3),
+    Null_sd_path = round(sd(s6_ser_null_p2$null$path_length), 3),
+    p_path_length = round(s6_ser_null_p2$p_values["path_length"], 3),
+    B_finite = s6_ser_null_p2$B_finite
+  )
+)
+
+kable(ser_null_tab, digits = 3, align = "lccccccccc")
+```
+
+```{r}
+#| label: fig-seriation-null
+#| fig-cap: "Seriation concentration null distributions (B = 999 Curveball replicates). Vertical lines mark the observed concentration; smaller = tighter diagonal clustering. Aur-P1 (left) and Aur-P2 (right) shown separately. If the observed line falls in the left tail of the null, the seriation ordering exceeds what richness margins alone produce."
+#| fig-width: 7
+#| fig-height: 3.5
+
+library(ggplot2)
+
+plot_df <- bind_rows(
+  data.frame(
+    Phase = "Aur-P1",
+    Statistic = "Concentration",
+    Null = s6_ser_null_p1$null$concentration,
+    Obs = s6_ser_null_p1$observed["concentration"]
+  ),
+  data.frame(
+    Phase = "Aur-P2",
+    Statistic = "Concentration",
+    Null = s6_ser_null_p2$null$concentration,
+    Obs = s6_ser_null_p2$observed["concentration"]
+  )
+)
+
+ggplot(plot_df, aes(x = Null)) +
+  geom_histogram(bins = 30, fill = "#2c7fb8", colour = "white", alpha = 0.8) +
+  geom_vline(aes(xintercept = Obs), colour = "#d95f02", linewidth = 1) +
+  facet_wrap(~ Phase, scales = "free") +
+  labs(x = "Concentration (mean normalised distance from diagonal, smaller = more ordered)",
+       y = "Null replicate count") +
+  theme_minimal(base_size = 10) +
+  theme(panel.spacing = unit(0.8, "lines"),
+        strip.text = element_text(face = "bold"))
+
+ggsave(filename = here::here("figures/seriation-null-test-plot.png"),
+       width = 7, height = 3.5, bg = "white")
+
+knitr::include_graphics(here::here("figures/seriation-null-test-plot.png"))
+```
+
+### Interpretation
+
+**Question: does the seriation diagonal concentration exceed the Curveball fixed-fixed null in either phase?** In **Aur-P1**, the observed concentration is `r n3(s6_ser_null_p1$observed["concentration"])` against a null mean of `r n3(mean(s6_ser_null_p1$null$concentration))` (SD `r n3(sd(s6_ser_null_p1$null$concentration))`, `r s6_ser_null_p1$B_finite` finite replicates), giving a one-sided p-value of `r n3(s6_ser_null_p1$p_values["concentration"])`. The path-length statistic gives a congruent p-value of `r n3(s6_ser_null_p1$p_values["path_length"])`. In **Aur-P2**, the observed concentration is `r n3(s6_ser_null_p2$observed["concentration"])` against a null mean of `r n3(mean(s6_ser_null_p2$null$concentration))` (SD `r n3(sd(s6_ser_null_p2$null$concentration))`, `r s6_ser_null_p2$B_finite` finite replicates), p = `r n3(s6_ser_null_p2$p_values["concentration"])`; path-length p = `r n3(s6_ser_null_p2$p_values["path_length"])`. Neither statistic reaches significance in either phase at α = 0.05.
+
+**Implication for the main text.** The Brower–Kile seriation produces a visually compelling diagonal pattern in both phases, but this pattern is not statistically distinguishable from what the fixed-fixed Curveball null generates when only site richness and sign-type frequencies are preserved. The seriation should therefore be read as a descriptive ordering device that reveals a richness gradient, not as evidence for discrete structure exceeding marginal constraints. This is consistent with the SBM null (§S1.9.4), the maximally-selected split null (§S1.10-A), and the Simpson-turnover null (§S1.10.1), which all fail to reject richness-preserving nulls. The two-group visual impression from the seriation is a real and reproducible gradient (supported by bootstrap consensus in §S1.9.2), but its independence from sampling effort is not demonstrated for small-assemblage sites.
+
 ### Rationale
 
 To quantify overall agreement among the three ways of partitioning sites — the main-text manual restricted/broad groups, the bootstrap modal blocks (@sec-s9-2), and the SBM modal assignments (@sec-s9-3) under each emission model (Bernoulli, Gaussian, Poisson) — we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the @sec-s6 analyses use `mclust::adjustedRandIndex`, which yields the same values). Trivial single-block SBM solutions yield ARI values near 0 against any multi-group partition, which is itself informative about the absence of recoverable structure.
