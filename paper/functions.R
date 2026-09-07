@@ -2183,6 +2183,196 @@ s6_global_minPost <- function(sbm_list, model = "bernoulli") {
   })), na.rm = TRUE)
 }
 
+# -- SBM block recovery null test (S1 §S1.9.3) -----------------------------------
+# Test whether the SBM's preference for K > 1 exceeds what the same SBM pipeline
+# finds on Curveball-randomized site-by-sign matrices.
+# Null hypothesis: observed ICL preference for multi-block structure comes only
+# from site richness and sign-type frequency margins, not from genuine block structure.
+# Primary statistic: best-versus-K=1 ICL gap (ICL(bestK) - ICL(1)).
+# Secondary statistic: K=2-versus-K=1 ICL gap.
+# p-value: one-sided upper-tail (1 + sum(null >= obs)) / (1 + B_finite).
+# Returns structured list with observed stats, null vectors, p-values, and a summary tibble.
+# `artifact_data`: site x sign binary matrix (rownames = sites).
+# `max_K`: max K for observed fit (default 5).
+# `max_K_null`: max K for null fits (default 3, caps compute for small phases).
+# `models`: emission models to test (default all three).
+# `B`: number of null replicates (default 499).
+# `seed`: RNG seed for reproducibility (default 7).
+sbm_block_null_test <- function(artifact_data, max_K = 5, max_K_null = 3,
+                                models = c("bernoulli", "gaussian", "poisson"),
+                                B = 499, seed = 7) {
+  # Binarize input exactly like fit_sbm and preserve names
+  sign_names <- SIGN_COLS
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  rownames_mat <- rownames(mat)
+  mat <- as.matrix(mat)
+  mat <- matrix(as.numeric(mat > 0), nrow = nrow(mat), ncol = ncol(mat))
+  rownames(mat) <- rownames_mat
+  colnames(mat) <- colnames(artifact_data)[present][colSums(artifact_data[, present, drop = FALSE] > 0) > 0]
+  mat <- as.data.frame(mat)
+  
+  # Observed fit
+  set.seed(seed)
+  adj_list <- build_sbm_adjacencies(mat)
+  obs_fit <- fit_sbm_from_adj(adj_list, max_K)
+  
+  # Extract observed statistics per model
+  obs_stats <- lapply(models, function(m) {
+    icl <- obs_fit[[m]]$icl
+    bestK <- obs_fit[[m]]$bestK
+    gap_K1 <- icl[bestK] - icl[1]
+    gap_K2 <- if (length(icl) >= 2) icl[2] - icl[1] else NA_real_
+    list(
+      icl = icl,
+      bestK = bestK,
+      gap_K1 = gap_K1,
+      gap_K2 = gap_K2
+    )
+  })
+  names(obs_stats) <- models
+  
+  # Null model: Curveball on the site x sign matrix
+  null_mod <- vegan::nullmodel(mat, "curveball")
+  
+  # Storage for null replicates
+  set.seed(seed)
+  null_gap_K1 <- matrix(NA_real_, B, length(models), dimnames = list(NULL, models))
+  null_gap_K2 <- matrix(NA_real_, B, length(models), dimnames = list(NULL, models))
+  null_bestK  <- matrix(NA_integer_, B, length(models), dimnames = list(NULL, models))
+  failures <- setNames(rep(0L, length(models)), models)
+  
+  for (b in seq_len(B)) {
+    sim <- tryCatch({
+      simulate(null_mod, nsim = 1)[,,1]
+    }, error = function(e) NULL)
+    if (is.null(sim)) {
+      for (m in models) failures[m] <- failures[m] + 1L
+      next
+    }
+    rownames(sim) <- rownames(mat)
+    colnames(sim) <- colnames(mat)
+    sim <- as.data.frame(sim)
+    
+    for (mi in seq_along(models)) {
+      m <- models[mi]
+      # Rebuild adjacencies from null matrix
+      null_adj <- tryCatch({
+        build_sbm_adjacencies(sim)
+      }, error = function(e) NULL)
+      if (is.null(null_adj)) {
+        failures[m] <- failures[m] + 1L
+        next
+      }
+      # Fit SBM on null with capped max_K
+      null_fit <- tryCatch({
+        fit_sbm_from_adj(null_adj, max_K_null)
+      }, error = function(e) NULL)
+      if (is.null(null_fit) || is.null(null_fit[[m]]$icl)) {
+        failures[m] <- failures[m] + 1L
+        next
+      }
+      null_icl <- null_fit[[m]]$icl
+      if (length(null_icl) < 1 || all(is.na(null_icl))) {
+        failures[m] <- failures[m] + 1L
+        next
+      }
+      # Pad to max_K if shorter
+      if (length(null_icl) < max_K) {
+        null_icl <- c(null_icl, rep(NA_real_, max_K - length(null_icl)))
+      }
+      null_bestK[b, mi] <- which.max(null_icl)
+      null_gap_K1[b, mi] <- null_icl[null_bestK[b, mi]] - null_icl[1]
+      null_gap_K2[b, mi] <- if (length(null_icl) >= 2) null_icl[2] - null_icl[1] else NA_real_
+    }
+  }
+  
+  # Compute p-values (one-sided upper tail, finite values only)
+  p_gap_K1 <- setNames(rep(NA_real_, length(models)), models)
+  p_gap_K2 <- setNames(rep(NA_real_, length(models)), models)
+  null_mean_gap_K1 <- setNames(rep(NA_real_, length(models)), models)
+  null_sd_gap_K1 <- setNames(rep(NA_real_, length(models)), models)
+  null_bestK_gt1_rate <- setNames(rep(NA_real_, length(models)), models)
+  B_finite <- setNames(rep(0L, length(models)), models)
+  
+  for (mi in seq_along(models)) {
+    m <- models[mi]
+    null1 <- null_gap_K1[, mi]
+    null2 <- null_gap_K2[, mi]
+    null1_fin <- null1[is.finite(null1)]
+    null2_fin <- null2[is.finite(null2)]
+    B_finite[m] <- length(null1_fin)
+    
+    if (B_finite[m] > 0) {
+      null_mean_gap_K1[m] <- mean(null1_fin)
+      null_sd_gap_K1[m] <- if (length(null1_fin) > 1) sd(null1_fin) else 0
+      p_gap_K1[m] <- (1 + sum(null1_fin >= obs_stats[[m]]$gap_K1)) / (1 + B_finite[m])
+      if (length(null2_fin) > 0) {
+        p_gap_K2[m] <- (1 + sum(null2_fin >= obs_stats[[m]]$gap_K2)) / (1 + length(null2_fin))
+      }
+      null_bestK_gt1_rate[m] <- mean(null_bestK[is.finite(null_bestK[, mi]), mi] > 1)
+    }
+  }
+  
+  # Summary tibble
+  summary_tib <- tibble::tibble(
+    Model = models,
+    obs_bestK = vapply(models, function(m) obs_stats[[m]]$bestK, integer(1)),
+    obs_gap_K1 = vapply(models, function(m) obs_stats[[m]]$gap_K1, numeric(1)),
+    obs_gap_K2 = vapply(models, function(m) obs_stats[[m]]$gap_K2, numeric(1)),
+    null_mean_gap_K1 = null_mean_gap_K1,
+    null_sd_gap_K1 = null_sd_gap_K1,
+    p_gap_K1 = p_gap_K1,
+    p_gap_K2 = p_gap_K2,
+    null_bestK_gt1_rate = null_bestK_gt1_rate,
+    B = B,
+    B_finite = B_finite,
+    failures = vapply(models, function(m) failures[m], integer(1)),
+    seed = seed,
+    max_K = max_K,
+    max_K_null = max_K_null
+  )
+  
+  list(
+    observed = obs_stats,
+    null = list(gap_K1 = null_gap_K1, gap_K2 = null_gap_K2, bestK = null_bestK),
+    p_values = list(gap_K1 = p_gap_K1, gap_K2 = p_gap_K2),
+    summary = summary_tib,
+    B = B,
+    B_finite = B_finite,
+    failures = failures,
+    seed = seed,
+    max_K = max_K,
+    max_K_null = max_K_null
+  )
+}
+
+# Wrapper: run null test for both phases with BH adjustment across 6 phase-by-model tests.
+# `art_list`: named list of artifact_data per phase (e.g., list(Aur-P1 = ..., Aur-P2 = ...)).
+# Returns summary tibble with raw and BH-adjusted p-values.
+sbm_block_null_all <- function(art_list, max_K = 5, max_K_null = 3,
+                               models = c("bernoulli", "gaussian", "poisson"),
+                               B = 499, seed = 7) {
+  phase_results <- lapply(names(art_list), function(ph) {
+    message("Running SBM null test for ", ph, "...")
+    res <- sbm_block_null_test(art_list[[ph]], max_K = max_K, max_K_null = max_K_null,
+                               models = models, B = B, seed = seed)
+    tib <- res$summary
+    tib$Phase <- ph
+    tib
+  })
+  all_summary <- dplyr::bind_rows(phase_results) %>%
+    dplyr::relocate(Phase, .before = Model)
+  
+  # BH adjustment across the 6 phase-by-model primary tests (gap_K1)
+  all_summary$p_gap_K1_bh <- p.adjust(all_summary$p_gap_K1, method = "BH")
+  # Also adjust gap_K2 for reference
+  all_summary$p_gap_K2_bh <- p.adjust(all_summary$p_gap_K2, method = "BH")
+  
+  all_summary
+}
+
 # -- Object-level downsampling & coverage-rarefaction helpers (S1 §S1.12) --------
 
 # 1) Per-site object counts for a phase (object-level rows of signbase_full_clean).
