@@ -1988,20 +1988,15 @@ sci_md <- function(x, digits = 2) {
 #   $icl (numeric vector length 5), $bestK (int), $Z (n_sites x bestK matrix of posteriors)
 # Also returns $edge_count_bernoulli (number of edges in binarized graph).
 # Saves results to file if `save_path` is provided (default NULL: no caching).
-fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
-  if (!is.null(seed)) set.seed(seed)
-  sign_names <- SIGN_COLS
-  present <- intersect(sign_names, colnames(artifact_data))
-  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
-  mat <- mat[, colSums(mat) > 0, drop = FALSE]
-  # Preserve row names when converting to binary
-  rownames_mat <- rownames(mat)
+
+# Build the three SBM adjacency matrices from a binary site x sign matrix.
+# Input `mat`: binary matrix (0/1) with site names as rownames, sign types as colnames.
+# Returns list with $adj_bin, $adj_gauss, $adj_pois, $edge_count_bernoulli, $site_names, $sign_names.
+build_sbm_adjacencies <- function(mat) {
   mat <- as.matrix(mat)
-  mat <- matrix(as.numeric(mat > 0), nrow = nrow(mat), ncol = ncol(mat))
-  rownames(mat) <- rownames_mat
-  colnames(mat) <- colnames(artifact_data)[present][colSums(artifact_data[, present, drop = FALSE] > 0) > 0]
-  mat <- as.data.frame(mat)
   jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+  site_names <- rownames(mat)
+  sign_names <- colnames(mat)
   
   # Binarized adjacency for Bernoulli SBM (edge if similarity >= 0.2)
   adj_bin <- 1 - jac
@@ -2009,7 +2004,7 @@ fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   adj_bin[adj_bin >= 0.2] <- 1
   diag(adj_bin) <- 0
   edge_count_bernoulli <- sum(adj_bin > 0) / 2
-
+  
   # Unthresholded weighted adjacency for Gaussian SBM (similarities in [0, 1])
   adj_gauss <- 1 - jac
   diag(adj_gauss) <- 0
@@ -2018,12 +2013,25 @@ fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   # The matrix product mat %*% t(mat) yields, for each pair of sites, the number
   # of sign types present in *both* sites — this is the Jaccard numerator J and
   # is a non-negative integer count suitable for a Poisson SBM.
-  mat_bin <- matrix(as.numeric(mat > 0), nrow = nrow(mat), ncol = ncol(mat))
-  rownames(mat_bin) <- rownames(mat)
-  colnames(mat_bin) <- colnames(mat)
-  adj_pois <- as.matrix(mat_bin %*% t(mat_bin))
+  adj_pois <- as.matrix(mat %*% t(mat))
   diag(adj_pois) <- 0
   
+  list(
+    adj_bin = adj_bin,
+    adj_gauss = adj_gauss,
+    adj_pois = adj_pois,
+    edge_count_bernoulli = edge_count_bernoulli,
+    site_names = site_names,
+    sign_names = sign_names
+  )
+}
+
+# Fit the three SBM models from pre-built adjacencies.
+# Input `adj_list`: output of build_sbm_adjacencies().
+# Input `max_K`: maximum number of blocks to explore.
+# Returns list with $bernoulli, $gaussian, $poisson elements, each containing:
+#   $icl (numeric vector length max_K), $bestK (int), $Z (n_sites x bestK matrix of posteriors).
+fit_sbm_from_adj <- function(adj_list, max_K) {
   # Suppress verbose output and diagnostic plots from blockmodels estimation.
   # sink() captures text only; blockmodels also draws ICL-vs-Q traces to the
   # active graphics device on each $estimate(), which Quarto would otherwise
@@ -2031,21 +2039,21 @@ fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   # file output and the null device below discards device output.
   sink(tempfile()); on.exit(sink(), add = TRUE)
   grDevices::pdf(NULL); on.exit(grDevices::dev.off(), add = TRUE)
-
+  
   # Bernoulli SBM on binarized adjacency
-  bm_bern <- blockmodels::BM_bernoulli("SBM_sym", adj_bin, verbosity = 0,
+  bm_bern <- blockmodels::BM_bernoulli("SBM_sym", adj_list$adj_bin, verbosity = 0,
                                        plotting = "",
                                        explore_min = 1, explore_max = max_K)
   bm_bern$estimate()
-
+  
   # Gaussian SBM on weighted adjacency
-  bm_gauss <- blockmodels::BM_gaussian("SBM_sym", adj_gauss, verbosity = 0,
+  bm_gauss <- blockmodels::BM_gaussian("SBM_sym", adj_list$adj_gauss, verbosity = 0,
                                        plotting = "",
                                        explore_min = 1, explore_max = max_K)
   bm_gauss$estimate()
-
+  
   # Poisson SBM on count adjacency (number of shared sign types between sites)
-  bm_pois <- blockmodels::BM_poisson("SBM_sym", adj_pois, verbosity = 0,
+  bm_pois <- blockmodels::BM_poisson("SBM_sym", adj_list$adj_pois, verbosity = 0,
                                      plotting = "",
                                      explore_min = 1, explore_max = max_K)
   bm_pois$estimate()
@@ -2065,18 +2073,43 @@ fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
   Z_pois <- bm_pois$memberships[[bestK_pois]]$Z
   
   # Preserve site names (rownames)
-  rownames(Z_bern) <- rownames(adj_bin)
+  rownames(Z_bern) <- adj_list$site_names
   colnames(Z_bern) <- paste0("Block", seq_len(bestK_bern))
-  rownames(Z_gauss) <- rownames(adj_gauss)
+  rownames(Z_gauss) <- adj_list$site_names
   colnames(Z_gauss) <- paste0("Block", seq_len(bestK_gauss))
-  rownames(Z_pois) <- rownames(adj_pois)
+  rownames(Z_pois) <- adj_list$site_names
   colnames(Z_pois) <- paste0("Block", seq_len(bestK_pois))
   
-  res <- list(
+  list(
     bernoulli = list(icl = icl_bern, bestK = bestK_bern, Z = Z_bern),
     gaussian  = list(icl = icl_gauss, bestK = bestK_gauss, Z = Z_gauss),
-    poisson   = list(icl = icl_pois, bestK = bestK_pois, Z = Z_pois),
-    edge_count_bernoulli = edge_count_bernoulli
+    poisson   = list(icl = icl_pois, bestK = bestK_pois, Z = Z_pois)
+  )
+}
+
+fit_sbm <- function(artifact_data, max_K = 5, save_path = NULL, seed = 1) {
+  if (!is.null(seed)) set.seed(seed)
+  sign_names <- SIGN_COLS
+  present <- intersect(sign_names, colnames(artifact_data))
+  mat <- as.data.frame(artifact_data[, present, drop = FALSE])
+  mat <- mat[, colSums(mat) > 0, drop = FALSE]
+  # Preserve row names when converting to binary
+  rownames_mat <- rownames(mat)
+  mat <- as.matrix(mat)
+  mat <- matrix(as.numeric(mat > 0), nrow = nrow(mat), ncol = ncol(mat))
+  rownames(mat) <- rownames_mat
+  colnames(mat) <- colnames(artifact_data)[present][colSums(artifact_data[, present, drop = FALSE] > 0) > 0]
+  mat <- as.data.frame(mat)
+  
+  # Build adjacencies and fit models
+  adj_list <- build_sbm_adjacencies(mat)
+  fit_res <- fit_sbm_from_adj(adj_list, max_K)
+  
+  res <- list(
+    bernoulli = fit_res$bernoulli,
+    gaussian  = fit_res$gaussian,
+    poisson   = fit_res$poisson,
+    edge_count_bernoulli = adj_list$edge_count_bernoulli
   )
   if (!is.null(save_path)) {
     saveRDS(res, save_path)
