@@ -110,17 +110,7 @@ dropped_raw_dates <- signbase_full %>%
   filter(rowSums(pick(any_of(.sign_cols)), na.rm = TRUE) > 0) %>%
   filter(!site_name %in% eight_sites) %>%
   distinct(site_name, date_bp_max_min, dating_method)
-# Classify via the same rule as functions.R:80-86 (requires ± after normalising + to ±)
-# Plain = any non-empty date string that after normalisation contains no ± (i.e. no reported error),
-# whether it is a range "x - y" or a single value "x". Empty strings are missing, not plain.
-is_plain_range <- function(s) {
-  s <- trimws(as.character(s))
-  if (is.na(s) || s == "") return(FALSE)
-  # Mirror functions.R:73-74 normalisation:  + -> ±  before checking
-  s_norm <- gsub("\\+/-", "±", s, fixed = FALSE)
-  s_norm <- gsub("\\+", "±", s_norm, fixed = FALSE)
-  !grepl("±", s_norm, fixed = TRUE) && grepl("[0-9]", s_norm)
-}
+# is_plain_range() now lives in functions.R; same rule as clean_signbase().
 # Count plain vs missing at object level (after_eight), restricted to date-parsing dropped sites
 plain_mask <- after_eight$site_name %in% dropped_sites_vec &
   vapply(after_eight$date_bp_max_min, is_plain_range, logical(1))
@@ -1498,66 +1488,6 @@ Modularity values in the range 0.3-0.5 are often described as "high" without for
 #| tbl-cap: "Observed modularity and null-model p-values for each Aurignacian phase at three Jaccard similarity thresholds."
 #| tbl-cap-location: bottom
 #| cache: true
-
-run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
-  # Build observed network for this phase
-  obs_data <- switch(phase_name,
-    "Aur-P1" = aurp1_unique_data,
-    "Aur-P2" = aurp2_unique_data
-  )
-  obs_art <- extract_artifact(obs_data)
-  obs_jac <- as.matrix(vegan::vegdist(as.matrix(obs_art), "jaccard", binary = TRUE))
-  obs_adj <- 1 - obs_jac
-  obs_adj[obs_adj < threshold] <- 0
-  diag(obs_adj) <- 0
-  obs_g <- igraph::graph_from_adjacency_matrix(obs_adj, mode = "undirected",
-                                                weighted = TRUE, diag = FALSE)
-  set.seed(42)
-  obs_mod <- igraph::modularity(igraph::cluster_louvain(obs_g))
-  n_target <- nrow(obs_art)
-
-  # Pool all sites across phases
-  pooled <- signbase_full_clean %>%
-    dplyr::select(site_name, obline:star) %>%
-    distinct(site_name, .keep_all = TRUE)
-  pooled_art <- pooled %>%
-    column_to_rownames("site_name")
-  pooled_art <- pooled_art[, colSums(pooled_art) > 0, drop = FALSE]
-  keep_cols <- names(pooled_art)
-
-  null_mods <- numeric(n_perm)
-  for (i in seq_len(n_perm)) {
-    set.seed(i)
-    perm_idx <- sample(seq_len(nrow(pooled)), n_target, replace = FALSE)
-    perm_art <- pooled_art[perm_idx, , drop = FALSE]
-    rownames(perm_art) <- rownames(pooled_art)[perm_idx]
-    result <- tryCatch({
-      perm_jac <- as.matrix(vegan::vegdist(perm_art, "jaccard", binary = TRUE))
-      perm_adj <- 1 - perm_jac
-      perm_adj[is.na(perm_adj)] <- 0
-      perm_adj[perm_adj < threshold] <- 0
-      diag(perm_adj) <- 0
-      perm_g <- igraph::graph_from_adjacency_matrix(perm_adj, mode = "undirected",
-                                                     weighted = TRUE, diag = FALSE)
-      if (igraph::vcount(perm_g) >= 3 && igraph::ecount(perm_g) > 0) {
-        igraph::modularity(igraph::cluster_louvain(perm_g))
-      } else {
-        0
-      }
-    }, error = function(e) 0)
-    null_mods[i] <- result
-  }
-
-  p_val <- mean(null_mods >= obs_mod)
-  tibble(
-    Phase = phase_name,
-    Threshold = threshold,
-    Observed = round(obs_mod, 3),
-    Null_mean = round(mean(null_mods), 3),
-    Null_sd = round(sd(null_mods), 3),
-    p = p_val
-  )
-}
 
 null_results <- expand_grid(
   phase = c("Aur-P1", "Aur-P2"),

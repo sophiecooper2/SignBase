@@ -2999,6 +2999,17 @@ mantel_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprin
 # Format a bootstrap PerMANOVA R2 CI for inline display
 perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
 
+# Classify a raw date string as a plain interval without ± (vs missing/unparseable)
+# Mirrors functions.R clean_signbase() normalisation (+ -> ±) before checking.
+# Used by S1 setup to split date-parsing losses into plain vs missing.
+is_plain_range <- function(s) {
+  s <- trimws(as.character(s))
+  if (is.na(s) || s == "") return(FALSE)
+  s_norm <- gsub("\\+/-", "±", s, fixed = FALSE)
+  s_norm <- gsub("\\+", "±", s_norm, fixed = FALSE)
+  !grepl("±", s_norm, fixed = TRUE) && grepl("[0-9]", s_norm)
+}
+
 
 # -- SBM accessors (S1 canonical, from S1 lines 2605-2613) ----------------------
 # s6_sbm is expected to be a list with phase names, each containing model fits

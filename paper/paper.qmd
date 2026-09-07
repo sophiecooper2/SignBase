@@ -413,7 +413,6 @@ aurp2_strength <- strength_function(aurp2_artifact_data, aurp2_unique_data)
 # Bootstrap 95% CIs for Mantel R (object-within-site resampling, B = 1,000)
 mantel_ci_p1 <- bootstrap_mantel_R(aurp1_unique_data, signbase_full_clean, "Aur-P1", B = 1000, seed = 42)
 mantel_ci_p2 <- bootstrap_mantel_R(aurp2_unique_data, signbase_full_clean, "Aur-P2", B = 1000, seed = 42)
-mantel_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
 
 full_table <- rbind(aurp1_strength, aurp2_strength) %>% 
    mutate(`Aurignacian phase` = c("Aur-P1",
@@ -718,8 +717,7 @@ aurp2_strength <- strength_function(aurp2_artifact_data, aurp2_unique_data)
 # Bootstrap 95% CIs for PerMANOVA R2 (object-within-site resampling, B = 1,000)
 perm_ci_p1 <- bootstrap_permanova_R2(aurp1_unique_data, signbase_full_clean, "Aur-P1", B = 1000, seed = 43)
 perm_ci_p2 <- bootstrap_permanova_R2(aurp2_unique_data, signbase_full_clean, "Aur-P2", B = 1000, seed = 43)
-perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
- 
+
 full_table <- rbind(aurp1_strength, aurp2_strength) %>% 
    mutate(`Aurignacian phase` = c("Aur-P1",
                              "Aur-P2"), 
