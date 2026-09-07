@@ -31,7 +31,7 @@ suppressPackageStartupMessages({
   library(iNEXT)
 })
 
-# Canonical 29 sign-type columns (matches get_louvain_groups / network_stats).
+# Canonical sign-type columns (matches get_louvain_groups / network_stats).
 SIGN_COLS <- c("line","dashline","obline","radline","circumline","notch","obnotch",
                "radnotch","circumnotch","dot","cupule","cross","rhombus","grid",
                "hatching","zigzag","zigzagrow","rectangle","hashtag","maccaroni",
@@ -1064,7 +1064,7 @@ run_betadisper <- function(phase_df, groups) {
 # PAM on geodesic distances (km) for one phase.
 # df: per-phase site-level data frame with site_name, longitude, latitude
 # k_range: integer vector of k to try (e.g. 2:5)
-objective_region_pam <- function(df, k_range = 2:5, seed = 42) {
+objective_region_pam <- function(df, k_range = 2:5, seed = 42, flag = 10) {
   set.seed(seed)
   pts <- df %>% sf::st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
   gdist <- as.dist(sf::st_distance(pts) / 1000)
@@ -1081,12 +1081,12 @@ objective_region_pam <- function(df, k_range = 2:5, seed = 42) {
     cl <- pam_fit$clustering
     names(cl) <- df$site_name
     npr <- as.integer(table(factor(cl, levels = 1:k)))
-    stable <- !any(npr == 1 & nrow(df) <= 12) # flag singleton regions in very small phases
+    stable <- !any(npr == 1 & nrow(df) <= flag) # flag singleton regions in very small phases
     out[[as.character(k)]] <- list(k = k, mean_sil = mean_sil, assignment = cl,
                                    n_per_region = paste(npr, collapse = "/"),
                                    n_per_region_vec = npr,
                                    pam_fit = pam_fit, gdist = gdist,
-                                   unstable = any(npr == 1) && nrow(df) <= 10)
+                                   unstable = any(npr == 1) && nrow(df) <= flag)
   }
   out
 }
@@ -1312,9 +1312,7 @@ best_split_permtest <- function(mat, group = NULL, B = 999, seed = 42,
        null_F = null, p_value = p, B = B)
 }
 
-# Simpson turnover dissimilarity for binary site x sign matrices (S1 §S1.10.3,
-# PEER_REVIEW 3.3(c)). beta_sim = min(b,c) / (a + min(b,c)) keeps only the
-# turnover component, so unlike Jaccard it does not separate rich from poor
+# Simpson turnover dissimilarity for binary site x sign matrices  so unlike Jaccard it does not separate rich from poor
 # assemblages by construction. Nested pairs score 0, disjoint pairs 1.
 # (This is the dissimilarity form; the "simpson" network weights elsewhere in
 # this file use a different nestedness-tolerant expression.)

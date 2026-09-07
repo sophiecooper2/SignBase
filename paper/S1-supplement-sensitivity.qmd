@@ -69,6 +69,10 @@ library(ecodist)
 library(ggspatial)
 source(here::here("paper/functions.R"))  # shared function library
 
+# Bust knitr cache whenever shared code changes (chunk option cache-extra is
+# not forwarded by Quarto, so set it via the knitr API directly instead).
+knitr::opts_chunk$set(cache.extra = tools::md5sum(here::here("paper/functions.R")))
+
 # ── Reproduce the data-cleaning pipeline from paper.qmd (single source: functions.R) ──
 # Main baseline uses date_variant="older" to reproduce the report-based
 # Aur-P1 20 / Aur-P2 9 partition that matches frozen manual_groups (S2).
@@ -1488,7 +1492,6 @@ Modularity values in the range 0.3-0.5 are often described as "high" without for
 #| tbl-cap: "Observed modularity and null-model p-values for each Aurignacian phase at three Jaccard similarity thresholds."
 #| tbl-cap-location: bottom
 #| cache: true
-#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 
 null_results <- expand_grid(
   phase = c("Aur-P1", "Aur-P2"),
@@ -1581,7 +1584,6 @@ Point estimates of network statistics are sensitive to individual sites and to o
 #| tbl-cap: "Object-within-site bootstrap stability bands for mean degree and modularity at threshold = 0.2, based on 999 resamples per phase. Observed is the statistic on the full data computed without rounding; 2.5% and 97.5% are quantiles of the raw bootstrap distribution; SD is the bootstrap standard deviation. Values are rounded for display only. These bands quantify stability to within-site object resampling, not confidence intervals for the true parameter: resampling drops rare signs, so a band may sit below or above its observed value. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
 #| tbl-cap-location: bottom
 #| cache: true
-#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 
 b_p1 <- bootstrap_network_stats(aurp1_artifact_data, signbase_full_clean, "Aur-P1", n_boot = 999, threshold = 0.2, seed = 42)
 b_p2 <- bootstrap_network_stats(aurp2_artifact_data, signbase_full_clean, "Aur-P2", n_boot = 999, threshold = 0.2, seed = 42)
@@ -1671,7 +1673,6 @@ s57_single_p2 <- signbase_full_clean %>%
 #| label: fig-bootstrap-dist
 #| fig-cap: "Raw object-within-site bootstrap distributions (999 resamples per phase) for mean degree and modularity at threshold 0.2. Dashed lines mark the observed statistic on the full data; dotted lines mark the 2.5% and 97.5% quantiles. The distributions take many distinct values (see @tbl-bootstrap-ci); any offset between a band and its observed value reflects systematic rare-sign dropout under resampling, which is why the bands are read as stability checks rather than confidence intervals."
 #| cache: true
-#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 
 boot_dist <- bind_rows(
   tibble(Phase = "Aur-P1", Stat = "Mean degree", value = b_p1$boot_md,
@@ -2006,7 +2007,6 @@ If Aurignacian signs were regionally structured in the Vanhaeren 14-group sense,
 
 ```{r s513-compute}
 #| cache: true
-#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 #| warning: false
 #| message: false
 # Source country-free helpers (also available via functions.R)
@@ -2368,7 +2368,6 @@ s6_sbm <- compute_sbm(
 # or "poisson" for the count-based model.
 s6_bestK_wrap   <- function(ph, model = "bernoulli") .s6_bestK(s6_sbm, ph, model)
 s6_gap_wrap     <- function(ph, model = "bernoulli") .s6_gap(s6_sbm, ph, model)
-s6_global_minPost <- function(model = "bernoulli") s6_global_minPost(s6_sbm, model)
 s6_mismatch_wrap <- function(ph, model = "bernoulli") s6_mismatch(s6_sbm, s6_boot, s6_groups, ph, model)
 s6_minPost <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) min(apply(s6_sbm[[ph]][[model]]$Z, 1, max)) else NA_real_
 s6_maxICL  <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) max(s6_sbm[[ph]][[model]]$icl, na.rm = TRUE) else NA_real_
@@ -3673,7 +3672,6 @@ The Mantel generator mixes scaled geography into Curveball-randomised baselines,
 ```{r}
 #| label: setup-power-mde
 #| cache: true
-#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 # MDE simulations call the shared generators in functions.R (single source).
 # Seeds 42/43/44 match the Mantel/PerMANOVA/network offsets used elsewhere.
 
