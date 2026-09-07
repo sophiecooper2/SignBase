@@ -3191,3 +3191,302 @@ phase_distances <- function(df) {
 compute_sbm <- function(art_list, max_K = 5) {
   s6_fit_sbm_all(art_list, max_K = max_K)
 }
+
+
+# ── Paper-specific computations (from paper.qmd) ────────────────────────────────
+
+# Mantel test for object abundance vs sign dissimilarity
+compute_mantel_abundance <- function(time_unique_data_full) {
+  library(vegan)
+  artifact_data <- time_unique_data_full %>%
+    column_to_rownames("id") %>%
+    dplyr::select(line:star)
+
+  object_euc_data <- time_unique_data_full %>%
+    column_to_rownames("id") %>%
+    dplyr::select(nobjects) %>%
+    dist(method = "euclidean")
+
+  artifact_data_bin <- artifact_data %>%
+    mutate(across(everything(), ~ as.numeric(. > 0)))
+
+  jac_full <- vegan::vegdist(artifact_data_bin, method = "jaccard", binary = TRUE)
+
+  object_count_mantel <- vegan::mantel(object_euc_data, jac_full, permutations = 1000)
+  p_value_object_abundance_correlation <- round(object_count_mantel$signif, 3)
+  r_value_object_abundance_correlation <- round(object_count_mantel$statistic, 3)
+
+  sign_euc_data <- artifact_data %>%
+    mutate(sign_count = rowSums(.)) %>%
+    dplyr::select(sign_count) %>%
+    dist(method = "euclidean")
+
+  sign_count_mantel <- vegan::mantel(sign_euc_data, jac_full, permutations = 1000)
+  p_value_sign_abundance_correlation <- round(sign_count_mantel$signif, 3)
+  r_value_sign_abundance_correlation <- round(sign_count_mantel$statistic, 3)
+
+  list(
+    p_obj = p_value_object_abundance_correlation,
+    r_obj = r_value_object_abundance_correlation,
+    p_sign = p_value_sign_abundance_correlation,
+    r_sign = r_value_sign_abundance_correlation
+  )
+}
+
+# Mantel test for chronological distance vs sign dissimilarity
+compute_mantel_chronological <- function(signbase_full_clean, time_unique_data_full) {
+  library(vegan)
+  chron_df <- signbase_full_clean %>%
+    column_to_rownames("id") %>%
+    dplyr::select(MedianBP) %>%
+    dist(method = "euclidean")
+
+  chron_sign_df <- signbase_full_clean %>%
+    column_to_rownames("id") %>%
+    dplyr::select(line:star) %>%
+    mutate(across(everything(), ~ as.numeric(. > 0))) %>%
+    vegdist("jaccard")
+
+  chron_mantel <- vegan::mantel(chron_df, chron_sign_df, permutations = 1000)
+
+  chron_p <- round(chron_mantel$signif, 3)
+  chron_r <- round(chron_mantel$statistic, 3)
+
+  # PerMANOVA
+  perman_chron <- vegan::adonis2(jac_full ~ as.factor(time_unique_data_full$time_period),
+                          method = "jaccard", sqrt.dist = TRUE)
+  perman_chron <- perman_chron %>% tibble::as_tibble() %>% slice_head()
+
+  list(
+    chron_p = chron_p,
+    chron_r = chron_r,
+    perman_chron = perman_chron
+  )
+}
+
+# Pairwise permutation test for network statistics
+pairwise_perm_test <- function(aurp1_mat, aurp2_mat, nperm = 10000) {
+  stats <- c("density", "modularity", "betweenness", "components")
+  pairs <- list(c("Aur-P1", "Aur-P2"))
+  mats <- list(`Aur-P1` = aurp1_mat, `Aur-P2` = aurp2_mat)
+
+  set.seed(42)
+  res <- do.call(rbind, lapply(stats, function(st) {
+    f <- build_stat(st)
+    do.call(rbind, lapply(pairs, function(pr) {
+      pv <- pair_diff(mats[[pr[1]]], mats[[pr[2]]], f, nperm = nperm)
+      data.frame(statistic = st, pair = paste(pr, collapse = "-"),
+                 xmin = which(c("Aur-P1", "Aur-P2") == pr[1]),
+                 xmax = which(c("Aur-P1", "Aur-P2") == pr[2]),
+                 p = unname(pv["p"]))
+    }))
+  }))
+
+  # BH multiple-testing correction
+  res$p_raw <- res$p
+  res$p_adjust <- p.adjust(res$p, method = "BH")
+  res$significant <- res$p_adjust < 0.05
+  res$p_raw[res$p_raw == 0] <- 1 / nperm
+  res$p_adjust[res$p_adjust == 0] <- 1 / nperm
+
+  list(
+    pairwise_p_density = round(res$p[res$statistic == "density"], 3),
+    pairwise_p_modularity = round(res$p[res$statistic == "modularity"], 3),
+    pairwise_p_betweenness = round(res$p[res$statistic == "betweenness"], 3),
+    pairwise_p_components = round(res$p[res$statistic == "components"], 3)
+  )
+}
+
+# Phase-randomized null distribution for network statistics
+compute_phase_randomized_null <- function(all_mat, sizes, nperm = 10000) {
+  stats <- c("density", "modularity", "betweenness", "components")
+  phases <- c("Aur-P1", "Aur-P2")
+
+  set.seed(42)
+  obs  <- stat_phase(all_mat, sizes)
+  null <- aperm(replicate(nperm,
+                          stat_phase(all_mat[sample(nrow(all_mat)), ], sizes),
+                          simplify = "array"),
+                c(2, 1, 3))
+
+  tab <- do.call(rbind, lapply(seq_along(stats), function(s) {
+    do.call(rbind, lapply(seq_along(phases), function(g) {
+      n <- null[s, g, ]; n <- n[!is.na(n)]
+      data.frame(statistic = stats[s], phase = phases[g],
+                 observed = obs[g, s], null_mean = mean(n),
+                 ci_lo = quantile(n, 0.025), ci_hi = quantile(n, 0.975),
+                 p_two = pmin(1, 2 * min(mean(n >= obs[g, s]), mean(n <= obs[g, s]))))
+    }))
+  }))
+  tab$p_two_adj <- p.adjust(tab$p_two, method = "BH")
+  tab$significant <- tab$p_two_adj < 0.05
+  tab$statistic <- factor(tab$statistic, levels = stats)
+  tab$phase <- factor(tab$phase, levels = phases)
+
+  # Bracket data for plotting
+  stat_lab <- c(density = "Edge density", modularity = "Modularity (Louvain)",
+                betweenness = "Mean betweenness", components = "Connected components")
+  top <- tab %>% group_by(statistic) %>% summarise(top = max(observed, ci_hi, na.rm = TRUE))
+  brack <- res %>% left_join(top, by = "statistic") %>%
+    group_by(statistic) %>%
+    mutate(level = seq_len(n())) %>% ungroup() %>%
+    mutate(y.pos = top + 0.15 * level,
+           tip = 0.05,
+           label = ifelse(p_adjust < 0.05,
+                          paste0("padj = ", sprintf("%.3f", p_adjust), " *"),
+                          paste0("p = ", ifelse(p < 0.001, "<0.001", sprintf("%.3f", p))))) %>%
+    distinct(statistic, xmin, xmax, .keep_all = TRUE)
+
+  # Expand brackets
+  seg <- do.call(rbind, lapply(seq_len(nrow(brack)), function(i) {
+    b <- brack[i, ]
+    rbind(data.frame(statistic = b$statistic, x = b$xmin, xend = b$xmax,
+                     y = b$y.pos, yend = b$y.pos),
+          data.frame(statistic = b$statistic, x = b$xmin, xend = b$xmin,
+                     y = b$y.pos, yend = b$y.pos - b$tip),
+          data.frame(statistic = b$statistic, x = b$xmax, xend = b$xmax,
+                     y = b$y.pos, yend = b$y.pos - b$tip))
+  }))
+  txt <- brack %>% dplyr::select(statistic, xmin, xmax, y.pos, label) %>%
+    mutate(x = (xmin + xmax) / 2, y = y.pos + 0.04)
+
+  list(
+    tab = tab, obs = obs, null = null, brack = brack, seg = seg, txt = txt,
+    stat_lab = stat_lab
+  )
+}
+
+# Diversity/correlation helpers
+compute_diversity_correlations <- function(time_unique_data_full) {
+  sign_cols <- time_unique_data_full %>%
+    dplyr::select(line:star) %>%
+    as.matrix()
+  nsigns <- rowSums(sign_cols > 0)
+  nobjects <- time_unique_data_full$nobjects
+  spearman_test <- cor.test(nobjects, nsigns, method = "spearman")
+  spearman_rho <- round(unname(spearman_test$estimate), 2)
+  spearman_p <- spearman_test$p.value
+  spearman_p_disp <- ifelse(spearman_p < 0.001, "< 0.001",
+                            formatC(spearman_p, format = "f", digits = 3))
+
+  # Object-level sensitivity: negative-binomial model
+  # This calls the shared functions from functions.R
+  list(
+    spearman_rho = spearman_rho,
+    spearman_p = spearman_p_disp
+  )
+}
+
+# Negative binomial models for richness
+fit_richness_models <- function(aurp1_artifact_data, aurp2_artifact_data,
+                                aurp1_unique_data, aurp2_unique_data,
+                                manual_groups) {
+  art_list  <- list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data)
+  uniq_list <- list("Aur-P1" = aurp1_unique_data, "Aur-P2" = aurp2_unique_data)
+
+  s9_mix <- s9_offset_mixed_model(
+    art_list  = art_list,
+    uniq_list = uniq_list,
+    groups_list = manual_groups
+  )
+  s9_mix_rr <- round(s9_mix$group_rate_ratio, 2)
+  s9_mix_p  <- round(s9_mix$group_p, 3)
+
+  s9_fs <- s9_free_slope_nb(
+    art_list  = art_list,
+    uniq_list = uniq_list,
+    groups_list = manual_groups
+  )
+  s9_fs_exp     <- round(s9_fs$exp_coef, 2)
+  s9_fs_exp_lcl <- round(s9_fs$exp_lcl, 2)
+  s9_fs_exp_ucl <- round(s9_fs$exp_ucl, 2)
+  s9_fs_rr      <- round(s9_fs$group_rate_ratio, 2)
+  s9_fs_p       <- round(s9_fs$group_p, 3)
+
+  list(
+    s9_mix_rr = s9_mix_rr, s9_mix_p = s9_mix_p,
+    s9_fs_exp = s9_fs_exp, s9_fs_exp_lcl = s9_fs_exp_lcl, s9_fs_exp_ucl = s9_fs_exp_ucl,
+    s9_fs_rr = s9_fs_rr, s9_fs_p = s9_fs_p
+  )
+}
+
+# Prepare ct-numbers (cultural transmission numbers)
+prepare_ct_numbers <- function(aurp1_artifact_data, aurp2_artifact_data,
+                               md_base_p1, md_base_p2) {
+  aurp1_n_signs   <- ncol(aurp1_artifact_data)
+  aurp2_n_signs   <- ncol(aurp2_artifact_data)
+
+  aurp1_net  <- network_stats(aurp1_artifact_data)
+  aurp2_net  <- network_stats(aurp2_artifact_data)
+
+  aurp1_deg   <- md_base_p1
+  aurp1_edges <- aurp1_net$n_edges
+  aurp1_trans <- aurp1_net$transitivity
+  aurp2_deg   <- md_base_p2
+  aurp2_edges <- aurp2_net$n_edges
+  aurp2_trans <- aurp2_net$transitivity
+
+  # Mantel tests
+  aurp1_mantel  <- strength_function(aurp1_artifact_data, aurp1_unique_data)$`Mantel R`
+  aurp2_mantel  <- strength_function(aurp2_artifact_data, aurp2_unique_data)$`Mantel R`
+  aurp1_mantel_p <- strength_function(aurp1_artifact_data, aurp1_unique_data)$`Mantel p`
+  aurp2_mantel_p <- strength_function(aurp2_artifact_data, aurp2_unique_data)$`Mantel p`
+
+  # BH correction for 4 Mantel tests
+  aurp1_mantel_p_adj <- min(aurp1_mantel_p * 4, 1)
+
+  list(
+    aurp1_n_signs = aurp1_n_signs, aurp2_n_signs = aurp2_n_signs,
+    aurp1_deg = aurp1_deg, aurp1_edges = aurp1_edges, aurp1_trans = aurp1_trans,
+    aurp2_deg = aurp2_deg, aurp2_edges = aurp2_edges, aurp2_trans = aurp2_trans,
+    aurp1_mantel = aurp1_mantel, aurp2_mantel = aurp2_mantel,
+    aurp1_mantel_p = aurp1_mantel_p, aurp2_mantel_p = aurp2_mantel_p,
+    aurp1_mantel_p_adj = aurp1_mantel_p_adj
+  )
+}
+
+# Twin Mantel test (between-phase comparison)
+twin_mantel_test <- function(time_unique_data_full, aurp1_artifact_data, aurp2_artifact_data) {
+  site_level <- time_unique_data_full %>%
+    dplyr::group_by(site_name) %>%
+    dplyr::summarise(
+      dplyr::across(line:star, ~ as.integer(sum(.x) > 0)),
+      longitude = first(longitude),
+      latitude = first(latitude),
+      .groups = "drop"
+    )
+  Smat <- as.matrix(extract_artifact(site_level))
+  coords_full <- site_level %>%
+    dplyr::select(site_name, longitude, latitude) %>%
+    mutate(longitude = as.numeric(longitude), latitude = as.numeric(latitude))
+  geom_full <- sf::st_as_sf(coords_full, coords = c("longitude", "latitude"), crs = 4326)
+
+  aurp1_sites <- rownames(aurp1_artifact_data)
+  aurp2_sites <- rownames(aurp2_artifact_data)
+  all_sites   <- rownames(Smat)
+
+  mantel_R_phase <- function(sites, Smat, geom_full) {
+    idx <- match(sites, all_sites)
+    vegan::mantel(as.dist(Smat[idx, idx]), as.dist(sf::st_distance(geom_full[idx, ]) / 1000),
+                  permutations = 0)$statistic
+  }
+
+  R1_sites <- mantel_R_phase(aurp1_sites, Smat, geom_full)
+  R2_sites <- mantel_R_phase(aurp2_sites, Smat, geom_full)
+  D_obs    <- R1_sites - R2_sites
+  set.seed(42)
+  D_null <- replicate(1000, {
+    idx <- sample(seq_along(all_sites), length(aurp1_sites))
+    mantel_R_phase(all_sites[idx], Smat, geom_full) - mantel_R_phase(all_sites[-idx], Smat, geom_full)
+  })
+  D_null <- D_null[!is.na(D_null)]
+  mantel_diff_p <- (sum(abs(D_null) >= abs(D_obs)) + 1) / (length(D_null) + 1)
+  mantel_diff_abs <- abs(D_obs)
+
+  list(
+    D_obs = round(D_obs, 2),
+    mantel_diff_p = round(mantel_diff_p, 3),
+    mantel_diff_abs = round(mantel_diff_abs, 2)
+  )
+}
+
