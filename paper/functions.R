@@ -3026,3 +3026,42 @@ perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf
   sorted <- sort(icl, decreasing = TRUE)
   sorted[1] - sorted[2]
 }
+
+# ── Threshold agreement helpers (from S1 tbl-threshold-agreement) ───────────────
+# Compute edge-set Jaccard similarity between networks at two thresholds
+edge_jaccard <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
+  build_adj <- function(mat, th, met) {
+    if (met == "jaccard") {
+      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+    } else if (met == "sorensen") {
+      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
+    } else {
+      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
+    }
+    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
+    a
+  }
+  a1 <- build_adj(mat, threshold_t, metric)
+  a2 <- build_adj(mat, threshold_t2, metric)
+  e1 <- which(upper.tri(a1) & a1 > 0)
+  e2 <- which(upper.tri(a2) & a2 > 0)
+  length(intersect(e1, e2)) / length(union(e1, e2))
+}
+
+# Compute adjacency-matrix correlation between networks at two thresholds
+adjmatrix_corr <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
+  build_adj <- function(mat, th, met) {
+    if (met == "jaccard") {
+      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+    } else if (met == "sorensen") {
+      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
+    } else {
+      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
+    }
+    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
+    a[upper.tri(a)]
+  }
+  u1 <- build_adj(mat, threshold_t, metric)
+  u2 <- build_adj(mat, threshold_t2, metric)
+  cor(u1, u2, use = "complete.obs")
+}

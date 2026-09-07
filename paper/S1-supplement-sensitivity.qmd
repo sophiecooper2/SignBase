@@ -342,39 +342,6 @@ Below we quantify the stability of the network structures across thresholds usin
 #| tbl-cap: "Pairwise agreement between networks at adjacent thresholds. Edge‑set Jaccard measures the fraction of edges present at both thresholds out of all edges present at either threshold. Adjacency‑matrix correlation is the Pearson r between the vectorised upper‑triangular elements of the adjacency matrices at each threshold (all pairs of sites before the cutoff is applied)."
 #| tbl-cap-location: bottom
 
-edge_jaccard <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
-  build_adj <- function(mat, th, met) {
-    if (met == "jaccard") {
-      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
-    } else if (met == "sorensen") {
-      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
-    } else {
-      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
-    }
-    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
-    a
-  }
-  a1 <- build_adj(mat, threshold_t, metric); a2 <- build_adj(mat, threshold_t2, metric)
-  e1 <- which(upper.tri(a1) & a1 > 0); e2 <- which(upper.tri(a2) & a2 > 0)
-  length(intersect(e1, e2)) / length(union(e1, e2))
-}
-
-adjmatrix_corr <- function(mat, threshold_t, threshold_t2, metric = "jaccard") {
-  build_adj <- function(mat, th, met) {
-    if (met == "jaccard") {
-      j <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
-    } else if (met == "sorensen") {
-      j <- as.matrix(vegan::vegdist(mat, "bray", binary = TRUE))
-    } else {
-      j <- as.matrix(vegan::vegdist(mat, method = met, binary = TRUE))
-    }
-    a <- 1 - j; a[a < th] <- 0; diag(a) <- 0
-    a[upper.tri(a)]
-  }
-  u1 <- build_adj(mat, threshold_t, metric); u2 <- build_adj(mat, threshold_t2, metric)
-  cor(u1, u2, use = "complete.obs")
-}
-
 threshold_pairs <- list(c(0.1, 0.2), c(0.2, 0.3), c(0.1, 0.3))
 agree_table <- map_dfr(threshold_pairs, function(tp) {
   map_dfr(names(phases), function(ph) {
