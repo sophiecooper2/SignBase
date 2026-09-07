@@ -1264,24 +1264,19 @@ adonis_region_marginal <- function(art, uniq_df, region_factor, seed = 500) {
 # groups on data withheld from their definition, or (c) drops discrete groups
 # entirely in favour of a continuous gradient test.
 
-# Direct PERMANOVA pseudo-F from a squared dissimilarity matrix.
-# Matches vegan::adonis2(..., sqrt.dist = TRUE) on a jaccard distance object,
-# because adonis2 with sqrt.dist applies sqrt to the distances and the Gower
-# matrix is then built from their squares (i.e. the original jaccard distances).
-# D2:    n x n matrix of squared dissimilarities (e.g. as.matrix(vegdist(mat, "jaccard", binary = TRUE)))
-# group: factor/character vector of length n (group labels)
-permanova_F <- function(D2, group) {
-  stopifnot(is.matrix(D2), nrow(D2) == ncol(D2))
-  # Square the distances so the Gower matrix matches vegan::adonis2(...,
-  # sqrt.dist = TRUE) on a jaccard distance object (adonis2 squares the
-  # effectively-sqrt distances back to the original jaccard distances).
-  D2 <- as.matrix(D2)^2
-  n <- nrow(D2)
+permanova_F <- function(D, group) {
+  stopifnot(is.matrix(D), nrow(D) == ncol(D))
+  # Direct PERMANOVA pseudo-F from a dissimilarity matrix. Gower-centres the
+  # dissimilarities directly (no squaring), matching vegan::adonis2(...,
+  # sqrt.dist = TRUE) on a jaccard distance object. Input is an n x n
+  # dissimilarity matrix, e.g. as.matrix(vegdist(mat, "jaccard",
+  # binary = TRUE)); do NOT square the distances before calling.
+  n <- nrow(D)
   group <- as.factor(group)
   k <- nlevels(group)
   if (k < 2 || k >= n) return(NA_real_)
-  rm <- rowMeans(D2); cm <- colMeans(D2); gm <- mean(D2)
-  G  <- -0.5 * (D2 - outer(rm, rep(1, n)) - outer(rep(1, n), cm) + gm)
+  rm <- rowMeans(D); cm <- colMeans(D); gm <- mean(D)
+  G  <- -0.5 * (D - outer(rm, rep(1, n)) - outer(rep(1, n), cm) + gm)
   SST <- sum(diag(G))                       # total SS = trace of Gower matrix
   SSB <- 0
   for (g in levels(group)) {
