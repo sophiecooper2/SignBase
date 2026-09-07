@@ -2504,8 +2504,50 @@ To address this, we test the null hypothesis that the observed preference for K 
 #| cache: true
 #| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 
-# Load null results (precomputed with B=499, seed=7, max_K_null=3)
-sbm_null_results <- readRDS(here::here("paper/sbm_null_results_full.rds"))
+# Run SBM block-recovery null test live (B = 499 Curveball replicates,
+# seed = 7, max_K_null = 3) and cache the result. Replaces the precomputed
+# sbm_null_results_full.rds / sbm_null_figure_data.rds files.
+# Heavy step: 499 replicates x 3 models x 2 phases of SBM refits with
+# blockmodels::SBM_sym; first render after cache wipe pays the full cost.
+set.seed(7)
+null_p1 <- sbm_block_null_test(
+  aurp1_artifact_data, max_K = 5, max_K_null = 3,
+  models = c("bernoulli", "gaussian", "poisson"),
+  B = 499, seed = 7
+)
+null_p2 <- sbm_block_null_test(
+  aurp2_artifact_data, max_K = 5, max_K_null = 3,
+  models = c("bernoulli", "gaussian", "poisson"),
+  B = 499, seed = 7
+)
+
+# Combined summary tibble with BH adjustment across the six phase-by-model
+# primary tests (gap_K1), matching the structure previously stored in
+# sbm_null_results_full.rds.
+sbm_null_results <- dplyr::bind_rows(
+  null_p1$summary %>% dplyr::mutate(Phase = "Aur-P1"),
+  null_p2$summary %>% dplyr::mutate(Phase = "Aur-P2")
+) %>%
+  dplyr::relocate(Phase, .before = Model) %>%
+  dplyr::mutate(
+    p_gap_K1_bh = p.adjust(p_gap_K1, method = "BH"),
+    p_gap_K2_bh = p.adjust(p_gap_K2, method = "BH")
+  )
+
+# Figure data: per-phase list with the full B = 499 null_gap_K1 matrix
+# (replaces sbm_null_figure_data.rds, which used B = 99). Each phase entry
+# is a list(summary = data.frame(Model, obs_gap_K1),
+#           null_gap_K1 = matrix(B x 3)).
+fig_data <- list(
+  "Aur-P1" = list(
+    summary    = null_p1$summary %>% dplyr::select(Model, obs_gap_K1),
+    null_gap_K1 = null_p1$null$gap_K1
+  ),
+  "Aur-P2" = list(
+    summary    = null_p2$summary %>% dplyr::select(Model, obs_gap_K1),
+    null_gap_K1 = null_p2$null$gap_K1
+  )
+)
 ```
 
 ```{r}
@@ -2540,13 +2582,11 @@ knitr::kable(sbm_null_display,
 
 ```{r}
 #| label: fig-sbm-null
-#| fig-cap: "Observed ICL gap_K1 (best K vs K=1) against the null distribution from 99 Curveball-randomised site-by-sign matrices (B=99 for figure speed; B=499 for final p-values), by phase and emission model. Vertical lines mark the observed gap_K1; histograms show the null distribution. Y-scales are free because Bernoulli, Gaussian, and Poisson likelihoods are on different absolute scales. None of the six phase-by-model combinations has a Benjamini-Hochberg adjusted p-value below 0.05."
+#| fig-cap: "Observed ICL gap_K1 (best K vs K=1) against the null distribution from 499 Curveball-randomised site-by-sign matrices (B = 499, seed = 7, max K = 3 for null fits), by phase and emission model. Vertical lines mark the observed gap_K1; histograms show the null distribution. Y-scales are free because Bernoulli, Gaussian, and Poisson likelihoods are on different absolute scales. None of the six phase-by-model combinations has a Benjamini-Hochberg adjusted p-value below 0.05."
 #| fig-width: 8
 #| fig-height: 4
 
 library(ggplot2)
-
-fig_data <- readRDS(here::here("paper/sbm_null_figure_data.rds"))
 
 # Build plotting data frame
 plot_df <- do.call(rbind, lapply(names(fig_data), function(ph) {
