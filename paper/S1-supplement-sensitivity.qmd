@@ -669,16 +669,33 @@ run_axis_test <- function(artifact_data, uniq_data, phase_name, pc1_scores) {
   m <- lm(pc1 ~ richness + longitude + latitude, data = df)
   sm <- summary(m)
   co <- sm$coefficients
+  
+  # Partial correlations (Approach B: control for the other two predictors)
+  pc1_resid_rl <- residuals(lm(pc1 ~ richness + latitude, data = df))
+  lon_resid_rl <- residuals(lm(longitude ~ richness + latitude, data = df))
+  partial_rho_longitude <- cor(pc1_resid_rl, lon_resid_rl)
+  
+  pc1_resid_rl2 <- residuals(lm(pc1 ~ richness + longitude, data = df))
+  lat_resid_rl2 <- residuals(lm(latitude ~ richness + longitude, data = df))
+  partial_rho_latitude <- cor(pc1_resid_rl2, lat_resid_rl2)
+  
+  fmt_p <- function(p) ifelse(p < 0.001, "< 0.001", sprintf("%.3f", p))
+  
   data.frame(
-    Phase = phase_name,
-    `n sites` = nrow(df),
-    `R² adj` = round(sm$adj.r.squared, 3),
-    `richness coef` = round(co["richness", "Estimate"], 3),
-    `richness p` = co["richness", "Pr(>|t|)"],
-    `longitude coef` = round(co["longitude", "Estimate"], 3),
-    `longitude p` = co["longitude", "Pr(>|t|)"],
-    `latitude coef` = round(co["latitude", "Estimate"], 3),
-    `latitude p` = co["latitude", "Pr(>|t|)"],
+    phase = phase_name,
+    n_sites = nrow(df),
+    r2_adj = round(sm$adj.r.squared, 3),
+    richness_coef = round(co["richness", "Estimate"], 3),
+    richness_p = co["richness", "Pr(>|t|)"],
+    richness_p_fmt = fmt_p(co["richness", "Pr(>|t|)"]),
+    longitude_coef = round(co["longitude", "Estimate"], 3),
+    longitude_p = co["longitude", "Pr(>|t|)"],
+    longitude_p_fmt = fmt_p(co["longitude", "Pr(>|t|)"]),
+    latitude_coef = round(co["latitude", "Estimate"], 3),
+    latitude_p = co["latitude", "Pr(>|t|)"],
+    latitude_p_fmt = fmt_p(co["latitude", "Pr(>|t|)"]),
+    partial_rho_longitude = round(partial_rho_longitude, 3),
+    partial_rho_latitude = round(partial_rho_latitude, 3),
     check.names = FALSE
   )
 }
@@ -688,13 +705,13 @@ axis_test <- bind_rows(
   run_axis_test(aurp2_artifact_data, aurp2_unique_data, "Aur-P2", ord_p2$pcoa_points)
 )
 
-axis_test_display <- axis_test
-axis_test_display$`richness p` <- ifelse(axis_test_display$`richness p` < 0.001, "< 0.001",
-                                          sprintf("%.3f", axis_test_display$`richness p`))
-axis_test_display$`longitude p` <- ifelse(axis_test_display$`longitude p` < 0.001, "< 0.001",
-                                           sprintf("%.3f", axis_test_display$`longitude p`))
-axis_test_display$`latitude p` <- ifelse(axis_test_display$`latitude p` < 0.001, "< 0.001",
-                                         sprintf("%.3f", axis_test_display$`latitude p`))
+axis_test_display <- axis_test %>%
+  dplyr::select(
+    phase, n_sites, r2_adj,
+    richness_coef, richness_p_fmt,
+    longitude_coef, longitude_p_fmt,
+    latitude_coef, latitude_p_fmt
+  )
 
 kable(axis_test_display,
       col.names = c("Phase", "n",
@@ -706,7 +723,11 @@ kable(axis_test_display,
       align = c("l", "c", "c", "c", "c", "c", "c", "c", "c"))
 ```
 
-**Implication for the main text.** The metric comparison addresses the concern that Jaccard similarity, which ignores joint absences and penalises richness differences, might produce different network structures than metrics that treat richness asymmetry differently. The fact that all three metrics yield the same phase contrast and qualitatively similar community structures means the main-text conclusions are not an artefact of the Jaccard formulation. Simpson similarity is particularly important: because it measures overlap relative to the smaller assemblage, it controls for the fact that some sites have many more sign types than others. The persistence of the connectivity contrast under Simpson confirms that Aur-P1's higher mean degree (`r n2(val(sens_stats, "mean_degree", "Aur-P1", 0.2))` at the baseline threshold) reflects genuinely shared sign types, not a mechanical advantage from richer assemblages. 
+**Answer: richness is the dominant predictor** (R² adj = `r axis_test$r2_adj[axis_test$phase == "Aur-P1"]`, p = `r axis_test$richness_p_fmt[axis_test$phase == "Aur-P1"]`), but **longitude contributes a significant independent signal** (p = `r axis_test$longitude_p_fmt[axis_test$phase == "Aur-P1"]`, partial ρ = `r axis_test$partial_rho_longitude[axis_test$phase == "Aur-P1"]`) — eastern sites carry a distinct sign-type composition beyond what richness predicts. Latitude does not contribute significantly (p = `r axis_test$latitude_p_fmt[axis_test$phase == "Aur-P1"]`). For Aur-P2 the sample (`r axis_test$n_sites[axis_test$phase == "Aur-P2"]` sites) is too small to resolve any predictor (R² adj = `r axis_test$r2_adj[axis_test$phase == "Aur-P2"]`).
+
+**Implication for the main text.** The three-metric network comparison shows that the Aur-P1 > Aur-P2 connectivity contrast is robust to how shared presences and richness differences are weighted: Jaccard, Sørensen-Dice, and Simpson similarity all produce the same phase ordering and qualitatively identical community structures (@tbl-metric-stats; @fig-metric-networks). However, the Simpson similarity contrast is driven by **nestedness** (rich sites sharing more with poor sites by virtue of repertoire size), not by compositional turnover (@sec-s10-1). This means the persistence under Simpson reflects repertoire-size asymmetry rather than discrete compositional differences — the contrast survives the metric change, but the mechanism is richness-related, consistent with the PCoA1 regression showing richness as the dominant gradient driver.
+
+The PCoA and CA ordination biplots reinforce this by showing that site relationships form a **continuous gradient** rather than discrete clusters (@fig-ordination-pcoa-ca), matching the Simpson turnover result of no group separation. Together these results mean: (1) the main-text network conclusions are not an artefact of the Jaccard formulation; (2) the continuous gradient structure matches the Simpson turnover finding; and (3) geographic position (east–west) has a secondary effect on sign-type composition, but richness dominates the primary axis of variation. The main-text claim that richness effects are the principal driver is supported, while the claim that geography is only weakly relevant should be qualified: longitude is statistically significant but subordinate to richness. 
 
 # Geographic Distance Verification (Mantel Tests) {#sec-s4}
 

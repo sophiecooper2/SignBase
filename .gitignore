@@ -16,6 +16,7 @@ paper/*_cache/
 .brain/
 
 # Open ScholarPeer MCP runtime (venv + server, gitignored)
+.opencode
 .open-scholar-peer/
 
 # API keys (never commit)

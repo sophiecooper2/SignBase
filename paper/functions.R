@@ -2903,3 +2903,64 @@ power_network_mde <- function(art_p1, art_p2, delta_grid = c(0, 0.05, 0.10, 0.15
   tab <- do.call(rbind, rows)
   list(baseline_density = unname(d0), n1 = n1, n2 = n2, k = k, q1 = q1, table = tab)
 }
+
+# ── Null-benchmarked modularity (S1 signature, uses globals) ───────────────────
+# Requires globals: aurp1_unique_data, aurp2_unique_data, signbase_full_clean
+# Returns tibble: Phase, Threshold, Observed, Null_mean, Null_sd, p
+run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
+  obs_data <- switch(phase_name,
+    "Aur-P1" = aurp1_unique_data,
+    "Aur-P2" = aurp2_unique_data
+  )
+  obs_art <- extract_artifact(obs_data)
+  obs_jac <- as.matrix(vegan::vegdist(as.matrix(obs_art), "jaccard", binary = TRUE))
+  obs_adj <- 1 - obs_jac
+  obs_adj[obs_adj < threshold] <- 0
+  diag(obs_adj) <- 0
+  obs_g <- igraph::graph_from_adjacency_matrix(obs_adj, mode = "undirected",
+                                                weighted = TRUE, diag = FALSE)
+  set.seed(42)
+  obs_mod <- igraph::modularity(igraph::cluster_louvain(obs_g))
+  n_target <- nrow(obs_art)
+
+  pooled <- signbase_full_clean %>%
+    dplyr::select(site_name, obline:star) %>%
+    distinct(site_name, .keep_all = TRUE)
+  pooled_art <- pooled %>%
+    column_to_rownames("site_name")
+  pooled_art <- pooled_art[, colSums(pooled_art) > 0, drop = FALSE]
+  keep_cols <- names(pooled_art)
+
+  null_mods <- numeric(n_perm)
+  for (i in seq_len(n_perm)) {
+    set.seed(i)
+    perm_idx <- sample(seq_len(nrow(pooled)), n_target, replace = FALSE)
+    perm_art <- pooled_art[perm_idx, , drop = FALSE]
+    rownames(perm_art) <- rownames(pooled_art)[perm_idx]
+    result <- tryCatch({
+      perm_jac <- as.matrix(vegan::vegdist(perm_art, "jaccard", binary = TRUE))
+      perm_adj <- 1 - perm_jac
+      perm_adj[is.na(perm_adj)] <- 0
+      perm_adj[perm_adj < threshold] <- 0
+      diag(perm_adj) <- 0
+      perm_g <- igraph::graph_from_adjacency_matrix(perm_adj, mode = "undirected",
+                                                     weighted = TRUE, diag = FALSE)
+      if (igraph::vcount(perm_g) >= 3 && igraph::ecount(perm_g) > 0) {
+        igraph::modularity(igraph::cluster_louvain(perm_g))
+      } else {
+        0
+      }
+    }, error = function(e) 0)
+    null_mods[i] <- result
+  }
+
+  p_val <- mean(null_mods >= obs_mod)
+  tibble(
+    Phase = phase_name,
+    Threshold = threshold,
+    Observed = round(obs_mod, 3),
+    Null_mean = round(mean(null_mods), 3),
+    Null_sd = round(sd(null_mods), 3),
+    p = p_val
+  )
+}
