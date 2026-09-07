@@ -3252,7 +3252,13 @@ compute_mantel_chronological <- function(signbase_full_clean, time_unique_data_f
   chron_p <- round(chron_mantel$signif, 3)
   chron_r <- round(chron_mantel$statistic, 3)
 
-  # PerMANOVA
+  # PerMANOVA - compute jac_full internally
+  artifact_data <- time_unique_data_full %>% 
+    column_to_rownames("id") %>% 
+    dplyr::select(line:star)
+  artifact_data_bin <- artifact_data %>% mutate(across(everything(), ~ as.numeric(. > 0)))
+  jac_full <- vegan::vegdist(artifact_data_bin, method = "jaccard", binary = TRUE)
+
   perman_chron <- vegan::adonis2(jac_full ~ as.factor(time_unique_data_full$time_period),
                           method = "jaccard", sqrt.dist = TRUE)
   perman_chron <- perman_chron %>% tibble::as_tibble() %>% slice_head()
@@ -3298,14 +3304,35 @@ pairwise_perm_test <- function(aurp1_mat, aurp2_mat, nperm = 10000) {
 }
 
 # Phase-randomized null distribution for network statistics
+# Rename to avoid potential naming conflicts in quarto environment
+.stat_phase_internal <- function(site_vectors, group_sizes) {
+  splits <- cumsum(group_sizes)
+  idx <- split(seq_len(nrow(site_vectors)),
+               cut(seq_len(nrow(site_vectors)), c(0, splits)))
+  t(sapply(idx, function(ii) {
+    mat <- site_vectors[ii, , drop = FALSE]
+    jac <- as.matrix(vegan::vegdist(mat, "jaccard", binary = TRUE))
+    adj <- 1 - jac; adj[adj < 0.2] <- 0; diag(adj) <- 0  # main-analysis threshold
+    ig <- igraph::graph_from_adjacency_matrix(adj, mode = "undirected", weighted = TRUE)
+    dens  <- if (igraph::ecount(ig) > 0) igraph::edge_density(ig) else 0
+    mod   <- tryCatch(igraph::modularity(igraph::cluster_louvain(ig)), error = function(e) NA)
+    bet   <- if (igraph::ecount(ig) > 0) mean(igraph::betweenness(ig, weights = NA)) else 0
+    ncomp <- if (igraph::ecount(ig) > 0) igraph::components(ig)$no else nrow(site_vectors)
+    c(density = dens, modularity = mod, betweenness = bet, components = ncomp)
+  })
+}
+}
+
+# ── Phase-randomized null distribution (from paper.qmd) ──────────────────────────
 compute_phase_randomized_null <- function(all_mat, sizes, nperm = 10000) {
   stats <- c("density", "modularity", "betweenness", "components")
   phases <- c("Aur-P1", "Aur-P2")
 
   set.seed(42)
-  obs  <- stat_phase(all_mat, sizes)
+  # message("stat_phase class: ", class(.stat_phase_internal))
+  obs  <- .stat_phase_internal(all_mat, sizes)
   null <- aperm(replicate(nperm,
-                          stat_phase(all_mat[sample(nrow(all_mat)), ], sizes),
+                          .stat_phase_internal(all_mat[sample(nrow(all_mat)), ], sizes),
                           simplify = "array"),
                 c(2, 1, 3))
 
@@ -3327,14 +3354,16 @@ compute_phase_randomized_null <- function(all_mat, sizes, nperm = 10000) {
   stat_lab <- c(density = "Edge density", modularity = "Modularity (Louvain)",
                 betweenness = "Mean betweenness", components = "Connected components")
   top <- tab %>% group_by(statistic) %>% summarise(top = max(observed, ci_hi, na.rm = TRUE))
-  brack <- res %>% left_join(top, by = "statistic") %>%
+  brack <- tab %>% left_join(top, by = "statistic") %>%
     group_by(statistic) %>%
     mutate(level = seq_len(n())) %>% ungroup() %>%
     mutate(y.pos = top + 0.15 * level,
            tip = 0.05,
-           label = ifelse(p_adjust < 0.05,
-                          paste0("padj = ", sprintf("%.3f", p_adjust), " *"),
-                          paste0("p = ", ifelse(p < 0.001, "<0.001", sprintf("%.3f", p))))) %>%
+           label = ifelse(p_two_adj < 0.05,
+                          paste0("padj = ", sprintf("%.3f", p_two_adj), " *"),
+                          paste0("p = ", ifelse(p_two < 0.001, "<0.001", sprintf("%.3f", p_two)))),
+           xmin = ifelse(phase == "Aur-P1", 1, 2),
+           xmax = ifelse(phase == "Aur-P1", 1, 2)) %>%
     distinct(statistic, xmin, xmax, .keep_all = TRUE)
 
   # Expand brackets
