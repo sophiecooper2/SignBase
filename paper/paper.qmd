@@ -170,6 +170,7 @@ dbrda_p2_p <- dbrda_p2$`dbRDA p`
 ```{r}
 #| label: compute-sbm
 #| cache: true
+#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 
 # ── SBM results (same as S1) ───────────────────────────────────────────────────
 s6_sbm <- compute_sbm(
@@ -186,6 +187,7 @@ s6_gap   <- function(ph, model = "bernoulli") .s6_gap(s6_sbm, ph, model)
 ```{r}
 #| label: compute-null-mod
 #| cache: true
+#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 
 # ── Null modularity results (same as S1) ───────────────────────────────────────
 null_results <- expand_grid(
@@ -405,6 +407,7 @@ If the distribution of sign types can be mostly explained by geographic distance
 #| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard dissimilarity matrix of sign type diversity and a geographic distance matrix. The 95% confidence interval comes from an object-within-site bootstrap (B = 1,000)."
 #| tbl-cap-location: bottom
 #| cache: true
+#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 ## Mantel test for geography vs signs
 
 aurp1_strength <- strength_function(aurp1_artifact_data, aurp1_unique_data)
@@ -710,6 +713,7 @@ Spatial clusters of sites are not evident in the sites with signs (@fig-group-ma
 #| tbl-cap: "Table of the results per phase for the perMANOVA. The R² 95% confidence interval comes from an object-within-site bootstrap (B = 1,000). The bootstrap interval measures R² stability under object resampling with fixed labels, they are not a null-hypothesis test"
 #| tbl-cap-location: bottom
 #| cache: true
+#| cache-extra: !expr tools::md5sum(here::here("paper/functions.R"))
 
 aurp1_strength <- strength_function(aurp1_artifact_data, aurp1_unique_data)
 aurp2_strength <- strength_function(aurp2_artifact_data, aurp2_unique_data)
