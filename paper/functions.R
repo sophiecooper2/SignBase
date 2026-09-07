@@ -3493,12 +3493,6 @@ twin_mantel_test <- function(time_unique_data_full, aurp1_artifact_data, aurp2_a
   aurp2_sites <- rownames(aurp2_artifact_data)
   all_sites   <- rownames(Smat)
 
-  mantel_R_phase <- function(sites, Smat, geom_full) {
-    idx <- match(sites, all_sites)
-    vegan::mantel(as.dist(Smat[idx, idx]), as.dist(sf::st_distance(geom_full[idx, ]) / 1000),
-                  permutations = 0)$statistic
-  }
-
   R1_sites <- mantel_R_phase(aurp1_sites, Smat, geom_full)
   R2_sites <- mantel_R_phase(aurp2_sites, Smat, geom_full)
   D_obs    <- R1_sites - R2_sites

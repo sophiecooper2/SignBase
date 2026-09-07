@@ -800,39 +800,25 @@ Our first aim was to determine whether any structure in sign type composition ex
 
 ```{r}
 # object count vs sign-type count per site (sampling-effort check)
-sign_cols <- time_unique_data_full %>%
-  dplyr::select(line:star) %>%
-  as.matrix()
-nsigns <- rowSums(sign_cols > 0)
-nobjects <- time_unique_data_full$nobjects
-spearman_test <- cor.test(nobjects, nsigns, method = "spearman")
-spearman_rho <- round(unname(spearman_test$estimate), 2)
-spearman_p <- spearman_test$p.value
-spearman_p_disp <- ifelse(spearman_p < 0.001, "< 0.001",
-                          formatC(spearman_p, format = "f", digits = 3))
+spearman_res <- compute_diversity_correlations(time_unique_data_full)
+spearman_rho <- spearman_res$spearman_rho
+spearman_p_disp <- spearman_res$spearman_p
 ```
 
 ```{r}
 # Object-level sensitivity: negative-binomial model of sign-type richness with
 # object count as an offset (full method in S1 §S1.12.5). Uses the shared function in
 # functions.R so the fit is identical to, and never duplicated with, S1 §S1.12.
-s9_mix <- s9_offset_mixed_model(
-  art_list  = list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data),
-  uniq_list = list("Aur-P1" = aurp1_unique_data,    "Aur-P2" = aurp2_unique_data),
-  groups_list = manual_groups
-)
-s9_mix_rr <- round(s9_mix$group_rate_ratio, 2)
-s9_mix_p  <- round(s9_mix$group_p, 3)
-s9_fs <- s9_free_slope_nb(
-  art_list  = list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data),
-  uniq_list = list("Aur-P1" = aurp1_unique_data,    "Aur-P2" = aurp2_unique_data),
-  groups_list = manual_groups
-)
-s9_fs_exp     <- round(s9_fs$exp_coef, 2)
-s9_fs_exp_lcl <- round(s9_fs$exp_lcl, 2)
-s9_fs_exp_ucl <- round(s9_fs$exp_ucl, 2)
-s9_fs_rr      <- round(s9_fs$group_rate_ratio, 2)
-s9_fs_p       <- round(s9_fs$group_p, 3)
+s9_res <- fit_richness_models(aurp1_artifact_data, aurp2_artifact_data,
+                              aurp1_unique_data, aurp2_unique_data,
+                              manual_groups)
+s9_mix_rr <- s9_res$s9_mix_rr
+s9_mix_p  <- s9_res$s9_mix_p
+s9_fs_exp     <- s9_res$s9_fs_exp
+s9_fs_exp_lcl <- s9_res$s9_fs_exp_lcl
+s9_fs_exp_ucl <- s9_res$s9_fs_exp_ucl
+s9_fs_rr      <- s9_res$s9_fs_rr
+s9_fs_p       <- s9_res$s9_fs_p
 ```
 
 This restricted/broader gradient may be influenced by variation in social structure. Variation in hunter-gatherer social structures is well-known from ethnographic and archaeological research [@Finlayson_Warren_2017; @Riches_1995; @Price_Brown_1985; @Lane_2017; @Pate_2006; @Johnson_2014; @Singh_Glowacki_2022; @Schwendler_2012]. Studies have established how variation in ornamentation and other forms of material culture can be used to communicate information about the numbers and types of social roles and statuses within groups [@Morwood_1987; @Sauvet_2018; @Mattson_2021; @Larsson_2006; @Moore_2010; @Alfonso-Durrruty_Giles_Misarti2015; @Vanhaeren_2005; @Conkey_1985; @Conkey_1978; @Tilley_1982; @Hodder1979; @Hodder1977; @Schwendler_2012]. Drawing on this work, we might speculate that the broader/restricted gradient in the geometric sign data may be consistent with variation in social structure. For example, the broader range groups, with a higher variety of signs and visually complex signs, may indicate communities with a greater variety of formalized social roles, whereas the sites with a restricted range of signs may indicate communities with fewer formalized social roles. 
@@ -953,31 +939,21 @@ knitr::include_graphics(here::here("figures/diversity-plot.png"))
 ```{r}
 #| label: ct-numbers
 # Numbers for cultural transmission and interpretation sections
-# Sign-type pool sizes per phase
-aurp1_n_signs   <- ncol(aurp1_artifact_data)
-aurp2_n_signs   <- ncol(aurp2_artifact_data)
-
-# Network statistics per phase
-aurp1_net  <- network_stats(aurp1_artifact_data)
-aurp2_net  <- network_stats(aurp2_artifact_data)
-
-# Mean degree aliased to sensitivity_summary() baseline (lines 149-155) so
-# paper.qmd:715 and :857 report identical values to 2 dec.
-aurp1_deg   <- md_base_p1
-aurp1_edges <- aurp1_net$n_edges
-aurp1_trans <- aurp1_net$transitivity
-aurp2_deg   <- md_base_p2
-aurp2_edges <- aurp2_net$n_edges
-aurp2_trans <- aurp2_net$transitivity
-
-# Mantel tests
-aurp1_mantel  <- strength_function(aurp1_artifact_data, aurp1_unique_data)$`Mantel R`
-aurp2_mantel  <- strength_function(aurp2_artifact_data, aurp2_unique_data)$`Mantel R`
-aurp1_mantel_p <- strength_function(aurp1_artifact_data, aurp1_unique_data)$`Mantel p`
-aurp2_mantel_p <- strength_function(aurp2_artifact_data, aurp2_unique_data)$`Mantel p`
-
-# BH correction for 4 Mantel tests (2 phases × 2 distance measures; see Supplement S1 §S1.7.5)
-aurp1_mantel_p_adj <- min(aurp1_mantel_p * 4, 1)
+ct_nums <- prepare_ct_numbers(aurp1_artifact_data, aurp2_artifact_data,
+                              md_base_p1, md_base_p2)
+aurp1_n_signs   <- ct_nums$aurp1_n_signs
+aurp2_n_signs   <- ct_nums$aurp2_n_signs
+aurp1_deg   <- ct_nums$aurp1_deg
+aurp1_edges <- ct_nums$aurp1_edges
+aurp1_trans <- ct_nums$aurp1_trans
+aurp2_deg   <- ct_nums$aurp2_deg
+aurp2_edges <- ct_nums$aurp2_edges
+aurp2_trans <- ct_nums$aurp2_trans
+aurp1_mantel  <- ct_nums$aurp1_mantel
+aurp2_mantel  <- ct_nums$aurp2_mantel
+aurp1_mantel_p <- ct_nums$aurp1_mantel_p
+aurp2_mantel_p <- ct_nums$aurp2_mantel_p
+aurp1_mantel_p_adj <- ct_nums$aurp1_mantel_p_adj
 
 # Population estimate from literature
 proto_pop <- 1500  # Schmidt_Zimmermann_2019, general Aurignacian estimate
@@ -986,38 +962,13 @@ proto_pop <- 1500  # Schmidt_Zimmermann_2019, general Aurignacian estimate
 ```{r}
 #| label: twin-mantel-test
 # Formal between-phase test of the isolation-by-distance (Mantel) relationship
-#. We compare the Mantel R of Aur-P1 and Aur-P2 and test whether
+# We compare the Mantel R of Aur-P1 and Aur-P2 and test whether
 # the difference is larger than expected by chance by permuting which sites are
 # assigned to each phase (phase sizes held fixed at 20/9).
-site_level <- time_unique_data_full %>%
-  dplyr::group_by(site_name) %>%
-  dplyr::summarise(
-    dplyr::across(line:star, ~ as.integer(sum(.x) > 0)),
-    longitude = first(longitude),
-    latitude = first(latitude),
-    .groups = "drop"
-  )
-Smat <- as.matrix(extract_artifact(site_level))
-coords_full <- site_level %>%
-  dplyr::select(site_name, longitude, latitude) %>%
-  mutate(longitude = as.numeric(longitude), latitude = as.numeric(latitude))
-geom_full <- sf::st_as_sf(coords_full, coords = c("longitude", "latitude"), crs = 4326)
-
-aurp1_sites <- rownames(aurp1_artifact_data)
-aurp2_sites <- rownames(aurp2_artifact_data)
-all_sites   <- rownames(Smat)
-
-R1_sites <- mantel_R_phase(aurp1_sites, Smat, geom_full)
-R2_sites <- mantel_R_phase(aurp2_sites, Smat, geom_full)
-D_obs    <- R1_sites - R2_sites
-set.seed(42)
-D_null <- replicate(1000, {
-  idx <- sample(seq_along(all_sites), length(aurp1_sites))
-  mantel_R_phase(all_sites[idx], Smat, geom_full) - mantel_R_phase(all_sites[-idx], Smat, geom_full)
-})
-D_null <- D_null[!is.na(D_null)]
-mantel_diff_p <- (sum(abs(D_null) >= abs(D_obs)) + 1) / (length(D_null) + 1)
-mantel_diff_abs <- abs(D_obs)
+twin_res <- twin_mantel_test(time_unique_data_full, aurp1_artifact_data, aurp2_artifact_data)
+D_obs    <- twin_res$D_obs
+mantel_diff_p <- twin_res$mantel_diff_p
+mantel_diff_abs <- twin_res$mantel_diff_abs
 ```
 
 ## Interpreting Network Patterns: Population, Transmission, and Social Structure
