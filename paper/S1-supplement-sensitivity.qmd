@@ -2733,10 +2733,6 @@ knitr::include_graphics(here::here("figures/seriation-null-test-plot.png"))
 
 **Implication for the main text.** The Brower–Kile seriation produces a visually compelling diagonal pattern in both phases, but this pattern is not statistically distinguishable from what the fixed-fixed Curveball null generates when only site richness and sign-type frequencies are preserved. The seriation should therefore be read as a descriptive ordering device that reveals a richness gradient, not as evidence for discrete structure exceeding marginal constraints. This is consistent with the SBM null (§S1.9.4), the maximally-selected split null (§S1.10-A), and the Simpson-turnover null (§S1.10.1), which all fail to reject richness-preserving nulls. The two-group visual impression from the seriation is a real and reproducible gradient (supported by bootstrap consensus in §S1.9.2), but its independence from sampling effort is not demonstrated for small-assemblage sites.
 
-### Rationale
-
-To quantify overall agreement among the three ways of partitioning sites — the main-text manual restricted/broad groups, the bootstrap modal blocks (@sec-s9-2), and the SBM modal assignments (@sec-s9-3) under each emission model (Bernoulli, Gaussian, Poisson) — we compute the Adjusted Rand Index (ARI) between each pair of partitions for each phase. ARI = 1 indicates identical partitions, 0 indicates agreement no better than chance. We use a self-contained implementation of ARI (the @sec-s6 analyses use `mclust::adjustedRandIndex`, which yields the same values). Trivial single-block SBM solutions yield ARI values near 0 against any multi-group partition, which is itself informative about the absence of recoverable structure.
-
 **Question: how strongly do manual, bootstrap-modal, and SBM-modal partitions agree in each phase?**
 
 ```{r}
@@ -2812,8 +2808,7 @@ kable(s6_ari_tab %>% dplyr::select(Phase, ARI_manual_boot,
                     "ARI manual vs SBM (Pois)", "ARI boot vs SBM (Pois)"),
       digits = 2, align = "lccccccc")
 ```
-  digits = 2, align = "lccccccc")
-```
+
 
 ## Cross-Validation of Group Assignments (ARI) {#sec-s9-5}
 
