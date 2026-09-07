@@ -3185,3 +3185,9 @@ phase_distances <- function(df) {
   list(jac = jac, geo = geo)
 }
 
+
+
+# ── Shared SBM computation (called by both paper.qmd and S1) ────────────────────
+compute_sbm <- function(art_list, max_K = 5) {
+  s6_fit_sbm_all(art_list, max_K = max_K)
+}

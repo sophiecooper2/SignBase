@@ -2423,10 +2423,9 @@ The bootstrap treats block structure as a resampling artefact of an observed par
 # fig.keep none discards blockmodels diagnostic ICL-vs-Q traces so they are
 # not captured as setup-sbm-compute-N.png files; plot suppression also
 # happens at the source in fit_sbm() via plotting = "" and a null device.
-s6_sbm <- s6_fit_sbm_all(
+s6_sbm <- compute_sbm(
   list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data),
-  max_K = 5,
-  save_path = NULL  # do not cache; compute fresh each render
+  max_K = 5
 )
 # ── Inline-accessor helpers for the S6.3/S6.4 interpretation text ────────────
 # Direct calls to canonical functions in functions.R with local S6 objects.
