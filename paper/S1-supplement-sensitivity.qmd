@@ -2578,13 +2578,14 @@ s6_sbm <- s6_fit_sbm_all(
 # These are simple aliases to avoid rewriting inline code.
 # Default to bernoulli model; can specify "gaussian" for the weighted model
 # or "poisson" for the count-based model.
-s6_bestK_wrap   <- function(ph, model = "bernoulli") s6_bestK(s6_sbm, ph, model)
-s6_gap_wrap     <- function(ph, model = "bernoulli") s6_gap(s6_sbm, ph, model)
+s6_bestK_wrap   <- function(ph, model = "bernoulli") .s6_bestK(s6_sbm, ph, model)
+s6_gap_wrap     <- function(ph, model = "bernoulli") .s6_gap(s6_sbm, ph, model)
 s6_global_minPost <- function(model = "bernoulli") s6_global_minPost(s6_sbm, model)
 s6_mismatch_wrap <- function(ph, model = "bernoulli") s6_mismatch(s6_sbm, s6_boot, s6_groups, ph, model)
 s6_minPost <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) min(apply(s6_sbm[[ph]][[model]]$Z, 1, max)) else NA_real_
 s6_maxICL  <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) max(s6_sbm[[ph]][[model]]$icl, na.rm = TRUE) else NA_real_
-s6_icl     <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$icl else rep(NA_real_, 5)
+s6_icl     <- function(ph, model = "bernoulli") .s6_icl(s6_sbm, ph, model)
+s6_bestK   <- function(ph, model = "bernoulli") .s6_bestK(s6_sbm, ph, model)
 s6_Z       <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$Z else NULL
 s6_bestK_val <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$bestK else NA_integer_
 ```

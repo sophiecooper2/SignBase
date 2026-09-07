@@ -177,15 +177,10 @@ s6_sbm <- s6_fit_sbm_all(
   max_K = 5
 )
 
-# SBM accessors (from S1 lines 2605-2613)
-s6_bestK <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$bestK else NA_integer_
-s6_icl   <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) s6_sbm[[ph]][[model]]$icl else rep(NA_real_, 5)
-s6_gap   <- function(ph, model = "bernoulli") {
-  icl <- s6_icl(ph, model)
-  if (length(icl) < 2) return(NA_real_)
-  sorted <- sort(icl, decreasing = TRUE)
-  sorted[1] - sorted[2]
-}
+# SBM accessors (2-arg wrappers using global s6_sbm, for inline use in Abstract)
+s6_bestK <- function(ph, model = "bernoulli") .s6_bestK(s6_sbm, ph, model)
+s6_icl   <- function(ph, model = "bernoulli") .s6_icl(s6_sbm, ph, model)
+s6_gap   <- function(ph, model = "bernoulli") .s6_gap(s6_sbm, ph, model)
 ```
 
 ```{r}
@@ -198,6 +193,7 @@ null_results <- expand_grid(
   threshold = c(0.1, 0.2, 0.3)
 ) %>%
   pmap_dfr(function(phase, threshold) run_null_modularity(phase, threshold))
+```
 ```
 
 Abstract: The Aurignacian technocomplex (ca. 43–30 ka cal BP) marks a pivotal expansion of _Homo sapiens_ into Western Eurasia, yet the evolution of social organization during this transition remains debated. Here we investigate social dynamics through the analysis of geometric signs on mobile objects within a two-phase framework based on specialist technological attributions in site assignment. Using seriation and network analyses, we examine patterns of sign production in each phase, and investigate how the sign-sharing network differs between the Early and Late Aurignacian. Within the early phase (Aur-P1; `r aurp1_site_count` sites) we hypothesize a two-group structure of restricted versus broad geometric-sign repertoires. Stochastic block modelling recovers the restricted/broad split as its two largest blocks in Aur-P1, while selecting a single block in Aur-P2; but the richness gap between the groups is not distinguishable from a group difference once the saturating richness–effort relationship is modelled. Despite differences in network size between phases, permutation tests show no evidence for meaningful differences in overall connectivity, community structure, or centrality patterns. Mantel tests did not detect a significant correlation between geographic distance and sign distribution in either phase, and the isolation-by-distance relationship does not differ between them, but bootstrap confidence intervals indicate these tests are underpowered at these sample sizes. We find no statistically significant evidence in the SignBase sample for discrete geographically structured groups of Aurignacian geometric signs analogous to those claimed for personal ornaments.

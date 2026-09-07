@@ -2998,3 +2998,31 @@ mantel_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprin
 
 # Format a bootstrap PerMANOVA R2 CI for inline display
 perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
+
+
+# ── SBM accessors (S1 canonical, from S1 lines 2605-2613) ──────────────────────
+# s6_sbm is expected to be a list with phase names, each containing model fits
+# with $icl (vector of ICL values for K=1..max_K) and $bestK (optimal K)
+# Internal 3-arg versions (prefix with dot); 2-arg wrappers in paper.qmd capture global s6_sbm
+.s6_bestK <- function(s6_sbm, ph, model = "bernoulli") {
+  if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) {
+    s6_sbm[[ph]][[model]]$bestK
+  } else {
+    NA_integer_
+  }
+}
+
+.s6_icl <- function(s6_sbm, ph, model = "bernoulli") {
+  if (ph %in% names(s6_sbm) && model %in% names(s6_sbm[[ph]])) {
+    s6_sbm[[ph]][[model]]$icl
+  } else {
+    rep(NA_real_, 5)
+  }
+}
+
+.s6_gap <- function(s6_sbm, ph, model = "bernoulli") {
+  icl <- .s6_icl(s6_sbm, ph, model)
+  if (length(icl) < 2 || all(is.na(icl))) return(NA_real_)
+  sorted <- sort(icl, decreasing = TRUE)
+  sorted[1] - sorted[2]
+}
