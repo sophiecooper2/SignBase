@@ -12,12 +12,11 @@ paper/paper_files/
 paper/*_cache/
 *_cache
 
-# Open ScholarPeer working files (may contain confidential paper content)
+# Open ScholarPeer  
 .brain/
-
-# Open ScholarPeer MCP runtime (venv + server, gitignored)
 .opencode
 .open-scholar-peer/
+AGENTS.md
 
 # API keys (never commit)
 .env
