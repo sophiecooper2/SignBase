@@ -298,30 +298,6 @@ kable(sens_stats,
                     "Isolates", "Mean degree", "Transitivity",
                     "Modularity", "Communities"),
       digits = 3)
-
-# ── Inline-accessor helpers used by the S1–S5 interpretation text ─────────────
-# Look up a numeric cell in a data frame by phase (and threshold/metric where relevant).
-val <- function(df, col, phase, thr = NULL, metric = NULL) {
-  row <- df$Phase == phase
-  if (!is.null(thr) && "Threshold" %in% names(df)) row <- row & df$Threshold == thr
-  if (!is.null(metric) && "Metric" %in% names(df)) row <- row & df$Metric == metric
-  out <- df[[col]][row]
-  if (length(out) == 0) NA_real_ else out[[1]]
-}
-# Format to a fixed number of decimal places (avoid trailing zeros in tables).
-n3 <- function(x) formatC(x, digits = 3, format = "f")
-n2 <- function(x) formatC(x, digits = 2, format = "f")
-# Compact range string, e.g. "3.09–8.00", with fixed decimals.
-range_str <- function(x, digits = 2) {
-  paste0(formatC(min(x, na.rm = TRUE), digits = digits, format = "f"),
-         "–",
-         formatC(max(x, na.rm = TRUE), digits = digits, format = "f"))
-}
-# Pattern-based lookup for frames whose phase labels are long strings (S4, S5.5).
-pval <- function(df, col, pattern) {
-  x <- df[[col]][grepl(pattern, df$Phase)]
-  if (!length(x)) NA_real_ else x[[1]]
-}
 ```
 
 ### Network visualisations across thresholds {#sec-S1-2-network-visualisations-across}

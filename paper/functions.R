@@ -2964,3 +2964,37 @@ run_null_modularity <- function(phase_name, threshold, n_perm = 499) {
     p = p_val
   )
 }
+
+# ── Inline formatting & lookup helpers (shared by paper.qmd and S1) ─────────────
+# Format a number to fixed decimal places as character (avoids trailing zeros in inline text)
+n3 <- function(x) formatC(x, digits = 3, format = "f")
+n2 <- function(x) formatC(x, digits = 2, format = "f")
+
+# Compact range string, e.g. "3.09–8.00", with fixed decimals
+range_str <- function(x, digits = 2) {
+  paste0(formatC(min(x, na.rm = TRUE), digits = digits, format = "f"),
+         "–",
+         formatC(max(x, na.rm = TRUE), digits = digits, format = "f"))
+}
+
+# Look up a numeric cell in a data frame by phase (and threshold/metric where relevant).
+# Returns NA_real_ if not found.
+val <- function(df, col, phase, thr = NULL, metric = NULL) {
+  row <- df$Phase == phase
+  if (!is.null(thr) && "Threshold" %in% names(df)) row <- row & df$Threshold == thr
+  if (!is.null(metric) && "Metric" %in% names(df)) row <- row & df$Metric == metric
+  out <- df[[col]][row]
+  if (length(out) == 0) NA_real_ else out[[1]]
+}
+
+# Pattern-based lookup for frames whose phase labels are long strings (S4, S5.5).
+pval <- function(df, col, pattern) {
+  x <- df[[col]][grepl(pattern, df$Phase)]
+  if (!length(x)) NA_real_ else x[[1]]
+}
+
+# Format a bootstrap CI for inline display
+mantel_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
+
+# Format a bootstrap PerMANOVA R2 CI for inline display
+perm_ci_fmt <- function(ci) paste0("[", sprintf("%.3f", ci$ci_lo), ", ", sprintf("%.3f", ci$ci_hi), "]")
