@@ -232,7 +232,7 @@ kable(dropped_tbl,
 ```{r}
 # ── Two-phase (Aur-P1/Aur-P2) technology-based data, mirroring paper.qmd ─────
 # Replicates the main-text reclassification (Spy/El Castillo excluded;
-# technology-based reassignment) so S6 tests the same data as the main text.
+# technology-based reassignment) so §S1.9 and §S1.10 test the same data as the main text.
 aurp1_unique_data <- make_phase2_data("Aur-P1", signbase_full_clean, lat_long_df)
 aurp2_unique_data <- make_phase2_data("Aur-P2", signbase_full_clean, lat_long_df)
 aurp1_artifact_data <- extract_artifact(aurp1_unique_data)
@@ -414,7 +414,7 @@ cowplot::plot_grid(p1, p2, ncol = 2, labels = c("a", "b"))
 ```
 
 ```{r}
-# S5.6 prose helpers: ordering-preservation range and mean-degree ranges
+# §S1.2 prose helpers: ordering-preservation range and mean-degree ranges
 sweep_wide <- sweep_results %>%
   dplyr::select(Phase, Threshold, Mean_degree) %>%
   pivot_wider(names_from = Phase, values_from = Mean_degree)
@@ -647,7 +647,7 @@ mg_p1_df <- as.data.frame(mg_p1$mgram) %>% mutate(Phase = "Aur-P1")
 mg_p2_df <- as.data.frame(mg_p2$mgram) %>% mutate(Phase = "Aur-P2")
 mg_plot_df <- bind_rows(mg_p1_df, mg_p2_df)
 
-# Global Mantel R (point estimate + permutation p), same construction as S3
+# Global Mantel R (point estimate + permutation p), same construction as §S1.4
 mp1 <- vegan::mantel(pd_p1$geo, pd_p1$jac, permutations = 1000)
 mp2 <- vegan::mantel(pd_p2$geo, pd_p2$jac, permutations = 1000)
 mg_p1_r <- mp1$statistic; mg_p1_p <- mp1$signif
@@ -959,7 +959,7 @@ kable(boundary_shifts_all %>%
 ```
 
 ```{r}
-# S5.5 prose helpers
+# §S1.5.4 prose helpers
 s55_order_ok <- boundary_shifts_all %>%
   filter(Shift != "Baseline") %>%
   dplyr::select(Shift, Phase, mean_degree) %>%
@@ -1015,8 +1015,8 @@ Because these attributions are important for the two-phase framework, this secti
 **Question: does the Aur-P1 greater than Aur-P2 connectivity ordering survive when Vogelherd is excluded entirely?**
 
 ```{r}
-# ── Shared sensitivity summary (also used by S12 figurine section) ──────────
-# Computed here so S5.5 can use excl$s8_novog before the S12 setup chunk runs.
+# ── Shared sensitivity summary (also used by §S1.12 figurine section) ──────
+# Computed here so §S1.5.5 can use excl$s8_novog before the §S1.12 setup chunk runs.
 excl <- sensitivity_summary(signbase_full_clean, aurp1_artifact_data, aurp2_artifact_data)
 # ── Analysis A: revert to purely date-based assignment ─────────────────────
 # Reassign each object purely by its calibrated date (technology overrides
@@ -1689,7 +1689,7 @@ kable(boot_results %>%
 ```
 
 ```{r}
-# S5.7 prose helpers: CI lookups and mean-degree CI overlap flag
+# §S1.7.4 prose helpers: CI lookups and mean-degree CI overlap flag
 s57_phase <- function(ph) list(
   md_low   = val(boot_results, "md_lower", ph),
   md_hi    = val(boot_results, "md_upper", ph),
@@ -1813,7 +1813,7 @@ kable(mantel_bh,
 ```
 
 ```{r}
-# S5.8 prose helpers: the closest-to-significance result
+# §S1.7.5 prose helpers: the closest-to-significance result
 s58_best <- mantel_bh %>% arrange(`Raw p`) %>% slice(1)
 s58_test  <- s58_best$Test[1]
 s58_R     <- s58_best$R[1]
@@ -1838,7 +1838,7 @@ s58_after_text <- if (s58_n_sig == 0) {
 ### Rationale
 
 ```{r}
-# S5.9 prose helper: site counts and percentage surplus
+# §S1.7.6 prose helper: site counts and percentage surplus
 s59_pct_more <- round(100 * (nrow(aurp1_artifact_data) - nrow(aurp2_artifact_data)) / nrow(aurp2_artifact_data))
 ```
 
@@ -2132,7 +2132,7 @@ s513_marg_grp_p1 <- s513_ad(s513_perm_p1_k2$marginal, 2)
 s513_marg_reg_p2 <- s513_ad(s513_perm_p2_k2$marginal, 1)
 s513_marg_grp_p2 <- s513_ad(s513_perm_p2_k2$marginal, 2)
 
-# Louvain vs objective region ARI (bridge to S5.1)
+# Louvain vs objective region ARI (bridge to §S1.6.2 Louvain; used in §S1.8.4)
 # Louvain at threshold 0.2 primary (get_louvain_groups from functions.R)
 s513_louv_p1 <- get_louvain_groups(aurp1_artifact_data, threshold = 0.2)
 s513_louv_p2 <- get_louvain_groups(aurp2_artifact_data, threshold = 0.2)
@@ -2427,8 +2427,8 @@ s6_sbm <- compute_sbm(
   list("Aur-P1" = aurp1_artifact_data, "Aur-P2" = aurp2_artifact_data),
   max_K = 5
 )
-# ── Inline-accessor helpers for the S6.3/S6.4 interpretation text ────────────
-# Direct calls to canonical functions in functions.R with local S6 objects.
+# ── Inline-accessor helpers for the §S1.9.3/§S1.9.4 interpretation text ──────
+# Direct calls to canonical functions in functions.R with local §S1.9 objects.
 # These are simple aliases to avoid rewriting inline code.
 # Default to bernoulli model; can specify "gaussian" for the weighted model
 # or "poisson" for the count-based model.
@@ -2663,7 +2663,7 @@ All three are exploratory companions to, not replacements for, the main-text Per
 **Question: does sign composition vary with predictors independent of the distance matrix?**
 
 ```{r}
-# ── S6.6 computation: circularity-breaking validation ────────────────────────
+# ── §S1.10 computation: circularity-breaking validation ───────────────────────
 # Align manual group labels to the site x sign artifact matrices (rownames = sites).
 aurp1_grp <- aurp1_unique_data$group[match(rownames(aurp1_artifact_data),
                                            aurp1_unique_data$site_name)]
@@ -3519,9 +3519,9 @@ When the comparison is restricted to object types present in both phases, the ov
 ```{r}
 #| label: setup-figurine
 #| include: false
-# ── S7 setup: all figurine-exclusion statistics are produced by the shared
+# ── §S1.12 setup: all figurine-exclusion statistics are produced by the shared
 #    sensitivity_summary() function in functions.R (also used by paper.qmd and the
-#    S8 section), so the supplement and the main text cannot report divergent numbers.
+#    §S1.5.5 section), so the supplement and the main text cannot report divergent numbers.
 
 excl <- sensitivity_summary(signbase_full_clean, aurp1_artifact_data, aurp2_artifact_data)
 
@@ -3570,7 +3570,7 @@ kable(figurine_summary,
 ```{r}
 #| label: setup-figurine-helpers
 #| include: false
-# ── Accessor helpers for the S7 interpretation prose (read from joint_comparison) ──
+# ── Accessor helpers for the §S1.12 interpretation prose (read from joint_comparison) ─
 s7_md  <- function(ph, cond = "Baseline (all objects)") {
   round(joint_comparison$mean_degree[joint_comparison$Phase == ph & joint_comparison$Condition == cond], 2)
 }

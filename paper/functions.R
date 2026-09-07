@@ -3319,7 +3319,8 @@ pairwise_perm_test <- function(aurp1_mat, aurp2_mat, nperm = 10000) {
     bet   <- if (igraph::ecount(ig) > 0) mean(igraph::betweenness(ig, weights = NA)) else 0
     ncomp <- if (igraph::ecount(ig) > 0) igraph::components(ig)$no else nrow(site_vectors)
     c(density = dens, modularity = mod, betweenness = bet, components = ncomp)
-  })
+  }))
+}
 # -- Phase-randomized null distribution (from paper.qmd) --------------------------
 compute_phase_randomized_null <- function(all_mat, sizes, nperm = 10000) {
   stats <- c("density", "modularity", "betweenness", "components")
