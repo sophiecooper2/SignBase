@@ -45,11 +45,15 @@ We used R and RStudio for this paper. We developed the project in an OSX environ
 
 3. In the R console in RStudio, run `renv::restore()` to install the required packages at the same versions we used.   
 
-4. Our manuscript is a Quarto document that contains the text of our paper interwoven with blocks of R code that generates the data visualizations and tables. To execute all the code and generate a docx document showing the results, run this line in the R console:
+4. Our manuscript is a Quarto document that contains the text of our paper interwoven with blocks of R code that generates the data visualizations and tables. The paper cross-references supplement sections by identifier, and the section numbers are resolved at render time from a map that each supplement writes when it renders. So render the supplements first, then the paper, in this order:
 
 ```
+quarto::quarto_render("paper/S1-supplement-sensitivity.qmd")
+quarto::quarto_render("paper/S2-supplement-site-assignment.qmd")
 quarto::quarto_render("paper/paper.qmd")
 ```
+
+   If you edit a heading in a supplement, re-render that supplement before the paper so the map stays current. A paper-only render with a missing or stale map prints `??` for the affected references and a warning naming the supplement to render.
 
    
 ## How to download and run locally in a Docker container

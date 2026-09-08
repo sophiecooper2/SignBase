@@ -22,6 +22,40 @@
 local supp = nil
 local sec_map = {}
 local warned_no_supp = false
+local map_out = nil
+
+-- Serialize the flat id->label map to a JSON object and write it to disk so a
+-- companion document (paper.qmd) can resolve cross-document section references
+-- by id at render time. Keys are lowercased header identifiers; values are the
+-- rendered "S<n>.<m>..." labels. Both are safe tokens (no quotes/escapes), so a
+-- minimal hand-rolled encoder suffices (pandoc's Lua has no JSON writer).
+local function write_sec_map()
+  local path = map_out
+  if not path then
+    -- Quarto runs pandoc with the working directory set to the input
+    -- document's folder, so a bare filename lands beside the .qmd (paper/).
+    path = "s" .. tostring(supp) .. "-sec-map.json"
+  end
+  local keys = {}
+  for k in pairs(sec_map) do keys[#keys + 1] = k end
+  table.sort(keys)
+  local parts = {}
+  for _, k in ipairs(keys) do
+    parts[#parts + 1] = '    "' .. k .. '": "' .. sec_map[k] .. '"'
+  end
+  local body = '{\n  "supplement": ' .. tostring(supp)
+    .. ',\n  "labels": {\n' .. table.concat(parts, ",\n")
+    .. "\n  }\n}\n"
+  local fh, err = io.open(path, "w")
+  if not fh then
+    io.stderr:write("[supplement-sections] cannot write map " .. path .. ": " .. tostring(err) .. "\n")
+    return
+  end
+  fh:write(body)
+  fh:close()
+  io.stderr:write("[supplement-sections] wrote " .. tostring(#keys)
+    .. " section labels to " .. path .. "\n")
+end
 
 local function has_skip_class(el)
   if el.classes then
@@ -68,6 +102,9 @@ end
 function Meta(meta)
   if meta["supplement-number"] ~= nil then
     supp = tonumber(pandoc.utils.stringify(meta["supplement-number"]))
+  end
+  if meta["sec-map-out"] ~= nil then
+    map_out = pandoc.utils.stringify(meta["sec-map-out"])
   end
   return nil
 end
@@ -196,5 +233,6 @@ function Pandoc(doc)
 
   doc.blocks = pandoc.walk_block(
     pandoc.Div(doc.blocks), { Cite = rewrite_sec_cite }).content
+  write_sec_map()
   return doc
 end

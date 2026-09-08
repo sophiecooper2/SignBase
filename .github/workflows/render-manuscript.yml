@@ -26,18 +26,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Render Quarto Document
+      - name: Render Quarto Documents
         run: |
           docker run --name render-container signbase:latest \
-            quarto render paper/paper.qmd --to docx
+            bash -lc "quarto render paper/S1-supplement-sensitivity.qmd --to docx \
+              && quarto render paper/S2-supplement-site-assignment.qmd --to docx \
+              && quarto render paper/paper.qmd --to docx"
 
       - name: Download .docx from Container
         run: |
           docker cp render-container:/project/paper/paper.docx ./paper.docx
+          docker cp render-container:/project/paper/S1-supplement-sensitivity.docx ./S1-supplement-sensitivity.docx
+          docker cp render-container:/project/paper/S2-supplement-site-assignment.docx ./S2-supplement-site-assignment.docx
 
       - name: Upload to Summary Page
         uses: actions/upload-artifact@v4
         with:
           name: Manuscript-Word-Doc
-          path: paper.docx
+          path: |
+            paper.docx
+            S1-supplement-sensitivity.docx
+            S2-supplement-site-assignment.docx
           retention-days: 7
