@@ -1644,9 +1644,7 @@ cv_permanova_objectsplit <- function(object_df, site_sign_cols,
        median_p_sim = median(pvals_sim),
        mean_p = mean(pvals),
        combined_p = fisher_combine_p(pvals),
-       combined_p_sim = fisher_combine_p(pvals_sim),
-       browns_p = browns_combine_p(pvals),
-       browns_p_sim = browns_combine_p(pvals_sim))
+       combined_p_sim = fisher_combine_p(pvals_sim))
 }
 
 # Group-free gradient PERMANOVA: regress sign-composition dissimilarity on a
@@ -1698,37 +1696,14 @@ fisher_combine_p <- function(p) {
 # median p and proportion significant.
 browns_combine_p <- function(p) {
   p <- p[is.finite(p) & p > 0 & p < 1]
-  # Clip p=1 to avoid log(0) issues; p near 1 contributes little evidence
-  p <- pmin(p, 0.999999)
-  if (length(p) < 2) return(fisher_combine_p(p))
-  k <- length(p)
-  # Fisher statistic and its components
-  w <- -2 * log(p)
-  fisher_stat <- sum(w)
-  # Estimate covariance among w's via empirical correlation of w
-  # For random splits of the same sites, correlation is positive; we estimate
-  # var(w) and cov(w_i, w_j) empirically if k is large enough, otherwise use
-  # the conservative approximation that cov = var * mean correlation.
-  # Use the single-sample estimate of variance of w under null: var = 4
-  # (chi2_2 variance). Empirical variance inflation reflects dependence.
-  var_w <- var(w)
-  if (is.na(var_w) || var_w == 0) return(fisher_combine_p(p))
-  # Mean pairwise covariance approximated from variance inflation
-  # Under dependence, sum var = k*4 + k*(k-1)*cov -> cov = (var_sum - k*4)/(k*(k-1))
-  # where var_sum = k * var_w (empirical). This matches Kost & McDermott.
-  var_sum <- k * var_w
-  # Expected sum variance under independence = 4*k
-  # If empirical var_sum <= 4*k, dependence is negligible, fall back to Fisher
-  if (var_sum <= 4 * k) return(fisher_combine_p(p))
-  cov_est <- (var_sum - 4 * k) / (k * (k - 1))
-  cov_est <- max(0, min(cov_est, 3.9))
-  # Adjusted mean and variance of Fisher statistic under dependence
-  mean_f <- 2 * k
-  var_f <- 4 * k + 2 * k * (k - 1) * cov_est
-  # Scale factor c and adjusted df
-  c_scale <- var_f / (2 * mean_f)
-  df_adj <- 2 * mean_f^2 / var_f
-  pchisq(fisher_stat / c_scale, df = df_adj, lower.tail = FALSE)
+  k <- length(p); if (k < 2) return(fisher_combine_p(p))
+  w  <- -2 * log(pmin(p, 1 - 1e-6))
+  T  <- sum(w)
+  m  <- 2 * k
+  th <- T - w                                   # sum with split i omitted
+  V  <- ((k - 1) / k) * sum((th - mean(th))^2)   # jackknife Var(T)
+  if (!is.finite(V) || V <= 4 * k) return(fisher_combine_p(p))
+  pchisq(T * 2 * m / V, df = 2 * m^2 / V, lower.tail = FALSE)
 }
 
 # Object-within-site bootstrap for network statistics (S1 §S1.7.4).
