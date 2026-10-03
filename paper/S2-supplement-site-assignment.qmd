@@ -1,6 +1,6 @@
 ---
 title: "Supplementary Material: Site Phase Assignments"
-subtitle: "Geometric signs as proxies for cultural connectivity during the Western Eurasian Aurignacian"
+subtitle: "Geometric signs reveal a continuum rather than discrete cultural groups in the Aurignacian"
 author:
   - Sophie Cooper:
       institute: uw
