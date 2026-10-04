@@ -963,7 +963,8 @@ to_long <- function(from, factor = FALSE, reverse = FALSE) {
 }
 
 # ggplot2 autoplot method for tabula diversity-index objects.
-autoplot.DiversityIndex <- function(object, ...) {
+autoplot.DiversityIndex <- function(object, ...,
+                                    y_expansion = ggplot2::expansion(mult = c(0.05, 0.05))) {
   ## Prepare data
   count <- cbind.data.frame(
     label = object@labels,
@@ -1010,11 +1011,24 @@ autoplot.DiversityIndex <- function(object, ...) {
     ggplot2::geom_point() +
     gg_sim +
     ggplot2::scale_x_log10(name = "Sample size") +
-    ggplot2::scale_y_continuous(name = "Diversity")
+    ggplot2::scale_y_continuous(name = "Diversity", expand = y_expansion)
 }
+
+# Smallest sample size that still gets a site name on the Figure 6 panels.
+# Ten Aur-P1 sites carry four or fewer sign occurrences and share the lower-left
+# corner of the panel, so their names cannot be placed legibly at the published
+# figure width. All sites are still drawn as points, and every per-site value is
+# tabulated in S1 sec-s12-2 (tbl-divsite).
+MIN_LABELLED_OCCURRENCES <- 5
 
 # Plot expected-vs-observed Shannon diversity per site for one phase.
 plot_diversity_fn <- function(input_df) {
+
+  # Single source of truth for the per-site numbers. diversity_excess() returns
+  # the same site order as tabula@labels, and its nobjects and H_obs columns are
+  # identical to tabula@size and tabula@.Data, so the label coordinates below
+  # land on the plotted points.
+  de <- diversity_excess(input_df)
 
   signs <-
     input_df %>%
@@ -1031,12 +1045,37 @@ plot_diversity_fn <- function(input_df) {
   diversity_sim <- tabula::simulate(diversity_index,
                                     level = 0.95)
 
-  autoplot.DiversityIndex(diversity_sim) +
-    ggrepel::geom_text_repel(aes(label = diversity_sim@labels),
-                             size = 3,
-                             max.overlaps = 15,
+  # Each label carries its own coordinates, so no row order is assumed. NA labels
+  # are not drawn by geom_text_repel(), which leaves small sites as bare points.
+  lab <- data.frame(
+    x     = de$nobjects,
+    y     = de$H_obs,
+    label = ifelse(de$nobjects >= MIN_LABELLED_OCCURRENCES,
+                   de$site_name, NA_character_),
+    stringsAsFactors = FALSE
+  )
+
+  # The y expansion leaves room above the top curve so the highest site label is
+  # not clipped by the panel edge.
+  autoplot.DiversityIndex(diversity_sim,
+                          y_expansion = ggplot2::expansion(mult = c(0.10, 0.16))) +
+    ggrepel::geom_text_repel(data = lab,
+                             ggplot2::aes(x = .data$x,
+                                          y = .data$y,
+                                          label = .data$label),
+                             inherit.aes = FALSE,
+                             size = 2.6,
+                             max.overlaps = Inf,
+                             box.padding = 0.9,
+                             point.padding = 0.35,
+                             min.segment.length = 0,
+                             segment.size = 0.2,
+                             segment.color = "grey45",
+                             max.time = 3,
+                             force = 2,
+                             seed = 1,
                              bg.color = "white",
-                             bg.r = 0.1) +
+                             bg.r = 0.12) +
     guides(colour = "none") +
     theme_minimal(base_size = 8) +
     ggpubr::border(color = "black", size = 0.5)
@@ -3461,6 +3500,22 @@ pcoa_axis_test <- function(artifact_data, uniq_data, phase_name, pc1_scores) {
     partial_rho_latitude = round(partial_rho_latitude, 3),
     check.names = FALSE
   )
+}
+
+# -- Standardise a distance matrix for MRM --------------------------------------
+# ecodist::MRM() rebuilds each predictor with full(), so the object it receives
+# must be a symmetric matrix. scale() applied to the n x n matrix centres by
+# column, which breaks that symmetry and silently changes R2. Transform the
+# vector of pairwise distances instead: the result is a global affine change,
+# so the model fit is unchanged and only the coefficient units differ.
+# Verified: R2 is bit-identical (0.022906748763) to the unstandardised fit.
+zmat <- function(d) {
+  n <- attr(d, "Size")
+  m <- matrix(0, n, n)
+  m[lower.tri(m)] <- as.vector(d)
+  m <- (m - mean(as.vector(d))) / stats::sd(as.vector(d))
+  diag(m) <- 0
+  as.dist(m)
 }
 
 # -- Phase distances for Mantel correlogram (from S1) ----------------------------
