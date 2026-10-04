@@ -913,7 +913,7 @@ When each site's observed diversity is compared with the expectation for its sam
 
 ```{r fig.height= 7, fig.width=10}
 #| label: fig-div-plot
-#| fig-cap: "Observed geometric sign diversity at each site compared with expectations derived from randomised assemblages controlling for sample size. The blue expectation curve is the mean simulated diversity index per sample size. The red lines enclose a band that is the 95% confidence interval of the null distribution (no sites exceed this interval). Sites above the blue expectation curve have higher than average diversity, given their sample size. Site names are shown for sites with a sample size of five or more; ten Aur-P1 sites and four Aur-P2 sites fall below that threshold and are drawn as unlabelled points, because their names cannot be placed legibly at this figure width. Per-site values for every site are given in S1 §[-@s1-sec-s12-1]."
+#| fig-cap: "Observed geometric sign diversity at each site compared with expectations derived from randomised assemblages controlling for sample size. The blue expectation curve is the mean simulated diversity index per sample size. The red lines enclose a band that is the 95% confidence interval of the null distribution (no sites exceed this interval). Sites above the blue expectation curve have higher than average diversity, given their sample size. Site names are shown for sites with a sample size of three or more to avoid label overlap. Per-site values for every site are given in S1 §[-@s1-sec-s12-1]."
 
 library(tabula)
 library(rnaturalearth)

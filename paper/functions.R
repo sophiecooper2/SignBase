@@ -1019,7 +1019,7 @@ autoplot.DiversityIndex <- function(object, ...,
 # corner of the panel, so their names cannot be placed legibly at the published
 # figure width. All sites are still drawn as points, and every per-site value is
 # tabulated in S1 sec-s12-2 (tbl-divsite).
-MIN_LABELLED_OCCURRENCES <- 5
+MIN_LABELLED_OCCURRENCES <- 3
 
 # Plot expected-vs-observed Shannon diversity per site for one phase.
 plot_diversity_fn <- function(input_df) {
