@@ -41,6 +41,13 @@ filters:
   - ../templates/scholarly-metadata.lua
   - ../templates/author-info-blocks.lua
   - ../templates/pagebreak.lua
+  # Column widths (from `#| tbl-colwidths:`) and left-aligned cells for DOCX.
+  # The same file is registered twice: once before Quarto's own processing, to
+  # set the widths, and once at post-render, to left-align the caption wrapper
+  # Quarto adds around captioned tables. See templates/tbl-colwidths.lua.
+  - ../templates/tbl-colwidths.lua
+  - at: post-render
+    path: ../templates/tbl-colwidths.lua
 bibliography: references.bib
 csl: "../templates/elsevier-vancouver.csl" # Insert path for the bib-style
 keywords: |
@@ -226,6 +233,7 @@ We adopt the two-phase framework (Aur-P1/Aur-P2) of @Schmidt_Zimmermann_2019 and
 #| label: tbl-aur-table
 #| tbl-cap: "Summary of chronological, cultural and environmental characteristics of Aurignacian periods [@Banks_dErrico_Zilhao_2013;  @Shao_Limberg_Klein_Wegener_Schmidt_Weniger_Hense_Rostami_2021; @Chu_Richter_2020; @Fletcher_Sánchez]"
 #| tbl-cap-location: bottom
+#| tbl-colwidths: [18, 16, 40, 26]
 
 kable(aur_table)
 ```
@@ -409,6 +417,7 @@ If the distribution of sign types can be mostly explained by geographic distance
 #| label: tbl-mantel-table
 #| tbl-cap: "Table of the results per phase for the Mantel test between a Jaccard dissimilarity matrix of sign type diversity and a geographic distance matrix. The 95% confidence interval comes from an object-within-site bootstrap (B = 1,000)."
 #| tbl-cap-location: bottom
+#| tbl-colwidths: [30, 20, 18, 32]
 #| cache: true
 ## Mantel test for geography vs signs
 
@@ -716,6 +725,7 @@ Spatial clusters of sites are not evident in the sites with signs (@fig-group-ma
 #| label: tbl-strength-table
 #| tbl-cap: "Table of the results per phase for the perMANOVA. The R² 95% confidence interval comes from an object-within-site bootstrap (B = 1,000). The bootstrap interval measures R² stability under object resampling with fixed labels, they are not a null-hypothesis test"
 #| tbl-cap-location: bottom
+#| tbl-colwidths: [26, 18, 16, 16, 24]
 #| cache: true
 
 aurp1_strength <- strength_function(aurp1_artifact_data, aurp1_unique_data)

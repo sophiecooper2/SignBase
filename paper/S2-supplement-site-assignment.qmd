@@ -50,19 +50,26 @@ filters:
   - ../templates/scholarly-metadata.lua
   - ../templates/author-info-blocks.lua
   - ../templates/pagebreak.lua
+  # Column widths (from `#| tbl-colwidths:`) and left-aligned cells for DOCX.
+  # The same file is registered twice: once before Quarto's own processing, to
+  # set the widths, and once at post-render, to left-align the caption wrapper
+  # Quarto adds around captioned tables. See templates/tbl-colwidths.lua.
+  - ../templates/tbl-colwidths.lua
+  - at: post-render
+    path: ../templates/tbl-colwidths.lua
 bibliography: references.bib
 csl: "../templates/elsevier-vancouver.csl" # Insert path for the bib-style
 ---
 
 ## Overview {#sec-overview}
 
-This supplement documents the rationale and procedure for assigning archaeological sites to Aurignacian phases. Phase assignments in the main analysis are based on specialist technological attributions from the published literature, not solely on radiocarbon dates. This supplement summarises the evidence for each reclassification and provides the complete site-level status table.
+This supplement documents the rationale and procedure for assigning archaeological sites to Aurignacian phases. Phase assignments in the main analysis are based on specialist technological attributions from the published literature, not solely on radiocarbon dates. This supplement summarises the evidence for each reclassification and provides the complete site-level status table (see @tbl-site-table and the full assignment basis in @tbl-site-objects-all).
 
-Our phase assignments follow specialist technological attributions from the published literature, not radiocarbon dates alone, which can conflict with the archaeological content of a layer. Recent reassessments are therefore incorporated directly into our main analysis: Abri Pataud is placed in the Early Aurignacian (Aur-P1) on the basis of its lithic technology [@Chiotti_2005; @Higham_Abri_Pataud_2011], La Ferrassie in the Early Aurignacian (Aur-P1) on the basis of Layer 7 directly above the Châtelperronian [@Talamo_La_Ferrassie_2020], Mladeč in the Evolved Aurignacian (Aur-P2) on the basis of its massive-base bone points and ~31 ka ¹⁴C BP (~35–36 ka cal BP) dates [@Wild_et_al_2005], and the Swabian Jura site of Geissenklösterle in the Early Aurignacian [Aur-P1, @Bataille_Conard_2018; @Bataille_Conard_2019]. Hohle Fels is assigned at the layer level rather than as a single site: its lower Aurignacian horizons (AH V) are placed in the Early Aurignacian (Aur-P1), whereas its upper horizons (AH IV, III and the II-series) are placed in the Evolved/Late Aurignacian (Aur-P2), following the demonstration that the assemblages of AH IV (and the overlying IIIa and IIIb) are closely comparable to the Western European Late Aurignacian [@Dinnis_et_al_2019; @Bataille_Conard_2018; @Bataille_Conard_2019]. Two sites are excluded from the analysis because their assemblages are too mixed to assign to a single phase reliably: Spy [@Flas_et_al_2013; @Flas_2015] and El Castillo. The robustness of these assignments to reverting to purely date-based criteria is tested in S2 "Site Phase Assignments", where stratigraphic mixing concerns at Vogelherd are also addressed [@Schurch_Conard_2026_reassess]. We detail the rationale and procedure for assigning archaeological sites to Aurignacian phases further below.
+Our phase assignments follow specialist technological attributions from the published literature, not radiocarbon dates alone, which can conflict with the archaeological content of a layer. Recent reassessments are therefore incorporated directly into our main analysis: Abri Pataud is placed in the Early Aurignacian (Aur-P1) on the basis of its lithic technology [@Chiotti_2005; @Higham_Abri_Pataud_2011], La Ferrassie in the Early Aurignacian (Aur-P1) on the basis of Layer 7 directly above the Châtelperronian [@Talamo_La_Ferrassie_2020], Mladeč in the Evolved Aurignacian (Aur-P2) on the basis of its massive-base bone points and ~31 ka ¹⁴C BP (~35–36 ka cal BP) dates [@Wild_et_al_2005], and the Swabian Jura site of Geissenklösterle in the Early Aurignacian [Aur-P1, @Bataille_Conard_2018; @Bataille_Conard_2019]. Hohle Fels is assigned at the layer level rather than as a single site: its lower Aurignacian horizons (AH V) are placed in the Early Aurignacian (Aur-P1), whereas its upper horizons (AH IV, III and the II-series) are placed in the Evolved/Late Aurignacian (Aur-P2), following the demonstration that the assemblages of AH IV (and the overlying IIIa and IIIb) are closely comparable to the Western European Late Aurignacian [@Dinnis_et_al_2019; @Bataille_Conard_2018; @Bataille_Conard_2019]. Two sites are excluded from the analysis because their assemblages are too mixed to assign to a single phase reliably: Spy [@Flas_et_al_2013; @Flas_2015] and El Castillo (see @tbl-excluded). The robustness of these assignments to reverting to purely date-based criteria is tested in S2 "Site Phase Assignments", where stratigraphic mixing concerns at Vogelherd are also addressed [@Schurch_Conard_2026_reassess]. We detail the rationale and procedure for assigning archaeological sites to Aurignacian phases further below (@sec-data-pipeline, @sec-literature-findings, @sec-site-status).
 
 ## Data pipeline {#sec-data-pipeline}
 
-The following code loads the raw SignBase dataset, parses radiocarbon dates, calibrates them, and assigns objects to phases. Sites excluded from the main analysis are filtered out, and sites reassigned based on technological attribution are overrides. Date parsing handles both ends of date ranges, routes OSL ages around radiocarbon calibration, and uses IntCal20 explicitly. Sensitivity to variant choice is explored in Supplement S1.
+The following code loads the raw SignBase dataset, parses radiocarbon dates, calibrates them, and assigns objects to phases. Sites excluded from the main analysis are filtered out, and sites reassigned based on technological attribution are overrides. Date parsing handles both ends of date ranges, routes OSL ages around radiocarbon calibration, and uses IntCal20 explicitly. Sensitivity to variant choice is explored in Supplement S1. The resulting per-site assignment and basis are listed in @tbl-site-objects-all.
 
 ```{r}
 #| label: load-data
@@ -141,7 +148,11 @@ site_summary <- signbase_full_clean %>%
 ```
 
 ```{r}
-#| label: site-basis
+#| label: tbl-site-objects-all
+#| tbl-cap: "Retained sites with object counts and assignment basis."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [22, 12, 10, 14, 42]
+#| echo: false
 # Literature-rationale text ONLY: the site names and object counts come from
 # the pipeline above; only the "Basis" citation strings are recorded by hand.
 # Any site not listed here is date-assigned (the default case_when branch).
@@ -193,7 +204,9 @@ site_objects <- site_objects %>%
     basis
   ))
 
-knitr::kable(site_objects, caption = "Retained sites with object counts and assignment basis.")
+site_objects %>%
+  dplyr::select(site_name, phase2, objects, assignment, basis) %>%
+  knitr::kable(col.names = c("Site", "Phase", "Objects", "Assignment", "Basis"))
 ```
 
 ```{r}
@@ -279,53 +292,66 @@ Vogelherd is kept as a single site-level Aur-P1 unit rather than split by layer:
 
 ## Site status table {#sec-site-status}
 
-`signBase_Version1.0.csv` contains **`r nrow(signbase_full)` objects distributed across `r n_distinct(signbase_full$site_name)` sites**. `r n_zero_objects` objects from `r n_zero_sites` sites carry no geometric signs and are excluded upstream. A further eight sites are removed from the sample before phase assignment (Willendorf; Muralovka, Shanidar Cave and Hayonim Cave for geographic isolation; El Salitre for lack of a reliable chronological context; Riparo di Fontana Nuova and Grotte De La Princesse Pauline, and Šandalja II as later or peripheral). After phase reclassification and the exclusion of the two mixed-assemblage sites Spy and El Castillo, the analysed sample retains **`r n_retained_sites` sites carrying `r n_retained_objects` objects across `r n_retained_countries` countries**: Aur-P1 (Proto/Early) has `r n_p1_sites` sites and `r n_p1_objects` objects, Aur-P2 (Evolved/Late) has `r n_p2_sites` sites and `r n_p2_objects` objects.
+`signBase_Version1.0.csv` contains **`r nrow(signbase_full)` objects distributed across `r n_distinct(signbase_full$site_name)` sites**. `r n_zero_objects` objects from `r n_zero_sites` sites carry no geometric signs and are excluded upstream (see @tbl-zero-sign). A further eight sites are removed from the sample before phase assignment (Willendorf; Muralovka, Shanidar Cave and Hayonim Cave for geographic isolation; El Salitre for lack of a reliable chronological context; Riparo di Fontana Nuova and Grotte De La Princesse Pauline, and Šandalja II as later or peripheral). After phase reclassification and the exclusion of the two mixed-assemblage sites Spy and El Castillo (see @tbl-excluded), the analysed sample retains **`r n_retained_sites` sites carrying `r n_retained_objects` objects across `r n_retained_countries` countries**: Aur-P1 (Proto/Early) has `r n_p1_sites` sites and `r n_p1_objects` objects, Aur-P2 (Evolved/Late) has `r n_p2_sites` sites and `r n_p2_objects` objects. @tbl-site-table lists every retained site and its object count. Technology-based assignments are detailed in @tbl-tech-aurp1 (Aur-P1) and @tbl-tech-aurp2 (Aur-P2); date-based assignments in @tbl-date-aurp1 (Aur-P1) and @tbl-date-aurp2 (Aur-P2). Sites lost during date parsing are listed in @tbl-date-excluded.
 
 ```{r}
-#| label: site-table
+#| label: tbl-site-table
+#| tbl-cap: "Sites and object counts after phase reclassification (Aur-P1 = Proto/Early, Aur-P2 = Evolved/Late)."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [60, 20, 20]
 #| echo: false
 site_table <- signbase_full_clean %>%
   group_by(site_name, phase2) %>%
   summarise(objects = n(), .groups = "drop") %>%
   arrange(site_name)
 
-knitr::kable(site_table, col.names = c("Site", "Phase", "Objects"),
-             caption = "Sites and object counts after phase reclassification (Aur-P1 = Proto/Early, Aur-P2 = Evolved/Late).")
+knitr::kable(site_table, col.names = c("Site", "Phase", "Objects"))
 ```
 
 ### Aur-P1 (Proto/Early) — technology-based assignment
 
-Sites placed in Aur-P1 on the basis of specialist technological attributions rather than radiocarbon dates alone.
+Sites placed in Aur-P1 on the basis of specialist technological attributions rather than radiocarbon dates alone (see @tbl-tech-aurp1).
 
 ```{r}
 #| label: tbl-tech-aurp1
+#| tbl-cap: "Aur-P1 sites assigned by technology rather than radiocarbon date."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [26, 12, 62]
 #| echo: false
 tech_p1 <- site_objects %>%
   filter(assignment == "technology", phase2 == "Aur-P1") %>%
   arrange(desc(objects)) %>%
   select(site_name, objects, basis)
 
-knitr::kable(tech_p1, col.names = c("Site", "Objects", "Basis"),
-             caption = "Aur-P1 sites assigned by technology rather than radiocarbon date.")
+knitr::kable(tech_p1, col.names = c("Site", "Objects", "Basis"))
 ```
 
 ### Aur-P2 (Evolved/Late) — technology-based assignment
 
+One site is placed in Aur-P2 on technological grounds (see @tbl-tech-aurp2).
+
 ```{r}
 #| label: tbl-tech-aurp2
+#| tbl-cap: "Aur-P2 sites assigned by technology rather than radiocarbon date."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [26, 12, 62]
 #| echo: false
 tech_p2 <- site_objects %>%
   filter(assignment == "technology", phase2 == "Aur-P2") %>%
   select(site_name, objects, basis)
 
-knitr::kable(tech_p2, col.names = c("Site", "Objects", "Basis"),
-             caption = "Aur-P2 sites assigned by technology rather than radiocarbon date.")
+knitr::kable(tech_p2, col.names = c("Site", "Objects", "Basis"))
 ```
 
 ### Excluded due to mixing
 
+Two sites are excluded for mixed/contaminated assemblages (see @tbl-excluded).
+
 ```{r}
 #| label: tbl-excluded
+#| tbl-cap: "Sites excluded from the analysis because of mixed/contaminated assemblages."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [26, 12, 62]
 #| echo: false
 excluded_table <- signbase_full %>%
   mutate(sign_total = rowSums(.[, 25:53])) %>%
@@ -335,13 +361,12 @@ excluded_table <- signbase_full %>%
   left_join(excluded_basis, by = "site_name") %>%
   select(site_name, objects, basis)
 
-knitr::kable(excluded_table, col.names = c("Site", "Objects", "Basis"),
-             caption = "Sites excluded from the analysis because of mixed/contaminated assemblages.")
+knitr::kable(excluded_table, col.names = c("Site", "Objects", "Basis"))
 ```
 
 ### Sites excluded for date parsing (Category B + C)
 
-Twenty-seven sites are excluded because their SignBase records lack a parsable `date_bp_max_min` string or because the calibrated median (`MedianBP`) cannot be computed from the available radiocarbon data. These exclusions occur during the date-parsing/calibration step, prior to phase assignment.
+Twenty-seven sites are excluded because their SignBase records lack a parsable `date_bp_max_min` string or because the calibrated median (`MedianBP`) cannot be computed from the available radiocarbon data. These exclusions occur during the date-parsing/calibration step, prior to phase assignment. The full list is given in @tbl-date-excluded.
 
 **Category B (no `date_bp_max_min` field in SignBase): 16 sites with 30 total objects (27 signed).** These sites appear in SignBase as type sites or old excavations that did not record standardized date strings. No radiocarbon dating information is available for any object from these sites.
 
@@ -349,6 +374,9 @@ Twenty-seven sites are excluded because their SignBase records lack a parsable `
 
 ```{r}
 #| label: tbl-date-excluded
+#| tbl-cap: "27 sites excluded during the date-parsing/calibration step: 16 Category B (no date string) and 11 Category C (unparseable date string)."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [22, 11, 11, 13, 43]
 #| echo: false
 date_excluded <- data.frame(
   site_name = c(
@@ -387,12 +415,11 @@ date_excluded <- data.frame(
     "Date string lacks ± error notation; C14 date range 34000-30000 uncalibratable"
   )
 )
-knitr::kable(date_excluded, col.names = c("Site", "Category", "Objects", "Signed objects", "Exemption reason"),
-             caption = "27 sites excluded during the date-parsing/calibration step: 16 Category B (no date string) and 11 Category C (unparseable date string).")
+knitr::kable(date_excluded, col.names = c("Site", "Category", "Objects", "Signed objects", "Exemption reason"))
 ```
 
 ```{r}
-#| label: tbl-excluded-summary
+#| label: excluded-summary
 #| echo: false
 n_date_excluded <- nrow(date_excluded)
 n_date_excluded_objects <- sum(date_excluded$n_objects)
@@ -405,40 +432,49 @@ cat(paste0(
 
 ### Aur-P1 (Proto/Early) — date-based assignment
 
-Sites assigned by the calibrated date thresholds in the `assign-phases` chunk (default case), which fall in Aur-P1 once the Proto/Early distinction is collapsed. Sites listed here are unchanged from a date-only assignment.
+Sites assigned by the calibrated date thresholds in the `assign-phases` chunk (default case), which fall in Aur-P1 once the Proto/Early distinction is collapsed. Sites listed here are unchanged from a date-only assignment (see @tbl-date-aurp1).
 
 ```{r}
 #| label: tbl-date-aurp1
+#| tbl-cap: "Aur-P1 sites assigned by their calibrated radiocarbon date."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [26, 12, 62]
 #| echo: false
 date_p1 <- site_objects %>%
   filter(assignment == "date", phase2 == "Aur-P1") %>%
   arrange(desc(objects)) %>%
   select(site_name, objects, basis)
 
-knitr::kable(date_p1, col.names = c("Site", "Objects", "Basis"),
-             caption = "Aur-P1 sites assigned by their calibrated radiocarbon date.")
+knitr::kable(date_p1, col.names = c("Site", "Objects", "Basis"))
 ```
 
 ### Aur-P2 (Evolved/Late) — date-based assignment
 
+Sites assigned by the calibrated date thresholds in the `assign-phases` chunk that fall in Aur-P2 (see @tbl-date-aurp2).
+
 ```{r}
 #| label: tbl-date-aurp2
+#| tbl-cap: "Aur-P2 sites assigned by their calibrated radiocarbon date."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [26, 12, 62]
 #| echo: false
 date_p2 <- site_objects %>%
   filter(assignment == "date", phase2 == "Aur-P2") %>%
   arrange(desc(objects)) %>%
   select(site_name, objects, basis)
 
-knitr::kable(date_p2, col.names = c("Site", "Objects", "Basis"),
-             caption = "Aur-P2 sites assigned by their calibrated radiocarbon date.")
+knitr::kable(date_p2, col.names = c("Site", "Objects", "Basis"))
 ```
 
 ### Objects without geometric signs
 
-These are **individual objects**, not sites: 15 objects from 13 sites carry no geometric signs and are removed upstream by the `sign_total > 0` filter. A site's signed objects remain in the analysis only if the site also passes the date-parsing/calibration step (27 sites drop out there) and phase assignment.
+These are **individual objects**, not sites: 15 objects from 13 sites carry no geometric signs and are removed upstream by the `sign_total > 0` filter (see @tbl-zero-sign). A site's signed objects remain in the analysis only if the site also passes the date-parsing/calibration step (27 sites drop out there, see @tbl-date-excluded) and phase assignment.
 
 ```{r}
 #| label: tbl-zero-sign
+#| tbl-cap: "Sites contributing objects without geometric signs, and whether the site remains in the analysis."
+#| tbl-cap-location: bottom
+#| tbl-colwidths: [26, 22, 18, 34]
 #| echo: false
 zero_sign_summary <- signbase_full %>%
   mutate(sign_total = rowSums(.[, 25:53])) %>%
@@ -463,11 +499,10 @@ zero_sign_summary <- signbase_full %>%
   )
 
 knitr::kable(zero_sign_summary,
-             col.names = c("Site", "Objects without signs", "Signed objects", "In analysis?"),
-             caption = "Sites contributing objects without geometric signs, and whether the site remains in the analysis.")
+             col.names = c("Site", "Objects without signs", "Signed objects", "In analysis?"))
 ```
 
-Only **Willendorf** and **Spy** drop out entirely; the remaining "No" sites are lost at the date-parsing/calibration step rather than because of the zero-sign filter.
+Only **Willendorf** and **Spy** drop out entirely; the remaining "No" sites are lost at the date-parsing/calibration step rather than because of the zero-sign filter (see @tbl-zero-sign).
 
 ## References cited {.unnumbered}
 

@@ -45,6 +45,13 @@ filters:
   - ../templates/scholarly-metadata.lua
   - ../templates/author-info-blocks.lua
   - ../templates/pagebreak.lua
+  # Column widths (from `#| tbl-colwidths:`) and left-aligned cells for DOCX.
+  # The same file is registered twice: once before Quarto's own processing, to
+  # set the widths, and once at post-render, to left-align the caption wrapper
+  # Quarto adds around captioned tables. See templates/tbl-colwidths.lua.
+  - ../templates/tbl-colwidths.lua
+  - at: post-render
+    path: ../templates/tbl-colwidths.lua
 bibliography: references.bib
 csl: "../templates/elsevier-vancouver.csl"
 ---
@@ -182,6 +189,7 @@ The raw extract contains `r n_raw_signed_objects` signed objects (objects with a
 
 ```{r}
 #| label: tbl-dropped-sites
+#| tbl-colwidths: [22, 10, 18, 14, 36]
 #| tbl-cap: "Sites omitted for data quality reasons. Archaeological phase rationale is in Supplement 2."
 #| tbl-cap-location: bottom
 
@@ -254,6 +262,7 @@ To confirm that the primary findings reported in the main text are not an artefa
 
 ```{r}
 #| label: tbl-sens-stats
+#| tbl-colwidths: [13, 9, 8, 10, 10, 13, 13, 13, 11]
 #| tbl-cap: "Network statistics for each Aurignacian phase at three Jaccard similarity thresholds (0.1, 0.2, 0.3). The main-analysis threshold (0.2) is the centre column for each phase. Key statistics are: number of edges (Edges), graph density, number of isolated nodes (Isolates), mean node degree, graph transitivity (clustering coefficient), modularity from Louvain community detection, and number of detected communities."
 #| tbl-cap-location: bottom
 
@@ -319,6 +328,7 @@ Below we quantify the stability of the network structures across thresholds usin
 
 ```{r}
 #| label: tbl-threshold-agreement
+#| tbl-colwidths: [22, 15, 15, 24, 24]
 #| tbl-cap: "Pairwise agreement between networks at all three threshold pairs. Edge‑set Jaccard measures the fraction of edges present at both thresholds out of all edges present at either threshold. Adjacency‑matrix correlation is the Pearson r between the vectorised upper‑triangular elements of the adjacency matrices at each threshold (all pairs of sites before the cutoff is applied)."
 #| tbl-cap-location: bottom
 
@@ -441,6 +451,7 @@ To test whether the network topology is sensitive to the dissimilarity metric ch
 
 ```{r}
 #| label: tbl-metric-stats
+#| tbl-colwidths: [11, 15, 8, 10, 10, 12, 12, 12, 10]
 #| tbl-cap: "Network statistics for each Aurignacian phase across three similarity metrics (Jaccard, Sørensen-Dice, Simpson) at threshold = 0.2."
 #| tbl-cap-location: bottom
 
@@ -520,6 +531,7 @@ knitr::include_graphics(here::here("figures/ordination-pcoa-ca-plot.png"))
 
 ```{r}
 #| label: tbl-pc1-axis-test
+#| tbl-colwidths: [12, 7, 10, 12, 11, 13, 12, 12, 11]
 #| tbl-cap: "Multiple regression of PCoA axis 1 on sign-type richness and geographic coordinates. Partial t-tests show whether PCoA1 tracks richness after controlling for geography and vice versa. Bold p-values indicate significance."
 
 axis_test <- bind_rows(
@@ -567,6 +579,7 @@ In the main text, Mantel tests evaluate whether sign assemblage dissimilarity co
 
 ```{r}
 #| label: tbl-geodesic-mantel
+#| tbl-colwidths: [22, 19, 19, 21, 19]
 #| tbl-cap: "Comparison of Mantel test results (Mantel R and p-value) evaluating sign assemblage dissimilarity vs. spatial distance using flat coordinate Euclidean distance vs. true Geodesic distance (in kilometers)."
 #| tbl-cap-location: bottom
 
@@ -678,6 +691,7 @@ All spatial tests above belong to the Mantel family: they correlate pairs of dis
 
 ```{r}
 #| label: tbl-dbrda
+#| tbl-colwidths: [24, 19, 19, 19, 19]
 #| tbl-cap: "Distance-based redundancy analysis of site Jaccard dissimilarity on a linear geographic trend surface (longitude + latitude), per phase. R² is the raw constrained proportion, adjR² the Ezekiel-adjusted value, F and p from 999 permutations."
 #| tbl-cap-location: bottom
 
@@ -724,6 +738,7 @@ We decompose the two-phase baseline into its technology-assigned components, the
 
 ```{r}
 #| label: tbl-two-phase-ref
+#| tbl-colwidths: [28, 10, 11, 12, 14, 13, 12]
 #| tbl-cap: "Reference: network statistics under the two-phase periodisation used in the main text (threshold = 0.2). Aur-P1 = Proto + Early; Aur-P2 = Evolved."
 #| tbl-cap-location: bottom
 
@@ -741,6 +756,7 @@ kable(two_phase_ref,
 
 ```{r}
 #| label: tbl-three-phase-tech
+#| tbl-colwidths: [30, 9, 11, 11, 13, 13, 13]
 #| tbl-cap: "Network statistics for the technology-assigned components of the two-phase baseline (Proto-Aurignacian, Early Aurignacian, Evolved Aurignacian) at threshold = 0.2. Aur-P1 = Proto + Early; Aur-P2 = Evolved."
 #| tbl-cap-location: bottom
 
@@ -774,6 +790,7 @@ The two-phase, three-phase, and four-phase periodisations yield consistent concl
 
 ```{r}
 #| label: tbl-four-phase-periodisation
+#| tbl-colwidths: [32, 9, 11, 11, 13, 12, 12]
 #| tbl-cap: "Network statistics under the four-phase periodisation (Proto, Early, Evolved, Late Aurignacian) at threshold = 0.2. The Evolved/Late split of Aur-P2 follows the four-phase Aurignacian taxonomy of @teyssandier2018entity, with the boundary at 35 ka BP calibrated."
 #| tbl-cap-location: bottom
 
@@ -818,6 +835,7 @@ The date parser handles both ends of calibrated ranges and routes OSL ages aroun
 
 ```{r}
 #| label: tbl-date-variant-comparison
+#| tbl-colwidths: [20, 12, 12, 12, 12, 12, 12, 8]
 #| tbl-cap: "Site phase assignments under three date variants. The oldest variant is used in the main analysis. Sites with 'Yes' or 'dropped' in the Changes column have different phase assignments across variants."
 #| tbl-cap-location: bottom
 
@@ -859,6 +877,7 @@ The two-phase periodisation uses a single calibrated MedianBP threshold of 37799
 
 ```{r}
 #| label: tbl-boundary-proximity
+#| tbl-colwidths: [40, 24, 18, 18]
 #| tbl-cap: "Number of objects and sites within ±500 and ±1000 calibrated years of the single periodisation boundary at 37799 BP separating Aur-P1 from Aur-P2."
 #| tbl-cap-location: bottom
 
@@ -879,6 +898,7 @@ kable(boundary_proximity,
 
 ```{r}
 #| label: tbl-boundary-shifts
+#| tbl-colwidths: [20, 15, 14, 14, 19, 18]
 #| tbl-cap: "Network statistics at the baseline threshold of 0.2 under shifts of the single Aur-P1/Aur-P2 boundary. Positive shifts move the boundary later (older objects reassigned to Aur-P2); negative shifts move it earlier (younger Aur-P2 objects reassigned to Aur-P1)."
 #| tbl-cap-location: bottom
 
@@ -1030,6 +1050,7 @@ no_vog_stats <- excl$s8_novog
 
 ```{r}
 #| label: tbl-reclass-comparison
+#| tbl-colwidths: [11, 24, 8, 8, 9, 12, 14, 14]
 #| tbl-cap: "Network statistics under three conditions: baseline (technology-based assignment), date-based (each object assigned purely by calibrated radiocarbon date, with the Spy/El Castillo exclusions retained), and exclude Vogelherd (technology-based baseline with the site of Vogelherd removed entirely). Threshold = 0.2, Jaccard similarity."
 #| tbl-cap-location: bottom
 
@@ -1067,6 +1088,7 @@ s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph
 
 ```{r}
 #| label: tbl-ordering-by-condition
+#| tbl-colwidths: [34, 22, 22, 22]
 #| tbl-cap: "Mean degree by phase under each reassignment condition. The Aur-P1 > Aur-P2 ordering is preserved under every condition."
 #| tbl-cap-location: bottom
 
@@ -1116,6 +1138,7 @@ We run Louvain detection for each phase at each of the three thresholds (0.1, 0.
 
 ```{r}
 #| label: tbl-louvain-groups
+#| tbl-colwidths: [15, 40, 15, 15, 15]
 #| tbl-cap: "Louvain community memberships for each site, by phase and threshold. Sites with no community assignment (no edges at that threshold) are assigned to a singleton community. Groups are numbered by Louvain membership."
 #| tbl-cap-location: bottom
 
@@ -1155,6 +1178,7 @@ kable(louvain_wide,
 
 ```{r}
 #| label: tbl-ari-louvain
+#| tbl-colwidths: [28, 22, 50]
 #| tbl-cap: "Adjusted Rand Index (ARI) between Louvain-derived communities and the manually assigned restricted/broad groups, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
 #| tbl-cap-location: bottom
 
@@ -1193,6 +1217,7 @@ We run Infomap detection for each phase at each of the three thresholds (0.1, 0.
 
 ```{r}
 #| label: tbl-ari-infomap
+#| tbl-colwidths: [28, 22, 50]
 #| tbl-cap: "Adjusted Rand Index (ARI) between Infomap-derived communities and Louvain-derived communities, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
 #| tbl-cap-location: bottom
 
@@ -1243,6 +1268,7 @@ We run Leiden detection for each phase at each of the three thresholds (0.1, 0.2
 
 ```{r}
 #| label: tbl-ari-leiden
+#| tbl-colwidths: [28, 22, 50]
 #| tbl-cap: "Adjusted Rand Index (ARI) between Leiden-derived communities and Louvain-derived communities, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
 #| tbl-cap-location: bottom
 
@@ -1293,6 +1319,7 @@ We run Walktrap detection for each phase at each of the three thresholds (0.1, 0
 
 ```{r}
 #| label: tbl-ari-walktrap
+#| tbl-colwidths: [28, 22, 50]
 #| tbl-cap: "Adjusted Rand Index (ARI) between Walktrap-derived communities and Louvain-derived communities, by phase and threshold. ARI = 1.0 indicates identical partitions; ARI ≈ 0 indicates agreement no better than chance."
 #| tbl-cap-location: bottom
 
@@ -1341,6 +1368,7 @@ We compute PerMANOVA R² and p-values for each algorithm at each threshold, comp
 
 ```{r}
 #| label: tbl-permanova-comparison
+#| tbl-colwidths: [11, 10, 16, 11, 12, 10, 11, 9, 10]
 #| tbl-cap: "PerMANOVA comparison: manual (restricted/broad) grouping versus algorithmically derived groupings. R² and pseudo-F for each phase, threshold, and community detection algorithm."
 #| tbl-cap-location: bottom
 
@@ -1475,6 +1503,7 @@ Modularity values in the range 0.3-0.5 are often described as "high" without for
 
 ```{r}
 #| label: tbl-null-modularity
+#| tbl-colwidths: [20, 16, 16, 17, 15, 16]
 #| tbl-cap: "Observed modularity and null-model p-values for each Aurignacian phase at three Jaccard similarity thresholds."
 #| tbl-cap-location: bottom
 #| cache: true
@@ -1511,6 +1540,7 @@ Node degree in a presence/absence network could be driven by sign-type richness 
 
 ```{r}
 #| label: tbl-richness-confound
+#| tbl-colwidths: [34, 22, 22, 22]
 #| tbl-cap: "Spearman correlations between node degree and site sign richness (number of distinct sign types) within each Aurignacian phase, at the baseline threshold of 0.2."
 #| tbl-cap-location: bottom
 
@@ -1567,6 +1597,7 @@ Point estimates of network statistics are sensitive to individual sites and to o
 
 ```{r}
 #| label: tbl-bootstrap-ci
+#| tbl-colwidths: [12, 17, 10, 10, 9, 16, 10, 10, 6]
 #| tbl-cap: "Object-within-site bootstrap stability bands for mean degree and modularity at threshold = 0.2, based on 999 resamples per phase. Observed is the statistic on the full data computed without rounding; 2.5% and 97.5% are quantiles of the raw bootstrap distribution; SD is the bootstrap standard deviation. Values are rounded for display only. These bands quantify stability to within-site object resampling, not confidence intervals for the true parameter: resampling drops rare signs, so a band may sit below or above its observed value. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
 #| tbl-cap-location: bottom
 #| cache: true
@@ -1698,6 +1729,7 @@ The Mantel tests reported in @tbl-geodesic-mantel and the main text evaluate 4 h
 
 ```{r}
 #| label: tbl-mantel-bh
+#| tbl-colwidths: [30, 15, 15, 22, 18]
 #| tbl-cap: "Mantel test p-values before and after Benjamini–Hochberg correction for multiple testing across 2 phases × 2 distance measures (4 tests total). Results with adjusted p < 0.05 are highlighted."
 #| tbl-cap-location: bottom
 
@@ -1768,6 +1800,7 @@ Modularity and mean degree are not invariant to the number of nodes: larger netw
 
 ```{r}
 #| label: tbl-size-normalised
+#| tbl-colwidths: [16, 12, 14, 13, 14, 13, 18]
 #| tbl-cap: "Network metrics normalised by size-matched Erdos-Renyi expectation. Ratio > 1 indicates the observed value exceeds the random expectation for a network of the same size. ER mean and SD are based on 100 random graphs per phase."
 #| tbl-cap-location: bottom
 
@@ -1908,6 +1941,7 @@ mrm_val <- function(phase, driver, col) {
 
 ```{r}
 #| label: tbl-mrm
+#| tbl-colwidths: [10, 10, 13, 11, 8, 16, 10, 9, 7, 6]
 #| tbl-cap: "Multiple regression on distance matrices of Jaccard sign dissimilarity, fitted separately for each phase. Each predictor is a distance between two sites, divided by its own standard deviation, so that coefficients are comparable across drivers with different raw units. One standard deviation equals 320 km, 1.6 ka and 47 objects in Aur-P1, and 466 km, 1.8 ka and 9 objects in Aur-P2. A coefficient is the change in mean Jaccard dissimilarity for a one-standard-deviation change in that predictor. Site ages are per-site medians of calibrated MedianBP, in years BP. Permutation p-values are from 10,000 permutations of the response. Full model R2 is given once per phase. No confidence intervals are reported, because the object-level bootstrap produced no valid replicate."
 #| tbl-cap-location: bottom
 
@@ -2018,6 +2052,7 @@ ts_last_n        <- tl$last_n
 
 ```{r}
 #| label: tbl-ts-lag
+#| tbl-colwidths: [22, 18, 38, 22]
 #| tbl-cap: "Mean Jaccard dissimilarity of geometric-sign repertoires by temporal-lag class (absolute |ΔMedianBP| between site pairs, in ka). Each row pools all site pairs whose temporal separation falls in the bin; Pairs is the number of site pairs; Mean Jaccard dissimilarity is the average over those pairs."
 #| tbl-cap-location: bottom
 
@@ -2164,6 +2199,7 @@ s513_flat_reg_p2 <- s513_ad(s513_flat_p2$region, 1)
 
 ```{r}
 #| label: tbl-region-silhouette
+#| tbl-colwidths: [12, 26, 7, 16, 22, 17]
 #| tbl-cap: "Objective geographic region choice: PAM on geodesic kilometres (primary) and k-means on flat lon/lat (sensitivity) for k=2..5. Mean silhouette computed on the same distance used for clustering. k=2 (West vs Central) is primary interpretive partition (Core vs Extended sensu Schmidt & Zimmermann); k=4,5 in Aur-P2 (n=9) leaves singleton regions and is flagged unstable. Best PAM k by silhouette is marked."
 #| tbl-cap-location: bottom
 kable(s513_sil_tab, col.names = c("Phase","Method","k","Mean silhouette","Sites per region","Unstable"), digits = 3, align = "llcccc")
@@ -2171,6 +2207,7 @@ kable(s513_sil_tab, col.names = c("Phase","Method","k","Mean silhouette","Sites 
 
 ```{r}
 #| label: tbl-region-permanova
+#| tbl-colwidths: [10, 26, 16, 11, 11, 11, 15]
 #| tbl-cap: "Sign composition (Jaccard, sqrt.dist=TRUE, 999 permutations) across objective geographic regions. PAM geodesic k=2 is primary; k=3 and modern country are sensitivity rows. Marginal rows are from adonis2(J ~ region + group, by='margin'). Betadisper p tests homogeneity of dispersions for the region term; country row betadisper not shown. Aur-P2 n=9 so k>=4 and all Aur-P2 PERMANOVAs are indicative (Anderson & Walsh 2013)."
 #| tbl-cap-location: bottom
 kable(s513_perm_tab, col.names = c("Phase","Partition","Term","R2","F","p","Betadisper p"), digits = 3, align = "lllcccc")
@@ -2322,6 +2359,7 @@ s6_site_tab <- map_dfr(names(s6_boot), function(ph) {
 
 ```{r}
 #| label: tbl-bootstrap-summary
+#| tbl-colwidths: [14, 12, 10, 16, 15, 17, 16]
 #| tbl-cap: "Bootstrap consensus co-clustering within and across the main-text restricted/broad blocks, by phase (n = 1000 resamples). Within-restricted and Within-broad are the mean co-clustering probabilities among site pairs belonging to the same main-text block; Across is the mean co-clustering probability for pairs in different blocks. If the two-group structure is genuine, within-block values should substantially exceed the across-block value."
 #| tbl-cap-location: bottom
 
@@ -2333,12 +2371,13 @@ kable(s6_summary,
 
 ```{r}
 #| label: tbl-bootstrap-sites
+#| tbl-colwidths: [28, 13, 22, 15, 22]
 #| tbl-cap: "Per-site bootstrap consistency: proportion of 1000 resamples in which each site is assigned to its modal (most frequent) block. Consistency near 1 indicates robust assignment; values near 0.5 indicate sites whose group membership flips across resamples."
 #| tbl-cap-location: bottom
 
 kable(s6_site_tab,
       col.names = c("Phase", "Site", "Modal block", "Consistency"),
-      digits = 2, align = "llcc")
+      digits = 2, align = "llcc", row.names = FALSE)
 ```
 
 ```{r fig.height=10, fig.width=9}
@@ -2425,6 +2464,7 @@ s6_bestK_val <- function(ph, model = "bernoulli") if (ph %in% names(s6_sbm) && m
 
 ```{r}
 #| label: tbl-sbm-icl
+#| tbl-colwidths: [14, 16, 10, 10, 10, 10, 10, 20]
 #| tbl-cap: "Integrated Classification Likelihood (ICL) for stochastic block models with K = 1 to 5 blocks, by phase and emission model. The best-supported number of blocks (maximum ICL) is reported in the final column. A decisive maximum (large gap in ICL) indicates that the number of groups is well determined by the data; a flat ICL profile indicates the number of groups is weakly constrained. Higher-K fits fail for the small Aur-P2 sample (NA). Bernoulli model uses binarized adjacency (edge if Jaccard similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard); Poisson model uses count adjacency (number of shared sign types)."
 #| tbl-cap-location: bottom
 
@@ -2491,6 +2531,7 @@ if (exists("icl_long") && nrow(icl_long)) {
 
 ```{r}
 #| label: tbl-sbm-membership
+#| tbl-colwidths: [17, 9, 11, 18, 12, 8, 8, 8, 9]
 #| tbl-cap: "Posterior block-membership probabilities and modal (hard) assignment from the best-fitting stochastic block model for each phase and emission model. Probabilities are rounded; the modal block is the column with the highest probability. Sites with probability spread across blocks (e.g. no entry above 0.7) have ambiguous membership. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard); Poisson model uses count adjacency (number of shared sign types)."
 #| tbl-cap-location: bottom
 
@@ -2508,7 +2549,7 @@ if (length(s6_sbm)) {
       })
     )
   })
-  kable(s6_mem_tab,
+  kable(row.names = FALSE, s6_mem_tab,
         col.names = c("Phase", "Model", "Site", "Modal block",
                       paste0("P(", gsub("Block", "B", names(s6_mem_tab)[5:(ncol(s6_mem_tab))]), ")")),
         digits = 2, align = "lllcc")
@@ -2598,6 +2639,7 @@ fig_data <- list(
 
 ```{r}
 #| label: tbl-sbm-null
+#| tbl-colwidths: [8, 9, 6, 7, 7, 9, 8, 7, 8, 7, 8, 8, 5, 3]
 #| tbl-cap: "SBM block recovery null test results (B = 499 Curveball replicates, max K = 3 for null fits, seed = 7). Observed gap_K1 = ICL(bestK) - ICL(1); null mean/SD from 499 replicates. p_gap_K1 is the one-sided upper-tail p-value; p_gap_K1_bh is Benjamini-Hochberg adjusted across the six phase-by-model tests. null_bestK_gt1_rate is the proportion of null replicates where bestK > 1. B_finite counts the null replicates that produced a finite statistic; failures counts those that failed to fit."
 #| tbl-cap-location: bottom
 
@@ -2699,6 +2741,7 @@ s6_ser_null_p2 <- seriation_null_test(aurp2_mat, B = 999, seed = 1)
 
 ```{r}
 #| label: tbl-seriation-null
+#| tbl-colwidths: [15, 9, 10, 10, 8, 10, 10, 10, 9, 6, 3]
 #| tbl-cap: "Seriation-order null test results (B = 999 Curveball replicates per phase, seed = 1). Concentration = mean normalised distance of presences from diagonal; Path length = sum of consecutive Jaccard distances along seriated order. One-sided p-values: smaller observed statistic = more ordered. B_finite = replicates that converged."
 #| tbl-cap-location: bottom
 
@@ -2729,7 +2772,7 @@ ser_null_tab <- bind_rows(
   )
 )
 
-kable(ser_null_tab, digits = 3, align = "lccccccccc")
+kable(ser_null_tab, digits = 3, align = "lccccccccc",  row.names = FALSE)
 ```
 
 ```{r}
@@ -2837,6 +2880,7 @@ s6_ari_val <- function(ph, col) s6_ari_tab[[col]][s6_ari_tab$Phase == ph]
 
 ```{r}
 #| label: tbl-ari-bootstrap-sbm
+#| tbl-colwidths: [12, 13, 13, 12, 13, 12, 13, 12]
 #| tbl-cap: "Adjusted Rand Index between the main-text manual restricted/broad assignment, the bootstrap modal blocks (@sec-s9-2), and the SBM modal assignments (@sec-s9-3) under each emission model (Bernoulli, Gaussian, Poisson), by phase."
 #| tbl-cap-location: bottom
 
@@ -2954,6 +2998,7 @@ s6_6_tab <- data.frame(
 
 ```{r}
 #| label: tbl-validation-summary
+#| tbl-colwidths: [40, 32, 28]
 #| tbl-cap: "Circularity-breaking validation of the restricted/broad group difference. Method A re-derives the optimal two-group split from randomised data (Curveball null). Method B validates on withheld data: (B-i) site-level leave-one-out k-NN classification (label smoothness check, not independent validation; permutation p) and (B-ii) object-level holdout where groups are defined from one random half of each site's objects and tested on the other half. B-ii reports the proportion of splits reaching p < 0.05 and the median p across splits, given in the Statistic column; no combined p is reported because the splits share sites and are not independent; Jaccard and Simpson turnover versions are shown because the richness median split is tautological under Jaccard. Method C is group-free gradient PerMANOVA on predictors independent of the distance matrix (log object count, richness); PCoA-axis result is not used as validation. A high proportion of significant B-ii splits indicates that the grouping rule extends to objects that did not define it."
 #| tbl-cap-location: bottom
 kable(s6_6_tab, digits = 3, align = "llc")
@@ -2990,6 +3035,7 @@ Jaccard dissimilarity confounds turnover with nestedness: a poor assemblage nest
 
 ```{r}
 #| label: tbl-simpson-null
+#| tbl-colwidths: [10, 14, 9, 10, 9, 10, 8, 8, 11, 11]
 #| tbl-cap: "Manual-group separation under richness-preserving nulls. R2_jac and R2_sim are the observed PerMANOVA R-squared of the manual groups on Jaccard and Simpson turnover dissimilarities; ARI is the Adjusted Rand Index between the Louvain partition (realigned to manual labels) and the manual groups. Each is compared to fixed-fixed Curveball and object-count null distributions (999 replicates); p is the quantile of the observed value in its null (upper-tail). Negative R2_sim values indicate zero separation, with within-group variation exceeding between-group variation."
 #| tbl-cap-location: bottom
 
@@ -3075,6 +3121,7 @@ We extract the community assignments for each of the four algorithms at the main
 
 ```{r}
 #| label: tbl-community-membership
+#| tbl-colwidths: [12, 34, 11, 11, 11, 11, 10]
 #| tbl-cap: "Community assignments for each site by algorithm and Aurignacian phase at Jaccard threshold 0.2, with the manual restricted (1) / broad (2) group as reference. Sites are ordered by phase, manual group, then site. Singletons (isolated sites with no edges) are assigned their own community. Community IDs are arbitrary within each algorithm column: compare which sites share a value within a column, not the numeric values across columns."
 #| tbl-cap-location: bottom
 
@@ -3167,6 +3214,7 @@ For each community, we summarize the sign-type composition to understand what di
 
 ```{r}
 #| label: tbl-community-composition
+#| tbl-colwidths: [9, 11, 8, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
 #| tbl-cap: "Sign-type composition of Louvain communities at threshold 0.2. Values show the proportion of sites within each community that have at least one object bearing the sign type. Only sign types present in ≥10% of sites in at least one community are shown."
 #| tbl-cap-location: bottom
 
@@ -3296,6 +3344,7 @@ We examine how consistently sites are assigned to communities across the four al
 
 ```{r}
 #| label: tbl-cross-algorithm-agreement
+#| tbl-colwidths: [11, 36, 12, 11, 10, 11, 9]
 #| tbl-cap: "Cross-algorithm agreement in community assignment at threshold 0.2. For each phase, sites are grouped by their Louvain community (reference), and the proportion of other algorithms that assign the site to the same community ID is reported. Community IDs are assigned consistently across algorithms within a phase, so raw IDs are comparable. Values close to 1.0 indicate strong cross-algorithm agreement."
 #| tbl-cap-location: bottom
 
@@ -3426,6 +3475,7 @@ Before resampling, we must know how many objects each site contributes. Object c
 
 ```{r}
 #| label: tbl-objcount
+#| tbl-colwidths: [16, 50, 18, 16]
 #| tbl-cap: "Per-site object counts by phase and manual restricted(1)/broad(2) group."
 #| tbl-cap-location: bottom
 
@@ -3438,6 +3488,7 @@ obj_counts %>%
 
 ```{r}
 #| label: tbl-divsite
+#| tbl-colwidths: [10, 30, 14, 11, 11, 11, 13]
 #| tbl-cap: "Per-site values behind main-text Figure 6, by phase. Sample size is the row margin of the site-by-sign-type count matrix, that is the number of sign occurrences at the site, and it is the quantity plotted on the figure's horizontal axis; it is not the object count given in @tbl-objcount, because one object can carry more than one occurrence of a sign type. H_obs is the observed Shannon diversity, H_exp is the simulated mean at that sample size, and H_excess is H_obs minus H_exp. The final column records whether the site carries a name on the figure; sites below the naming threshold are still plotted as points."
 #| tbl-cap-location: bottom
 
@@ -3455,7 +3506,8 @@ div_site %>%
                 named_in_figure) %>%
   kable(col.names = c("Phase", "Site", "Sample size", "H obs", "H exp",
                       "H excess", "Named in Figure 6"),
-        digits = 3)
+        digits = 3,
+         row.names = FALSE)
 ```
 
 ```{r fig.height=4, fig.width=8}
@@ -3486,6 +3538,7 @@ For each phase and each common count k ∈ {3, 5, 10}, and for `r ds_R` replicat
 
 ```{r}
 #| label: tbl-retention
+#| tbl-colwidths: [32, 13, 12, 11, 11, 11, 10]
 #| tbl-cap: "Per-site group-retention rate under object-level downsampling to k = 3, 5, 10 objects per site (500 replicates each). Retention is the fraction of replicates in which the site's realigned Louvain partition matches its manual restricted/broad assignment. Sites with fewer than k objects are excluded at that level."
 #| tbl-cap-location: bottom
 
@@ -3516,6 +3569,7 @@ ret_wide %>%
 
 ```{r}
 #| label: tbl-stability
+#| tbl-colwidths: [15, 8, 12, 16, 24, 25]
 #| tbl-cap: "Community-structure stability under object-level downsampling. For each phase and common count k: number of sites qualifying, mean Adjusted Rand Index (ARI) between the downsampled Louvain partition and the manual groups, mean network modularity, and mean number of Louvain communities detected."
 #| tbl-cap-location: bottom
 
@@ -3565,6 +3619,7 @@ Equal object counts do not equalise *sampling effort* when sites differ in how c
 
 ```{r}
 #| label: tbl-rarefaction
+#| tbl-colwidths: [7, 15, 7, 6, 7, 8, 6, 6, 8, 5, 5, 5, 15]
 #| tbl-cap: "Coverage-based rarefaction per site. richness_full is the observed number of sign types; coverage_chao is Chao and Jost's analytic sample-coverage estimate at the full sample with 95% bootstrap interval; richness_at_target is the iNEXT incidence_raw richness estimate at target coverage = 0.9 with 95% interval. Sites that never reach the target coverage are reported as NA with the reason in at_target_method, and carry a Chao2 asymptotic-richness estimate with interval as a fallback quantity."
 #| tbl-cap-location: bottom
 
@@ -3632,6 +3687,7 @@ $$\text{richness}_i \sim \text{NegativeBinomial}\big(\exp(\beta_0 + \beta_1 \tex
 
 ```{r}
 #| label: tbl-mixed-nb
+#| tbl-colwidths: [30, 18, 17, 18, 17]
 #| tbl-cap: "Negative-binomial regressions of per-site sign-type richness: offset specification (richness-effort exponent fixed at 1) versus free-slope specification (exponent estimated). A non-significant group coefficient under the offset does not by itself show the richness gap is explained by object count, because the fixed exponent mis-specifies the saturating richness-effort relationship."
 #| tbl-cap-location: bottom
 
@@ -3706,6 +3762,7 @@ We test the contraction at equal effort with incidence-based rarefaction and ext
 
 ```{r}
 #| label: tbl-pool-inext
+#| tbl-colwidths: [18, 12, 12, 14, 12, 12, 20]
 #| tbl-cap: !expr paste0("Equal-effort sign-type pool comparison with iNEXT (incidence_freq, q = 0, 200 bootstraps). Observed pools are ", s95_n_p1, " types (Aur-P1, ", s95_obj_p1, " objects) and ", s95_n_p2, " types (Aur-P2, ", s95_obj_p2, " objects). Rarefied Aur-P1 to ", s95_obj_p2, " objects and extrapolated Aur-P2 are shown with 95% confidence intervals; a second set restricts to object types present in both phases (shared types only).")
 #| tbl-cap-location: bottom
 
@@ -3810,6 +3867,7 @@ s7_fig_type_txt <- paste(
 
 ```{r}
 #| label: tbl-figurine-count
+#| tbl-colwidths: [10, 26, 13, 13, 12, 12, 14]
 #| tbl-cap: "Distribution of figurine objects across phases and sites. Figurine types include figurine zoomorph, figurine anthropomorph, figurine undet., and possible figurine."
 #| tbl-cap-location: bottom
 # figurine_summary is precomputed in the setup-figurine chunk
@@ -3854,6 +3912,7 @@ s7_pct <- function(cond) {
 
 ```{r}
 #| label: tbl-exclude-figurines
+#| tbl-colwidths: [10, 8, 8, 10, 12, 14, 14, 24]
 #| tbl-cap: "Network statistics before and after excluding all figurine objects (figurine zoomorph, figurine anthropomorph, figurine undet., and possible figurine). Threshold = 0.2, Jaccard similarity."
 #| tbl-cap-location: bottom
 # s7_baseline and s7_no_fig are precomputed in the setup-figurine chunk
@@ -3869,6 +3928,7 @@ kable(excl_comparison,
 
 ```{r}
 #| label: tbl-figurine-sites-lost
+#| tbl-colwidths: [22, 26, 30, 22]
 #| tbl-cap: "Number of sites per phase before and after figurine exclusion. Sites are lost when all objects at that site are figurines."
 #| tbl-cap-location: bottom
 
@@ -3887,6 +3947,7 @@ Critically, Aur-P1 retains the higher mean degree (`r s7_md("Aur-P1","Exclude al
 
 ```{r}
 #| label: tbl-vogelherd-exclude
+#| tbl-colwidths: [10, 8, 8, 10, 12, 14, 14, 24]
 #| tbl-cap: "Network statistics before and after excluding figurines from Vogelherd only. All other figurines (Hohle Fels, Geissenklösterle, Hohlenstein-Stadel, La Ferrassie) are retained. Threshold = 0.2, Jaccard similarity."
 #| tbl-cap-location: bottom
 # s7_baseline, s7_no_vog and s7_vog_summary are precomputed in the setup-figurine chunk
@@ -3902,6 +3963,7 @@ kable(vog_comparison,
 
 ```{r}
 #| label: tbl-vogelherd-objects
+#| tbl-colwidths: [24, 26, 30, 20]
 #| tbl-cap: "Vogelherd object counts before and after removing figurines. Non-figurine objects at Vogelherd (tools, plaquettes, etc.) are retained."
 #| tbl-cap-location: bottom
 
@@ -3918,6 +3980,7 @@ The effect of removing Vogelherd figurines alone (`r s7_pct("Exclude Vogelherd f
 
 ```{r}
 #| label: tbl-objtype-joint
+#| tbl-colwidths: [10, 22, 8, 8, 13, 14, 14, 11]
 #| tbl-cap: "Side-by-side comparison of network statistics across all conditions: baseline (all objects), exclude all figurines, and exclude Vogelherd figurines only. The rightmost columns show the percentage change in mean degree from baseline."
 #| tbl-cap-location: bottom
 # joint_comparison is precomputed in the setup-figurine chunk
@@ -3933,6 +3996,7 @@ kable(joint_comparison,
 
 ```{r}
 #| label: tbl-meandegree-summary
+#| tbl-colwidths: [13, 22, 18, 11, 22, 14]
 #| tbl-cap: "Mean degree by figurine-exclusion condition, with percentage change from baseline. Reproduced directly from the joint comparison in @tbl-objtype-joint."
 #| tbl-cap-location: bottom
 
@@ -4069,6 +4133,7 @@ fmt_mde <- function(mde, mx, d = 2) {
 
 ```{r}
 #| label: tbl-power-mde
+#| tbl-colwidths: [22, 18, 20, 20, 20]
 #| tbl-cap: "Minimum detectable effects at 80% power (alpha = 0.05) for the three headline null-hypothesis tests. Mantel rows use the Mantel rho scale (geographic-signal injection on Curveball-randomised baselines with rows permuted across sites, B = 300, 99 permutations). PerMANOVA rows use the total Jaccard R² scale under the adonis2(sqrt.dist = TRUE) convention on the same exchangeable baseline (group-signal injection, B = 300, 99 permutations). Network rows use the absolute edge-density-difference scale with the observed Aur-P1 density as baseline (B = 200, 99 permutations). MDE values above the simulated grid are shown as greater-than the grid maximum. Power at a medium effect uses rho = 0.3, R² = 0.13, and absolute density difference = 0.10."
 #| tbl-cap-location: bottom
 
