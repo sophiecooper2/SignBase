@@ -70,7 +70,7 @@ Our phase assignments follow specialist technological attributions from the publ
 
 ## Data pipeline {#sec-data-pipeline}
 
-The following code loads the raw SignBase dataset, parses radiocarbon dates, calibrates them, and assigns objects to phases. Sites excluded from the main analysis are filtered out, and sites reassigned based on technological attribution are overridden. Date parsing handles both ends of date ranges, routes OSL ages around radiocarbon calibration, and uses IntCal20 explicitly. Sensitivity to variant choice is explored in Supplement S1. The resulting per-site assignment and basis are listed in @tbl-site-objects-all.
+The pipeline in this supplement's source document loads the raw SignBase dataset, parses radiocarbon dates, calibrates them, and assigns objects to phases. Sites excluded from the main analysis are filtered out, and sites reassigned based on technological attribution are overridden. Date parsing handles both ends of date ranges, routes OSL ages around radiocarbon calibration, and uses IntCal20 explicitly. Sensitivity to variant choice is explored in Supplement S1. The resulting per-site assignment and basis are listed in @tbl-site-objects-all.
 
 ```{r}
 #| label: load-data
