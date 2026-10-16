@@ -259,6 +259,10 @@ n_date_excluded <- nrow(date_excluded)
 n_cat      <- table(date_excluded$category)
 obj_cat    <- tapply(date_excluded$n_objects, date_excluded$category, sum)
 signed_cat <- tapply(date_excluded$signed_objects, date_excluded$category, sum)
+
+# Vogelherd layer codes among the analysed objects (S2.3)
+vh_layers  <- signbase_full_clean$layer[signbase_full_clean$site_name == "Vogelherd"]
+n_vh_coded <- sum(vh_layers %in% c("IV", "V"))
 ```
 
 ## Key literature findings {#sec-literature-findings}
@@ -281,7 +285,7 @@ Hohle Fels is the only site in the dataset whose internal sequence warrants spli
 
 ### Vogelherd → Early Aurignacian (Aur-P1, site-level)
 
-Vogelherd is kept as a single site-level Aur-P1 unit rather than split by layer: unlike Hohle Fels, its documented mixing is *between* the Aurignacian and other technocomplexes (Gravettian, Magdalenian), not between Aur-P1 and Aur-P2 Aurignacian facies, so no layer-level phase boundary can be drawn from the published reassessments. The mixing concern is instead addressed directly in S1 §[-@s1-sec-s5-5] (Analysis B, exclusion of Vogelherd).
+Vogelherd is kept as a single site-level Aur-P1 unit rather than split by layer. The reassessment documents mixing inside the Aurignacian sequence, with 38 refit connections between AH IV and AH V, and some mixing with later material [@Schurch_Conard_2026_reassess]. Only `r n_vh_coded` of the `r length(vh_layers)` analysed Vogelherd objects carry an AH IV or AH V layer code in SignBase, so a layer-level phase boundary cannot be applied to them. The 15 radiocarbon dates in the reassessment span 42–34.5 ka cal BP [@Schurch_Conard_2026_reassess]. This span crosses the Aur-P1/Aur-P2 boundary, so the Aur-P1 assignment of the whole site is a simplification. The mixing concern is instead addressed directly in S1 §[-@s1-sec-s5-5] (Analysis B, exclusion of Vogelherd).
 
 - Schürch and Conard [-@Schurch_Conard_2026_reassess]: Reassesses cultural stratigraphy; AH IV–V are Aurignacian but with severe mixing (38 refit connections between layers); 15 radiocarbon dates span 42–34.5 ka cal BP; Gravettian also present.
 - Schürch et al. [-@Schurch_et_al_2025_bladelet]: Blade/bladelet production analysis; mixing documented but majority of artifacts are Aurignacian.
