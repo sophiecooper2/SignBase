@@ -3583,6 +3583,7 @@ compute_mantel_abundance <- function(time_unique_data_full) {
 # Mantel test for chronological distance vs sign dissimilarity
 compute_mantel_chronological <- function(signbase_full_clean, time_unique_data_full) {
   library(vegan)
+  set.seed(42)
   chron_df <- signbase_full_clean %>%
     column_to_rownames("id") %>%
     dplyr::select(MedianBP) %>%

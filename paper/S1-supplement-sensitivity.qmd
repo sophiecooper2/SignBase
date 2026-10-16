@@ -567,20 +567,20 @@ The PCoA and CA ordination biplots reinforce this by showing that site relations
 
 ## Rationale {#sec-s4-rationale}
 
-Mantel tests in the main text find no geographic signal, but a flat Euclidean distance and a single global correlation can each hide structure. This section checks the result in three ways: geodesic distance in kilometres, scale-dependent correlograms with uncertainty on the global R, and a non-Mantel trend-surface model. Each check below states its questions in Rationale and answers them in Interpretation.
+Mantel tests in the main text find no geographic signal, but the choice of distance measure and the use of a single global correlation can each affect this result. This section checks the result in three ways: a comparison of geodesic and flat-coordinate distances, scale-dependent correlograms with uncertainty on the global R, and a non-Mantel trend-surface model. Each check below states its questions in Rationale and answers them in Interpretation.
 
 ## Geodesic distance comparison {#sec-s4-check}
 
 ### Rationale {#sec-s4-check-rationale}
 
-In the main text, Mantel tests evaluate whether sign assemblage dissimilarity correlates with spatial distance. Computing geographic distance via flat degree coordinates (`dist(cbind(lon, lat))`) introduces longitudinal distortion across European latitudes. Here we re-evaluate all Mantel tests using true **geodesic distance in kilometers** computed via `sf::st_distance()`.
+In the main text, Mantel tests evaluate whether sign assemblage dissimilarity correlates with spatial distance. These tests measure geographic distance as **geodesic distance in kilometres**, computed with `sf::st_distance()`. A simpler alternative is the Euclidean distance between flat longitude and latitude coordinates (`dist(cbind(lon, lat))`), which distorts east–west distances across European latitudes. Here we repeat the Mantel tests with both distance measures, to check that the result does not depend on the distance measure.
 
-**Question: does the non-significant Mantel result hold when distance is measured as true geodesic kilometres rather than flat Euclidean coordinates?**
+**Question: does the non-significant Mantel result hold under both geodesic and flat Euclidean distances?**
 
 ```{r}
 #| label: tbl-geodesic-mantel
 #| tbl-colwidths: [22, 19, 19, 21, 19]
-#| tbl-cap: "Comparison of Mantel test results (Mantel R and p-value) evaluating sign assemblage dissimilarity vs. spatial distance using flat coordinate Euclidean distance vs. true Geodesic distance (in kilometers)."
+#| tbl-cap: "Comparison of Mantel test results (Mantel R and p-value) evaluating sign assemblage dissimilarity vs. spatial distance using flat coordinate Euclidean distance vs. geodesic distance in kilometres (the distance measure used in the main text)."
 #| tbl-cap-location: bottom
 
 mantel_comp_df <- bind_rows(
@@ -596,13 +596,14 @@ kable(mantel_comp_df,
 
 ### Interpretation {#sec-s4-check-interpretation}
 
-**Question: does the non-significant Mantel result hold when distance is measured as true geodesic kilometres rather than flat Euclidean coordinates?** Yes. The geodesic distance calculation provides an important clarification:
-- In **Aur-P1** ($R$ = `r val(mantel_comp_df, "Geodesic_R", "Aur-P1")`, p = `r val(mantel_comp_df, "Geodesic_p", "Aur-P1")`), geographic distance remains uncorrelated with sign assemblage dissimilarity under both metrics.
-- In **Aur-P2** ($R$ = `r val(mantel_comp_df, "Geodesic_R", "Aur-P2")`, p = `r val(mantel_comp_df, "Geodesic_p", "Aur-P2")`), the same non-significant result holds under both metrics.
+**Question: does the non-significant Mantel result hold under both geodesic and flat Euclidean distances?** Yes. Neither distance measure gives a significant correlation in either phase:
 
-Consistent with the main-text Mantel tests (which report no significant geographic signal in either phase), neither phase shows a significant correlation between geographic distance and sign assemblage dissimilarity, whether distance is measured as flat Euclidean coordinates or as true geodesic kilometers.
+- In **Aur-P1**, the geodesic test gives $R$ = `r val(mantel_comp_df, "Geodesic_R", "Aur-P1")` (p = `r val(mantel_comp_df, "Geodesic_p", "Aur-P1")`) and the flat-coordinate test gives $R$ = `r val(mantel_comp_df, "Euclidean_R", "Aur-P1")` (p = `r val(mantel_comp_df, "Euclidean_p", "Aur-P1")`).
+- In **Aur-P2**, the geodesic test gives $R$ = `r val(mantel_comp_df, "Geodesic_R", "Aur-P2")` (p = `r val(mantel_comp_df, "Geodesic_p", "Aur-P2")`) and the flat-coordinate test gives $R$ = `r val(mantel_comp_df, "Euclidean_R", "Aur-P2")` (p = `r val(mantel_comp_df, "Euclidean_p", "Aur-P2")`).
 
-**Implication for the main text.** The main-text use of flat coordinates does not create the null result; geodesic kilometres give the same non-significant outcome in both phases.
+The geodesic R values are the same as in the main-text Mantel tests. The p-values can differ slightly from the main text, because the two analyses use different random permutations.
+
+**Implication for the main text.** The main-text Mantel tests already use geodesic kilometres. Flat coordinates give the same non-significant result in both phases, so the null result does not depend on the distance measure.
 
 ## Mantel correlogram {#sec-s4-3}
 
