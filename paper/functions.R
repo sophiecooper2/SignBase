@@ -626,6 +626,7 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
   if (method == "network") {
     disim <- 1 - dm
     disim[disim < threshold] <- 0
+    deg <- rowSums(disim > 0) - (diag(disim) > 0)  # node degree, self-loop excluded
     disim_net <- network::network(disim,
                                   directed = FALSE,
                                   ignore.eval = FALSE,
@@ -641,7 +642,8 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
       scale_edge_width(range = c(0.5, 1.5)) +
       scale_edge_colour_gradient(low = "#CCCCCC",
                                  high = "#000000") +
-      geom_node_point(alpha = 1, size = 5) +
+      geom_node_point(aes(size = deg), alpha = 1) +
+      scale_size_continuous(name = "Degree", range = c(1.5, 8), breaks = scales::breaks_pretty(n = 3)) +
       geom_node_text(aes(label = row.names(artifact_data)),
                      size = 3,
                      family = "Arial",
@@ -652,7 +654,8 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
                      bg.r = 0.25,
                      bg.colour = "white") +
       theme(text = element_text(size = 15),
-            panel.background = element_rect(fill = "white")) +
+            panel.background = element_rect(fill = "white"),
+            legend.position = "bottom") +
       ggpubr::border(color = "black", size = 0.5)
   }
   return(list(plot = final_plot, group_sizes = group_sizes))

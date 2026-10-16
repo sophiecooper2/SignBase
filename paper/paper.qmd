@@ -532,7 +532,7 @@ The stochastic block model analysis, which tests whether the proposed groups eme
 
 ```{r fig.height= 5.5, fig.width= 8}
 #| label: fig-neighbor-net
-#| fig-cap: "Networks depicting inter‑site affinity in geometric‑sign repertoires for each phase, derived from the Jaccard similarity of sign presence/absence. Nodes represent sites and edges connect pairs whose Jaccard similarity is ≥0.2 (i.e., the intersection of their sign types is at least 20% of their union). Node size reflects degree centrality, and edge thickness corresponds to similarity strength."
+#| fig-cap: "Networks depicting inter‑site affinity in geometric‑sign repertoires for each phase, derived from the Jaccard similarity of sign presence/absence. Nodes represent sites and edges connect pairs whose Jaccard similarity is ≥0.2 (i.e., the intersection of their sign types is at least 20% of their union). Node size shows degree centrality (the number of edges at each site), and each panel has its own size key. Edge thickness shows similarity strength."
 
 network_aurp1 <- produce_clusters(aurp1_artifact_data, 
                                   aurp1_unique_data, 

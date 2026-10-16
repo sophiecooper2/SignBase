@@ -1626,7 +1626,7 @@ Point estimates of network statistics are sensitive to individual sites and to o
 ```{r}
 #| label: tbl-bootstrap-ci
 #| tbl-colwidths: [12, 17, 10, 10, 9, 16, 10, 10, 6]
-#| tbl-cap: "Object-within-site bootstrap stability bands for mean degree and modularity at threshold = 0.2, based on 999 resamples per phase. Observed is the statistic on the full data computed without rounding; 2.5% and 97.5% are quantiles of the raw bootstrap distribution; SD is the bootstrap standard deviation. Values are rounded for display only. These bands quantify stability to within-site object resampling, not confidence intervals for the true parameter: resampling drops rare signs, so a band may sit below or above its observed value. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree (Roberts et al. 2021)."
+#| tbl-cap: "Object-within-site bootstrap stability bands for mean degree and modularity at threshold = 0.2, based on 999 resamples per phase. Observed is the statistic on the full data computed without rounding; 2.5% and 97.5% are quantiles of the raw bootstrap distribution; SD is the bootstrap standard deviation. Values are rounded for display only. These bands quantify stability to within-site object resampling, not confidence intervals for the true parameter: resampling drops rare signs, so a band may sit below or above its observed value. Site-with-replacement bootstrap is not used because it creates duplicate nodes with similarity 1 and distance 0, inflating degree [@Roberts_2021]."
 #| tbl-cap-location: bottom
 #| cache: true
 
@@ -2244,7 +2244,7 @@ kable(s513_sil_tab, col.names = c("Phase","Method","k","Mean silhouette","Sites 
 ```{r}
 #| label: tbl-region-permanova
 #| tbl-colwidths: [10, 26, 16, 11, 11, 11, 15]
-#| tbl-cap: "Sign composition (Jaccard, sqrt.dist=TRUE, 999 permutations) across objective geographic regions. PAM geodesic k=2 is primary; k=3 and modern country are sensitivity rows. Marginal rows are from adonis2(J ~ region + group, by='margin'). Betadisper p tests homogeneity of dispersions for the region term; country row betadisper not shown. Aur-P2 has few sites, so k>=4 and all Aur-P2 PERMANOVAs are indicative (Anderson & Walsh 2013)."
+#| tbl-cap: "Sign composition (Jaccard, sqrt.dist=TRUE, 999 permutations) across objective geographic regions. PAM geodesic k=2 is primary; k=3 and modern country are sensitivity rows. Marginal rows are from adonis2(J ~ region + group, by='margin'). Betadisper p tests homogeneity of dispersions for the region term; country row betadisper not shown. Aur-P2 has few sites, so k>=4 and all Aur-P2 PERMANOVAs are indicative [@Anderson_Walsh_2013]."
 #| tbl-cap-location: bottom
 kable(s513_perm_tab, col.names = c("Phase","Partition","Term","R2","F","p","Betadisper p"), digits = 3, align = "lllcccc")
 ```
