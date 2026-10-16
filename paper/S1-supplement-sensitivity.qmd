@@ -1497,7 +1497,7 @@ Calibration checks ask whether modularity, degree, and significance survive null
 
 ### Rationale
 
-Modularity values in the range 0.3-0.5 are often described as "high" without formal benchmarking. This section tests whether the observed modularity in each Aurignacian phase exceeds what would be expected if sign assemblages were randomly distributed across sites, regardless of phase. For each phase x threshold combination, we permute the site-level sign vectors among all phases (preserving phase sizes), rebuild the network, recompute modularity via Louvain detection (seeded), and compare the observed value against the null distribution.
+Modularity values in the range 0.3-0.5 are often described as "high" without formal benchmarking. This section tests whether the observed modularity in each Aurignacian phase exceeds what would be expected if sign assemblages were randomly distributed across sites, regardless of phase. For each phase and threshold, we draw random sets of site-level sign vectors from the pooled site-phase assemblages of both phases, each set with the same number of sites as the phase, rebuild the network, recompute modularity via Louvain detection (seeded), and compare the observed value against the null distribution.
 
 **Question: does observed modularity in each phase exceed the null expectation from randomly distributed sign assemblages?**
 
@@ -1526,9 +1526,9 @@ The p-values indicate whether the observed community structure is significantly 
 
 ### Interpretation
 
-**Question: does observed modularity in each phase exceed the null expectation from randomly distributed sign assemblages?** Yes in well-sampled Aur-P1 at thresholds 0.2 and 0.3, and no in Aur-P2.
+**Question: does observed modularity in each phase exceed the null expectation from randomly distributed sign assemblages?** No. The observed modularity is not significantly higher than the null expectation in either phase at any of the three thresholds (smallest p across the six tests = `r n3(min(null_results$p))`; @tbl-null-modularity).
 
-**Implication for the main text.** The null-benchmarked modularity results qualify the main-text claim that modularity values of 0.3–0.5 indicate "persistent community structure." At the baseline threshold of 0.2, Aur-P1's observed modularity of `r n3(val(null_results, "Observed", "Aur-P1", 0.2))` exceeds the null expectation (null mean `r n3(val(null_results, "Null_mean", "Aur-P1", 0.2))`) and is statistically significant (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`), as it is at threshold 0.3 (`r n3(val(null_results, "Observed", "Aur-P1", 0.3))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.3))`); at the permissive 0.1 threshold, the Aur-P1 value (`r n3(val(null_results, "Observed", "Aur-P1", 0.1))`, p = `r n3(val(null_results, "p", "Aur-P1", 0.1))`) is lower than at 0.2 and 0.3 but still far about the null. Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))` at threshold 0.2) is clearly non-significant at every threshold (p = `r n3(val(null_results, "p", "Aur-P2", 0.1))` to `r n3(val(null_results, "p", "Aur-P2", 0.3))`), consistent with the very small number of sites in this phase. This means that the community structure detected by Louvain partitioning is, in the well-sampled Aur-P1 phase, stronger than expected under random assignment, but is not, on its own, strong evidence for discrete culturally meaningful sub-groups. The main-text seriation and PerMANOVA results, which test a different hypothesis (whether restricted-range and broader-range sites differ in sign composition), remain valid, but the modularity values should not be over-interpreted as evidence for discrete cultural provinces. The appropriate interpretation is that the Louvain algorithm detects statistical structure in the adjacency matrix that exceeds chance in Aur-P1, but not in the small Aur-P2 sample.
+**Implication for the main text.** Louvain modularity in each phase is not significantly higher than in random sets of the same number of site-phase assemblages drawn from both phases. At the baseline threshold of 0.2, Aur-P1's observed modularity (`r n3(val(null_results, "Observed", "Aur-P1", 0.2))`) is higher than the null mean (`r n3(val(null_results, "Null_mean", "Aur-P1", 0.2))`), but the difference is not significant (p = `r n3(val(null_results, "p", "Aur-P1", 0.2))`). Aur-P2's observed modularity (`r n3(val(null_results, "Observed", "Aur-P2", 0.2))`) is lower than its null mean (`r n3(val(null_results, "Null_mean", "Aur-P2", 0.2))`; p = `r n3(val(null_results, "p", "Aur-P2", 0.2))`). The results at thresholds 0.1 and 0.3 are similar (@tbl-null-modularity). This agrees with the phase-randomization test in the main text. Thus the modularity values are not evidence of community structure beyond what the site repertoires produce by chance, and they should not be read as evidence for discrete cultural provinces.
 
 ## Richness and degree confound {#sec-s7-2}
 
@@ -2372,7 +2372,7 @@ kable(s6_summary,
 
 ```{r}
 #| label: tbl-bootstrap-sites
-#| tbl-colwidths: [28, 13, 22, 15, 22]
+#| tbl-colwidths: [15, 45, 20, 20]
 #| tbl-cap: "Per-site bootstrap consistency: proportion of 1000 resamples in which each site is assigned to its modal (most frequent) block. Consistency near 1 indicates robust assignment; values near 0.5 indicate sites whose group membership flips across resamples."
 #| tbl-cap-location: bottom
 
@@ -2532,7 +2532,7 @@ if (exists("icl_long") && nrow(icl_long)) {
 
 ```{r}
 #| label: tbl-sbm-membership
-#| tbl-colwidths: [17, 9, 11, 18, 12, 8, 8, 8, 9]
+#| tbl-colwidths: [10, 12, 30, 12, 9, 9, 9, 9]
 #| tbl-cap: "Posterior block-membership probabilities and modal (hard) assignment from the best-fitting stochastic block model for each phase and emission model. Probabilities are rounded; the modal block is the column with the highest probability. Sites with probability spread across blocks (e.g. no entry above 0.7) have ambiguous membership. Bernoulli model uses binarized adjacency (edge if similarity ≥ 0.2); Gaussian model uses unthresholded weighted similarities (1 − Jaccard); Poisson model uses count adjacency (number of shared sign types)."
 #| tbl-cap-location: bottom
 
@@ -2742,7 +2742,7 @@ s6_ser_null_p2 <- seriation_null_test(aurp2_mat, B = 999, seed = 1)
 
 ```{r}
 #| label: tbl-seriation-null
-#| tbl-colwidths: [15, 9, 10, 10, 8, 10, 10, 10, 9, 6, 3]
+#| tbl-colwidths: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
 #| tbl-cap: "Seriation-order null test results (B = 999 Curveball replicates per phase, seed = 1). Concentration = mean normalised distance of presences from diagonal; Path length = sum of consecutive Jaccard distances along seriated order. One-sided p-values: smaller observed statistic = more ordered. B_finite = replicates that converged."
 #| tbl-cap-location: bottom
 
