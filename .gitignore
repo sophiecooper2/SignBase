@@ -19,11 +19,16 @@ paper/*.rmarkdown
 paper/s1-sec-map.json
 paper/s2-sec-map.json
 
-# Open ScholarPeer  
+# AI stuff  
 .brain/
 .opencode
 .open-scholar-peer/
 AGENTS.md
+.metadata_cache
+.freebuff
+.playwright-mcp
+open-ai-co-scientist
+
 
 # API keys (never commit)
 .env
