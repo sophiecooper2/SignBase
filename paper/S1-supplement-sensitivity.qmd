@@ -25,10 +25,13 @@ date-format: long
 number-sections: false
 supplement-number: 1
 crossref:
-  fig-title: "Figure S"
-  tbl-title: "Table S"
-  fig-prefix: "Figure S"
-  tbl-prefix: "Table S"
+  fig-title: "Fig"
+  tbl-title: "Table"
+  fig-prefix: "Fig"
+  tbl-prefix: "Table"
+  fig-labels: alpha A
+  tbl-labels: alpha A
+  title-delim: "."
   chapters: false
 format:
   docx:
@@ -52,6 +55,9 @@ filters:
   - ../templates/tbl-colwidths.lua
   - at: post-render
     path: ../templates/tbl-colwidths.lua
+  # Item labels past Z continue as AA, AB, ... (see templates/alpha-labels.lua).
+  - at: post-render
+    path: ../templates/alpha-labels.lua
 bibliography: references.bib
 csl: "../templates/plos.csl"
 ---
@@ -257,7 +263,7 @@ aurp2_unique_data <- add_manual_group(aurp2_unique_data, "Aur-P2")
 
 ## Interpretation {#sec-s1-interpretation}
 
-**Question: how many signed objects and sites are lost at each step of data cleaning?** The raw extract holds `r n_raw_signed_objects` signed objects at `r n_raw_signed_sites` sites. Removing the eight low-quality sites leaves `r nrow(after_eight)` signed objects at `r n_distinct(after_eight$site_name)` sites. Date parsing then removes a further `r n_dropped_sites` sites carrying `r n_dropped_objects` signed objects (@tbl-dropped-sites). Phase assignment then removes `r nrow(after_eight) - n_dropped_objects - n_retained_objects` objects from Spy, whose assemblage is mixed, from El Castillo, whose Aurignacian attribution is debated, and from the mixed Hohle Fels layer IIIa-V (S2). The retained analysed sample is therefore `r n_retained_objects` objects at `r n_retained_sites` unique geographic sites.
+**Question: how many signed objects and sites are lost at each step of data cleaning?** The raw extract holds `r n_raw_signed_objects` signed objects at `r n_raw_signed_sites` sites. Removing the eight low-quality sites leaves `r nrow(after_eight)` signed objects at `r n_distinct(after_eight$site_name)` sites. Date parsing then removes a further `r n_dropped_sites` sites carrying `r n_dropped_objects` signed objects (@tbl-dropped-sites). Phase assignment then removes `r nrow(after_eight) - n_dropped_objects - n_retained_objects` objects from Spy, whose assemblage is mixed, from El Castillo, whose Aurignacian attribution is debated, and from the mixed Hohle Fels layer IIIa-V (S2 File). The retained analysed sample is therefore `r n_retained_objects` objects at `r n_retained_sites` unique geographic sites.
 
 **Question: does the loss fall disproportionately on the small Aur-P2 sample?** Not clearly. The `r n_plain_sites` sites whose date strings have no error term have uncalibrated ¹⁴C ages, not calendar ages. The main analysis uses the older end of each date range. With a nominal error of ±300 years, the older ends of `r n_plain_older_p1` of these `r n_plain_sites` ranges calibrate to more than 37,799 cal BP, that is, to Aur-P1. These include the largest of these assemblages, Grotte de Goyet (`r goyet_plain_objects` objects; `r format(round(goyet_older_cal), big.mark = ",")` cal BP). The loss of these sites therefore does not explain the small size of the Aur-P2 sample. The phase of the `r n_missing_sites` dropped sites that have no date string is not known.
 

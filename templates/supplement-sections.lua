@@ -9,8 +9,9 @@
 --   S2 file (supplement-number: 2): H2 n -> S2.<n>, H3 -> S2.<n>.<m>
 --
 -- Requires `number-sections: false` (Pandoc must not add its own numbers).
--- Tables and figures stay on native Quarto crossref with Table S / Figure S
--- titles; only `@sec-` cites are rewritten here, before Quarto sees them.
+-- Tables and figures stay on native Quarto crossref, labelled Table A, Fig A,
+-- ... in each supplement (PLOS ONE style for items inside an SI file); only
+-- `@sec-` cites are rewritten here, before Quarto sees them.
 --
 -- A header opts into numbering when it has a `sec-` identifier or its text
 -- still carries a legacy manual prefix (e.g. "S5.5"). Headers with class

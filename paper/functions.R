@@ -653,7 +653,7 @@ produce_clusters <- function(artifact_data, artifact_data_unique,
                      force = 2,
                      bg.r = 0.25,
                      bg.colour = "white") +
-      theme(text = element_text(size = 15),
+      theme(text = element_text(size = 10),
             panel.background = element_rect(fill = "white"),
             legend.position = "bottom") +
       ggpubr::border(color = "black", size = 0.5)
@@ -1067,7 +1067,7 @@ plot_diversity_fn <- function(input_df) {
                                           y = .data$y,
                                           label = .data$label),
                              inherit.aes = FALSE,
-                             size = 2.6,
+                             size = 2.85,
                              max.overlaps = Inf,
                              box.padding = 0.9,
                              point.padding = 0.35,
@@ -1079,8 +1079,9 @@ plot_diversity_fn <- function(input_df) {
                              seed = 1,
                              bg.color = "white",
                              bg.r = 0.12) +
+    scale_colour_manual(values = c("mean" = "#0072B2", "conf. int." = "#D55E00")) +
     guides(colour = "none") +
-    theme_minimal(base_size = 8) +
+    theme_minimal(base_size = 10) +
     ggpubr::border(color = "black", size = 0.5)
 }
 
