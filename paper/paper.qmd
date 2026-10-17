@@ -288,8 +288,8 @@ signbase_full_clean$time_period_label <-
   )
 
 # phase colour palette used across all panels
-phase_cols <- c("Aur-P1" = "#F8766D",
-                "Aur-P2" = "#00BA38")
+phase_cols <- c("Aur-P1" = "#D55E00",
+                "Aur-P2" = "#0072B2")
 
 # phase colour band geometry: y sits just above the tallest bar
 max_count <- max(table(signbase_full_clean$MedianBP))
@@ -464,7 +464,7 @@ All data and code needed to reproduce the analyses in this paper are publicly av
 
 ```{r fig.height= 8, fig.width= 13}
 #| label: fig-seriation
-#| fig-cap: "Presence–absence matrices of geometric sign types reordered using Brower‑Kile seriation for (A) Aur-P1 and (B) Aur-P2 phases. Rows represent sites and columns represent sign types. Hypothesized site grouping indicated by colour: restricted group is in red, broader group is in blue."
+#| fig-cap: "Presence–absence matrices of geometric sign types reordered using Brower‑Kile seriation for (A) Aur-P1 and (B) Aur-P2 phases. Rows represent sites and columns represent sign types. Hypothesized site grouping indicated by colour: restricted group is in orange, broader group is in blue."
 
 seriation_aurp1 <- produce_clusters(aurp1_artifact_data, 
                                       aurp1_unique_data, 
@@ -709,8 +709,8 @@ ggplot(Europe) +
         strip.text = element_text(size = 10, colour = "white"),
         legend.position = "bottom")  +
   scale_color_manual(name = "Group", 
-                     values = c("Restricted range" = "#E41A1C", 
-                                "Broader range"    = "#377EB8")) +
+                     values = c("Restricted range" = "#D55E00", 
+                                "Broader range"    = "#0072B2")) +
   scale_shape_manual(name = "Group",
                      values = c("Restricted range" = 17, 
                                 "Broader range"    = 19))
@@ -1016,7 +1016,7 @@ Our study has three limitations. First is the ambiguity of some of the sign type
 
 A second limitation concerns the effects of time-averaging on our network reconstructions. Daems et al. [-@Daems_Coco_Gillreath-Brown_Kafetzaki_2024] demonstrate that time-averaging reduces the fidelity of network interpretations compared to non-time-averaged networks, and that these effects are highly dependent on initial network structures. Our division of the Aurignacian into two phases partially addresses this issue, but each phase still spans several thousand years, and individual sites may contain occupations from multiple millennia. The palimpsest nature of archaeological deposits means that our networks likely compress diachronic changes in social connectivity, potentially obscuring shorter-term fluctuations in interaction patterns. Padilla-Iglesias and Bischoff [-@Padilla-Iglesias_Bischoff_2024] further show that hunter-gatherer mobility patterns profoundly affect our ability to reconstruct social networks from archaeological assemblages, with implications for how we interpret network metrics such as mean degree and transitivity. These methodological constraints should be borne in mind when inferring social organisation patterns from the analyses discussed above.
 
-A third limitation relates to the reliability of site-level phase assignments, and the small size of the Aur-P2 sample in particular. For seven sites, our primary analysis follows specialist technological attributions from the published literature rather than radiocarbon dates alone, because the dates can conflict with the archaeological content of a layer: Abri Pataud's lithic technology places it in the Early Aurignacian despite basal dates within the Proto-Aurignacian range [@Chiotti_2005; @Higham_Abri_Pataud_2011], La Ferrassie's Aurignacian begins with the Early Aurignacian directly above the Châtelperronian [@Talamo_La_Ferrassie_2020], and Mladeč's massive-base bone points and ~31 ka ¹⁴C BP (~35–36 ka cal BP) dates indicate an Evolved (Aur-P2) attribution [@Wild_et_al_2005]. Additionally, Vogelherd Cave's stratigraphy is compromised by excavation methodology and post-depositional disturbance, with documented mixing between Aurignacian, Gravettian, and Magdalenian layers [@Schurch_Conard_2026_reassess]. After exclusions, Aur-P2 rests on only `r aurp2_site_count` sites and `r aurp2_obj_count` objects, so its two-group structural analyses and network statistical tests have limited power. Date parsing also removes sites whose reported dates have no stated uncertainty (S1 §[-@s1-sec-s1]; S2). Under the older-end rule of our main analysis, most of these sites, including the largest (Grotte de Goyet), would probably fall in Aur-P1, so this filter does not explain the small size of the Aur-P2 sample. The choice of date end is important: if we use the midpoint or the younger end of each date range instead of the older end, several date-assigned sites move from Aur-P1 to Aur-P2 (S1 §[-@s1-sec-s5-3]). We did not repeat the network analyses with these alternative date ends. Shifting the phase boundary by up to 1,000 years moves at most a few sites and does not change the raw mean-degree ordering of the phases (S1 §[-@s1-sec-s5-4]).
+A third limitation relates to the reliability of site-level phase assignments, and the small size of the Aur-P2 sample in particular. For seven sites, our primary analysis follows specialist technological attributions from the published literature rather than radiocarbon dates alone, because the dates can conflict with the archaeological content of a layer: Abri Pataud's lithic technology places it in the Early Aurignacian despite basal dates within the Proto-Aurignacian range [@Chiotti_2005; @Higham_Abri_Pataud_2011], La Ferrassie's Aurignacian begins with the Early Aurignacian directly above the Châtelperronian [@Talamo_La_Ferrassie_2020], and Mladeč's massive-base bone points and ~31 ka ¹⁴C BP (~35–36 ka cal BP) dates indicate an Evolved (Aur-P2) attribution [@Wild_et_al_2005]. Additionally, Vogelherd Cave's stratigraphy is compromised by excavation methodology and post-depositional disturbance, with documented mixing between Aurignacian, Gravettian, and Magdalenian layers [@Schurch_Conard_2026_reassess]. After exclusions, Aur-P2 rests on only `r aurp2_site_count` sites and `r aurp2_obj_count` objects, so its two-group structural analyses and network statistical tests have limited power. Date parsing also removes sites whose reported dates have no stated uncertainty (S1 §[-@s1-sec-s1]; S2). Under the older-end rule of our main analysis, most of these sites, including the largest (Grotte de Goyet), would probably fall in Aur-P1, so this filter does not explain the small size of the Aur-P2 sample. The choice of date end is important: if we use the midpoint or the younger end of each date range instead of the older end, several date-assigned sites move from Aur-P1 to Aur-P2 (S1 §[-@s1-sec-s5-3]). When we repeat the full network analysis with each date end, the phase that holds more sites has the higher raw mean degree: Aur-P1 under the older end and the midpoint, and Aur-P2 under the younger end (S1 §[-@s1-sec-s5-3]). This dependence supports reading the raw between-phase contrast as an effect of network size, not of connectivity. Shifting the phase boundary by up to 1,000 years moves at most a few sites and does not change the raw mean-degree ordering of the phases (S1 §[-@s1-sec-s5-4]).
 
 # Supporting information
 

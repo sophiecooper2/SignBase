@@ -525,7 +525,7 @@ PCoA uses the same Jaccard dissimilarity as the Mantel tests. CA uses the presen
 
 ```{r fig.height=8, fig.width=10}
 #| label: fig-ordination-pcoa-ca
-#| fig-cap: "PCoA on Jaccard dissimilarity (left column) and CA on presence absence (right column) for Aur-P1 (top row) and Aur-P2 (bottom row). Points are sites coloured by manual group with restricted in red and broad in blue. Labels name sites with high leverage only when space allows."
+#| fig-cap: "PCoA on Jaccard dissimilarity (left column) and CA on presence absence (right column) for Aur-P1 (top row) and Aur-P2 (bottom row). Points are sites coloured by manual group with restricted in orange and broad in blue. Labels name sites with high leverage only when space allows."
 #| fig-height: 8
 #| fig-width: 10
 
@@ -551,7 +551,7 @@ knitr::include_graphics(here::here("figures/ordination-pcoa-ca-plot.png"))
 
 **Question: does the raw mean-degree difference between Aur-P1 and Aur-P2 survive under Simpson similarity, which controls for richness asymmetry?** Yes. Under Simpson similarity, Aur-P1 has a mean degree of `r n2(val(metric_stats, "mean_degree", "Aur-P1", metric = "simpson"))` and Aur-P2 has a mean degree of `r n2(val(metric_stats, "mean_degree", "Aur-P2", metric = "simpson"))`. Simpson similarity is J/min(A,B). A poor assemblage that is nested inside a rich one therefore gets a high score by construction (@sec-s10-1). This nestedness makes both Simpson networks dense: the edge density is `r n3(val(metric_stats, "density", "Aur-P1", metric = "simpson"))` in Aur-P1 and `r n3(val(metric_stats, "density", "Aur-P2", metric = "simpson"))` in Aur-P2. Aur-P2 is the denser network. The higher mean degree of Aur-P1 therefore comes from its larger number of sites (`r nrow(aurp1_artifact_data)` against `r nrow(aurp2_artifact_data)`), as under the other two metrics.
 
-**Question: do ordinations show discrete clusters or a continuous gradient?** The PCoA and CA biplots show a continuous gradient with two single site outliers. In @fig-ordination-pcoa-ca the restricted sites in red and the broad sites in blue fall along one slope in Aur-P1 and in Aur-P2. PCoA axis 1 carries `r ord_p1$pcoa_var1`% of variance in Aur-P1 and `r ord_p2$pcoa_var1`% in Aur-P2. CA axis 1 carries `r ord_p1$ca_var1`% in Aur-P1 and `r ord_p2$ca_var1`% in Aur-P2. The main cloud shows no split into two groups. In Aur-P1 CA two broad sites stand apart, namely Les Cottés and Trou al'Wesse, because each carries a rare sign type. The visual matches the Simpson turnover result with no group separation.
+**Question: do ordinations show discrete clusters or a continuous gradient?** The PCoA and CA biplots show a continuous gradient with two single site outliers. In @fig-ordination-pcoa-ca the restricted sites in orange and the broad sites in blue fall along one slope in Aur-P1 and in Aur-P2. PCoA axis 1 carries `r ord_p1$pcoa_var1`% of variance in Aur-P1 and `r ord_p2$pcoa_var1`% in Aur-P2. CA axis 1 carries `r ord_p1$ca_var1`% in Aur-P1 and `r ord_p2$ca_var1`% in Aur-P2. The main cloud shows no split into two groups. In Aur-P1 CA two broad sites stand apart, namely Les Cottés and Trou al'Wesse, because each carries a rare sign type. The visual matches the Simpson turnover result with no group separation.
 
 **Question: does PCoA1 track richness, geography, or both?** The PCoA axis 1 captures the primary gradient in sign-type composition. To evaluate whether this gradient reflects richness, geographic position, or both, a multiple regression fits PCoA1 against richness and both geographic coordinates. Partial t-tests show whether PCoA1 tracks richness after controlling for geography and vice versa.
 
@@ -860,6 +860,8 @@ The date parser handles both ends of calibrated ranges and routes OSL ages aroun
 
 **Question: how many sites change phase across older, midpoint, and younger date variants, and in which direction?**
 
+**Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive when the full network analysis is re-run with each variant?**
+
 ```{r}
 #| label: tbl-date-variant-comparison
 #| tbl-colwidths: [20, 12, 12, 12, 12, 12, 12, 8]
@@ -886,11 +888,39 @@ kable(changing_sites,
       align = "lrclrclc")
 ```
 
+```{r}
+#| label: tbl-variant-networks
+#| tbl-colwidths: [16, 12, 11, 11, 12, 20, 18]
+#| tbl-cap: "Network statistics per phase when the full pipeline is re-run with each date variant (threshold = 0.2, Jaccard similarity). The technology-based overrides are held fixed, so only date-assigned sites move between phases or drop out."
+#| tbl-cap-location: bottom
+
+variant_nets <- purrr::map_dfr(c("older", "midpoint", "younger"), function(v) {
+  clv <- clean_signbase(signbase_full, date_variant = v)
+  llv <- site_latlong(clv)
+  purrr::map_dfr(c("Aur-P1", "Aur-P2"), function(ph) {
+    network_stats(extract_artifact(make_phase2_data(ph, clv, llv)), threshold = 0.2) %>%
+      mutate(Variant = v, Phase = ph, .before = 1)
+  })
+}) %>%
+  dplyr::select(Variant, Phase, n_sites, n_edges, density, mean_degree, modularity)
+
+# Inline helpers for the interpretation prose
+s53_md_v <- function(v, ph) round(variant_nets$mean_degree[variant_nets$Variant == v & variant_nets$Phase == ph], 2)
+s53_ns_v <- function(v, ph) variant_nets$n_sites[variant_nets$Variant == v & variant_nets$Phase == ph]
+
+kable(variant_nets,
+      col.names = c("Variant", "Phase", "Sites", "Edges", "Density",
+                    "Mean degree", "Modularity"),
+      digits = 3)
+```
+
 ### Interpretation
 
 **Question: how many sites change phase across older, midpoint, and younger date variants, and in which direction?** The three variants assign `r s53_n_p1[["Phase_older"]]`, `r s53_n_p1[["Phase_midpoint"]]` and `r s53_n_p1[["Phase_younger"]]` sites to Aur-P1 respectively (of `r s53_n_ret[["MedianBP_older"]]`, `r s53_n_ret[["MedianBP_midpoint"]]` and `r s53_n_ret[["MedianBP_younger"]]` sites retained), so `r sum(site_phase_comparison$changes == "Yes")` of `r nrow(site_phase_comparison)` sites change phase and `r sum(site_phase_comparison$changes == "dropped")` more fail date parsing altogether under the alternative ends (@tbl-date-variant-comparison). Between the older and midpoint variants, `r s53_n_mid` sites switch phase: Cellier, Grotte de la Verpillière I, Grottes de Fonds-de-Forêt, Solutré, Trou al'Wesse and Vogelherd all move from Aur-P1 to Aur-P2. A further `r sum(site_phase_comparison$changes == "Yes") - s53_n_mid` sites, among them Mladeč (`r s53_mladec[["MedianBP_older"]]` / `r s53_mladec[["MedianBP_midpoint"]]` / `r s53_mladec[["MedianBP_younger"]]` cal BP), Abri Pataud and Les Cottés, move only at the younger end. Bockstein-Törle, Sirgenstein Cave and Trou Magrite, all Aur-P2 sites at baseline, fail date parsing under at least one variant. The choice of calibrated end therefore shifts the phase balance substantially.
 
-**Implication for the main text.** Phase assignment for boundary-proximal sites depends on the chosen date end, which is why the main text fixes technology-based overrides and tests boundary shifts separately in @sec-s5-4.
+**Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive when the full network analysis is re-run with each variant?** Only in part: the ordering follows the number of sites in each phase (@tbl-variant-networks). Under the older end, the phases hold `r s53_ns_v("older", "Aur-P1")` and `r s53_ns_v("older", "Aur-P2")` sites and the mean degrees are `r s53_md_v("older", "Aur-P1")` against `r s53_md_v("older", "Aur-P2")`. Under the midpoint, the phases hold `r s53_ns_v("midpoint", "Aur-P1")` and `r s53_ns_v("midpoint", "Aur-P2")` sites and the gap narrows to `r s53_md_v("midpoint", "Aur-P1")` against `r s53_md_v("midpoint", "Aur-P2")`. Under the younger end, the site balance reverses (`r s53_ns_v("younger", "Aur-P1")` against `r s53_ns_v("younger", "Aur-P2")` sites) and so does the mean-degree ordering (`r s53_md_v("younger", "Aur-P1")` against `r s53_md_v("younger", "Aur-P2")`). In every variant, the phase with more sites has the higher raw mean degree. This agrees with the size-normalised result in @sec-s7-5: the raw between-phase contrast is an effect of network size, not of connectivity.
+
+**Implication for the main text.** Phase assignment for boundary-proximal sites depends on the chosen date end, which is why the main text fixes technology-based overrides and tests boundary shifts separately in @sec-s5-4. The raw Aur-P1 > Aur-P2 mean-degree ordering is specific to the older-end baseline: it narrows at the midpoint and reverses at the younger end, tracking the number of sites in each phase. This dependence supports the main text's decision to interpret the raw contrast as network scale and to rely on the size-normalised comparison in @sec-s7-5.
 
 ## Phase-boundary sensitivity {#sec-s5-4}
 
@@ -1035,11 +1065,13 @@ The main analysis assigns each site to a phase (Aur-P1/Aur-P2) using specialist 
 - **Mladeč**: The ~20 lithic artifacts include only one carinated end scraper. The 40 bone points with massive bases ("Mladeč-type") lack split bases and occur stratigraphically above split-based points at other Central European sites, placing them in the Evolved Aurignacian (Aur-P2) [@Oliva_2006]. Direct dates of ~31 ka ¹⁴C BP (~35–36 ka cal BP) are too young for Proto-Aurignacian [@Wild_et_al_2005].
 - **Vogelherd**: Riek's 1931 excavation removed 500 m³ in 12 weeks with no screening, using large horizontal spits that did not follow geological horizons. Documented mixing includes 38 refit connections between Aurignacian layers IV and V, Neolithic burials disturbing the southwestern area, and ~2–3% of tools in the Aurignacian layers potentially deriving from other periods [@Schurch_Conard_2026_reassess].
 
-Because these attributions are important for the two-phase framework, this section tests the sensitivity of the network results to (A) reverting to a purely date-based assignment, in which each object is assigned to a phase by its calibrated date alone, and (B) excluding Vogelherd entirely, given its documented stratigraphic mixing. This section answers two specific questions:
+Because these attributions are important for the two-phase framework, this section tests the sensitivity of the network results to (A) reverting to a purely date-based assignment, in which each object is assigned to a phase by its calibrated date alone, (B) excluding Vogelherd entirely, given its documented stratigraphic mixing, and (C) excluding Hohle Fels entirely, because it is the only site assigned to both phases and it holds nearly half of the Aur-P2 objects. This section answers three specific questions:
 
 **Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive under purely date-based assignment?**
 
 **Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive when Vogelherd is excluded entirely?**
+
+**Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive when Hohle Fels is excluded entirely?**
 
 ```{r}
 # ── Shared sensitivity summary (also used by §S1.12 figurine section) ──────
@@ -1071,6 +1103,19 @@ date_stats <- bind_rows(
 # ── Analysis B: exclude Vogelherd entirely ─────────────────────────────────
 # s8_novog is precomputed by sensitivity_summary() in the setup-figurine chunk
 no_vog_stats <- excl$s8_novog
+
+# ── Analysis C: exclude Hohle Fels entirely ─────────────────────────────────
+# Hohle Fels is the only site assigned to both phases and holds nearly half of
+# the Aur-P2 objects, so this mirrors the Vogelherd exclusion for Aur-P2.
+signbase_nohf <- signbase_full_clean %>% filter(site_name != "Hohle Fels")
+lat_long_nohf <- site_latlong(signbase_nohf)
+no_hf_stats <- bind_rows(
+  network_stats(extract_artifact(make_phase2_data("Aur-P1", signbase_nohf, lat_long_nohf)), threshold = 0.2) %>% mutate(Phase = "Aur-P1"),
+  network_stats(extract_artifact(make_phase2_data("Aur-P2", signbase_nohf, lat_long_nohf)), threshold = 0.2) %>% mutate(Phase = "Aur-P2")
+) %>%
+  mutate(Condition = "Exclude Hohle Fels") %>%
+  dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree,
+                transitivity, modularity)
 ```
 
 ### Analysis
@@ -1078,7 +1123,7 @@ no_vog_stats <- excl$s8_novog
 ```{r}
 #| label: tbl-reclass-comparison
 #| tbl-colwidths: [11, 24, 8, 8, 9, 12, 14, 14]
-#| tbl-cap: "Network statistics under three conditions: baseline (technology-based assignment), date-based (each object assigned purely by calibrated radiocarbon date, with the Spy/El Castillo exclusions retained), and exclude Vogelherd (technology-based baseline with the site of Vogelherd removed entirely). Threshold = 0.2, Jaccard similarity."
+#| tbl-cap: "Network statistics under four conditions: baseline (technology-based assignment), date-based (each object assigned purely by calibrated radiocarbon date, with the Spy/El Castillo exclusions retained), exclude Vogelherd (technology-based baseline with the site of Vogelherd removed entirely), and exclude Hohle Fels (technology-based baseline with the site of Hohle Fels removed from both phases). Threshold = 0.2, Jaccard similarity."
 #| tbl-cap-location: bottom
 
 baseline_reclass <- bind_rows(
@@ -1088,7 +1133,7 @@ baseline_reclass <- bind_rows(
   mutate(Condition = "Baseline (technology-based)") %>%
   dplyr::select(Phase, Condition, n_sites, n_edges, density, mean_degree, transitivity, modularity)
 
-all_reclass <- bind_rows(baseline_reclass, date_stats, no_vog_stats)
+all_reclass <- bind_rows(baseline_reclass, date_stats, no_vog_stats, no_hf_stats)
 
 kable(all_reclass,
       col.names = c("Phase", "Condition", "Sites", "Edges", "Density",
@@ -1111,7 +1156,9 @@ s8_mo <- function(ph, cond) round(all_reclass$modularity[all_reclass$Phase == ph
 
 **Vogelherd exclusion (Analysis B).** Removing Vogelherd's `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` objects from the technology-based baseline reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges. Mean degree falls from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")` (`r paste0("−", excl$md_pct, "%")`), and modularity from `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Vogelherd")`. Aur-P2 is unaffected (`r s8_md("Aur-P2", "Exclude Vogelherd")`, `r s8_ne("Aur-P2", "Exclude Vogelherd")` edges, `r s8_ns("Aur-P2", "Exclude Vogelherd")` sites).
 
-**Phase-ordering robustness.** The most consequential finding is that **the Aur-P1 > Aur-P2 raw mean-degree ordering is preserved under every condition**:
+**Hohle Fels exclusion (Analysis C).** Hohle Fels contributes `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels", phase2 == "Aur-P1"))` objects to Aur-P1 and `r nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels", phase2 == "Aur-P2"))` objects to Aur-P2, which is `r round(100 * nrow(signbase_full_clean %>% filter(site_name == "Hohle Fels", phase2 == "Aur-P2")) / nrow(signbase_full_clean %>% filter(phase2 == "Aur-P2")))`% of the Aur-P2 sample. Removing the site from both phases reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Hohle Fels")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Hohle Fels")` edges (mean degree `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Hohle Fels")`), and reduces Aur-P2 from `r s8_ns("Aur-P2", "Baseline (technology-based)")` to `r s8_ns("Aur-P2", "Exclude Hohle Fels")` sites and from `r s8_ne("Aur-P2", "Baseline (technology-based)")` to `r s8_ne("Aur-P2", "Exclude Hohle Fels")` edges. The Aur-P2 mean degree barely changes (`r s8_md("Aur-P2", "Baseline (technology-based)")` at baseline, `r s8_md("Aur-P2", "Exclude Hohle Fels")` without Hohle Fels), so the remaining Aur-P2 sites keep a similar level of connection to each other without the site that holds the phase's richest repertoire. Modularity falls in both phases (Aur-P1 `r s8_mo("Aur-P1", "Baseline (technology-based)")` to `r s8_mo("Aur-P1", "Exclude Hohle Fels")`; Aur-P2 `r s8_mo("Aur-P2", "Baseline (technology-based)")` to `r s8_mo("Aur-P2", "Exclude Hohle Fels")`).
+
+**Phase-ordering robustness.** The most consequential finding is that **the Aur-P1 > Aur-P2 raw mean-degree ordering is preserved under every condition in this section** (under the alternative date ends of @sec-s5-3 the ordering instead follows the number of sites in each phase):
 
 ```{r}
 #| label: tbl-ordering-by-condition
@@ -1135,6 +1182,8 @@ kable(s8_ordering,
 **Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive under purely date-based assignment?** Yes. The robustness of the Aur-P1 > Aur-P2 raw mean-degree difference to the assignment criterion strengthens the main-text conclusion that the early phase supports a larger network. The date-based alternative is a useful worst case: it splits Vogelherd across the phases, moves La Ferrassie into Aur-P2 and moves Mladeč into Aur-P1 (via the older-end calibrated median of `r s53_mladec[["MedianBP_older"]]` cal BP), yet Aur-P1 retains the higher raw mean degree. Under the date-based assignment Aur-P1's mean degree rises (from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Date-based")`) and Aur-P2's falls (from `r s8_md("Aur-P2", "Baseline (technology-based)")` to `r s8_md("Aur-P2", "Date-based")`), so the contrast is not an artefact of the technological reassignment; the naive date-based assignment, if anything, strengthens it (@tbl-reclass-comparison; @tbl-ordering-by-condition).
 
 **Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive when Vogelherd is excluded entirely?** Yes. Excluding Vogelherd leaves the ordering intact (`r s8_md("Aur-P1", "Exclude Vogelherd")` versus `r s8_md("Aur-P2", "Exclude Vogelherd")`), so the Aur-P1 network does not depend on this single site (@tbl-reclass-comparison, Exclude Vogelherd row). Removing Vogelherd's `r nrow(signbase_full_clean %>% filter(site_name == "Vogelherd"))` objects reduces Aur-P1 from `r s8_ns("Aur-P1", "Baseline (technology-based)")` to `r s8_ns("Aur-P1", "Exclude Vogelherd")` sites and from `r s8_ne("Aur-P1", "Baseline (technology-based)")` to `r s8_ne("Aur-P1", "Exclude Vogelherd")` edges, with mean degree falling from `r s8_md("Aur-P1", "Baseline (technology-based)")` to `r s8_md("Aur-P1", "Exclude Vogelherd")`, while Aur-P2 is unaffected.
+
+**Question: does the Aur-P1 greater than Aur-P2 raw mean-degree ordering survive when Hohle Fels is excluded entirely?** Yes. Excluding Hohle Fels leaves the ordering intact (`r s8_md("Aur-P1", "Exclude Hohle Fels")` versus `r s8_md("Aur-P2", "Exclude Hohle Fels")`; @tbl-reclass-comparison, Exclude Hohle Fels rows). The Aur-P2 network does not depend on its largest site: the mean degree of the remaining `r s8_ns("Aur-P2", "Exclude Hohle Fels")` sites (`r s8_md("Aur-P2", "Exclude Hohle Fels")`) is almost the same as at baseline (`r s8_md("Aur-P2", "Baseline (technology-based)")`). The within-phase group structure is a separate question: Hohle Fels is one of only three broad-range sites in Aur-P2, so the restricted/broad contrast in that phase rests partly on this site.
 
 **Implication for the main text.** The observed between-phase modularity values are, however, assignment-sensitive: they reverse under the date-based assignment (Aur-P1 `r s8_mo("Aur-P1", "Date-based")` < Aur-P2 `r s8_mo("Aur-P2", "Date-based")`, versus `r s8_mo("Aur-P1", "Baseline (technology-based)")` > `r s8_mo("Aur-P2", "Baseline (technology-based)")` at baseline). This reinforces the main text's caution about between-phase comparisons: the pairwise permutation test on the technology-based baseline finds no significant difference in modularity (or any other network statistic) between the phases, and @sec-s7-3 shows that the modularity confidence intervals overlap substantially (Aur-P2 rests on only `r nrow(aurp2_artifact_data)` sites). We therefore recommend reading the between-phase contrast primarily as a difference in network scale rather than as a robust ordering of modularity values across alternative assignments. Under the date-based assignment the membership of each phase changes (La Ferrassie moves to Aur-P2, Mladeč moves to Aur-P1 and Vogelherd is split between the phases), so the within-phase restricted/broad pattern could also change. We did not refit the stochastic block models under the date-based assignment; the SBM results in @sec-s9-3 come from the technology-based baseline.
 
@@ -2262,7 +2311,7 @@ s513_map_df <- bind_rows(
 # Base Europe map as in paper qmd fig-site-map
 world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
 Europe <- world[which(world$continent == "Europe"),]
-phase_cols <- c("Aur-P1"="#F8766D","Aur-P2"="#00BA38")
+phase_cols <- c("Aur-P1"="#D55E00","Aur-P2"="#0072B2")
 # Region palette: colour-blind safe
 reg_cols <- c("1"="#4477AA","2"="#CC6677","3"="#DDCC77","4"="#117733","5"="#88CCEE")
 
@@ -3222,7 +3271,7 @@ heatmap_long <- community_wide %>%
     Site = factor(Site, levels = unique(rev(community_wide$Site)))
   )
 
-group_pal <- c("1" = "#E41A1C", "2" = "#377EB8", "3" = "#4DAF4A", "4" = "#984EA3")
+group_pal <- c("1" = "#D55E00", "2" = "#0072B2", "3" = "#4DAF4A", "4" = "#984EA3")
 
 p_comem <- ggplot(heatmap_long, aes(x = Algorithm, y = Site, fill = Group)) +
   geom_tile(colour = "white", linewidth = 0.5) +
@@ -3358,7 +3407,7 @@ map_data_comm <- bind_rows(
 
 world_comm <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
 europe_comm <- world_comm[which(world_comm$continent == "Europe"),]
-comm_cols <- c("1" = "#E41A1C", "2" = "#377EB8", "3" = "#4DAF4A", "4" = "#984EA3")
+comm_cols <- c("1" = "#D55E00", "2" = "#0072B2", "3" = "#4DAF4A", "4" = "#984EA3")
 
 p_comm_map <- ggplot(europe_comm) +
   geom_sf(fill = "grey95", colour = "grey70") +
@@ -3569,7 +3618,7 @@ div_site %>%
 ggplot(obj_counts, aes(x = nobjects, fill = phase)) +
   geom_histogram(binwidth = 5, colour = "white") +
   facet_wrap(~ phase, scales = "free") +
-  scale_fill_manual(values = c("Aur-P1" = "#F8766D", "Aur-P2" = "#00BA38")) +
+  scale_fill_manual(values = c("Aur-P1" = "#D55E00", "Aur-P2" = "#0072B2")) +
   theme_minimal() +
   labs(x = "Objects per site", y = "Number of sites") +
   guides(fill = "none")
@@ -3648,7 +3697,7 @@ ggplot(ret_all, aes(x = reorder(site_name, nobjects), y = retention_rate,
   geom_col() +
   coord_flip() +
   facet_wrap(~ paste(phase, "k=", k, sep = "")) +
-  scale_fill_manual(values = c("1" = "#00BA38", "2" = "#F8766D"),
+  scale_fill_manual(values = c("1" = "#D55E00", "2" = "#0072B2"),
                     labels = c("restricted", "broad"), name = "Manual group") +
   theme_minimal() +
   labs(x = "Site (ordered by object count)", y = "Group-retention rate")
@@ -3707,14 +3756,14 @@ cov_tab %>%
 
 ```{r fig.height=4, fig.width=7}
 #| label: fig-rarefaction
-#| fig-cap: "Sign-type richness estimated at target coverage = 0.9 with 95% confidence intervals, by manual group, for sites that reach that coverage. Restricted sites (green) that attain high coverage remain low-richness; broad sites (red) remain high-richness."
+#| fig-cap: "Sign-type richness estimated at target coverage = 0.9 with 95% confidence intervals, by manual group, for sites that reach that coverage. Restricted sites (orange) that attain high coverage remain low-richness; broad sites (blue) remain high-richness."
 #| fig-height: 4
 
 cov_plot <- cov_tab %>% filter(!is.na(richness_at_target))
 ggplot(cov_plot, aes(x = group, y = richness_at_target, colour = group)) +
   geom_errorbar(aes(ymin = rt_LCL, ymax = rt_UCL), width = 0.1) +
   geom_jitter(width = 0.15, height = 0, size = 2.5, alpha = 0.8) +
-  scale_colour_manual(values = c("restricted" = "#00BA38", "broad" = "#F8766D")) +
+  scale_colour_manual(values = c("restricted" = "#D55E00", "broad" = "#0072B2")) +
   theme_minimal() +
   labs(x = "Manual group", y = "Sign-type richness at coverage = 0.9") +
   guides(colour = "none")

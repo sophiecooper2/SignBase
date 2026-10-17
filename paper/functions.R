@@ -585,7 +585,7 @@ seriation_null_test <- function(mat, B = 999, seed = 1) {
 # Produce a seriation or network plot for one phase.
 produce_clusters <- function(artifact_data, artifact_data_unique,
                              method = "seriation",
-                             color_palette = c("#E41A1C", "#377EB8"),
+                             color_palette = c("#D55E00", "#0072B2"),
                              threshold = 0.2, metric = "jaccard") {
 
   artifact_data <- artifact_data %>%
@@ -3431,7 +3431,7 @@ ordination_plots <- function(artifact_data, phase_name) {
                       Dim2 = ca_scores$Dim2,
                       group = grp_lab[match(rownames(ca_scores), site_names)],
                       stringsAsFactors = FALSE)
-  group_cols <- c("Restricted" = "#E41A1C", "Broad" = "#377EB8")
+  group_cols <- c("Restricted" = "#D55E00", "Broad" = "#0072B2")
   p_pcoa <- ggplot(pcoa_df, aes(x = Dim1, y = Dim2, colour = group, label = site)) +
     geom_point(size = 3) +
     ggrepel::geom_text_repel(size = 2.5, max.overlaps = 100,
