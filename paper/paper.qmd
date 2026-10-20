@@ -497,7 +497,7 @@ Because the restricted/broad group assignments were derived from visual inspecti
 
 # Data Availability
 
-All data and code needed to reproduce the analyses in this paper are publicly available. The original unprocessed dataset is available in the signBase_Version1.0.csv file from the SignBase repository [@dutkiewicz2020]. The processed dataset is included with our Open Access research compendium at https://doi.org/10.5281/zenodo.21829663. This compendium includes a list of all the R package names, their version numbers, and custom R functions used to generate the results presented here. The compendium includes the Quarto documents `paper.qmd`, `S1-supplement-sensitivity.qmd`, and `S2-supplement-site-assignment.qmd` which can be rendered to reproduce the full analysis pipeline. This computational reproducibility approach follows best practices for transparent and open archaeological science [@Marwick2017; @Marwick_2025].
+All data and code needed to reproduce the analyses in this paper are publicly available. The original unprocessed dataset is available in the signBase_Version1.0.csv file from the SignBase repository [@dutkiewicz2020]. The processed dataset is included with our Open Access research compendium at https://doi.org/10.5281/zenodo.21829663. This compendium includes a list of all the R package names, their version numbers, and custom R functions used to generate the results presented here. The compendium includes the Quarto documents `paper.qmd`, `S1_File.qmd`, and `S2_File.qmd` which can be rendered to reproduce the full analysis pipeline. This computational reproducibility approach follows best practices for transparent and open archaeological science [@Marwick2017; @Marwick_2025].
 
 # Results
 
@@ -836,7 +836,7 @@ Because the restricted/broad labels were defined from the same sign data used in
 #| tbl-cap: "**PerMANOVA results for each phase.**"
 #| tbl-colwidths: [26, 18, 16, 16, 24]
 
-kable(strength_table)
+kable(strength_table, col.names = sub("R2", "R²", names(strength_table)))
 ```
 
 The R² 95% confidence interval comes from an object-within-site bootstrap (B = 1,000). The bootstrap intervals describe the stability of R² under object resampling with fixed group labels; they should not be interpreted as null-hypothesis tests.
