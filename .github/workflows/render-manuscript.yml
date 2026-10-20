@@ -29,15 +29,15 @@ jobs:
       - name: Render Quarto Documents
         run: |
           docker run --name render-container signbase:latest \
-            bash -lc "quarto render paper/S1-supplement-sensitivity.qmd --to docx \
-              && quarto render paper/S2-supplement-site-assignment.qmd --to docx \
+            bash -lc "quarto render paper/S1_File.qmd --to docx \
+              && quarto render paper/S2_File.qmd --to docx \
               && quarto render paper/paper.qmd --to docx"
 
       - name: Download .docx from Container
         run: |
           docker cp render-container:/project/paper/paper.docx ./paper.docx
-          docker cp render-container:/project/paper/S1-supplement-sensitivity.docx ./S1-supplement-sensitivity.docx
-          docker cp render-container:/project/paper/S2-supplement-site-assignment.docx ./S2-supplement-site-assignment.docx
+          docker cp render-container:/project/paper/S1_File.docx ./S1_File.docx
+          docker cp render-container:/project/paper/S2_File.docx ./S2_File.docx
 
       - name: Upload to Summary Page
         uses: actions/upload-artifact@v4
@@ -45,6 +45,6 @@ jobs:
           name: Manuscript-Word-Doc
           path: |
             paper.docx
-            S1-supplement-sensitivity.docx
-            S2-supplement-site-assignment.docx
+            S1_File.docx
+            S2_File.docx
           retention-days: 7
